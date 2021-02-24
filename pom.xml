@@ -26,6 +26,13 @@
         <artifactId>nightglow-api</artifactId>
         <version>0.1.0-SNAPSHOT</version>
       </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.7.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>

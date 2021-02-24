@@ -1,8 +1,10 @@
-package io.openraven.nightglow.core;
+package io.openraven.nightglow.core.layers;
 
 import io.openraven.nightglow.api.DiscoveryEnvelope;
 import io.openraven.nightglow.api.EnumerationPlugin;
 import io.openraven.nightglow.api.Session;
+import io.openraven.nightglow.core.fifos.FifoException;
+import io.openraven.nightglow.core.fifos.FifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

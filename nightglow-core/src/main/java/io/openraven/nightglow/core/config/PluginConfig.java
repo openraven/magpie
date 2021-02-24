@@ -1,4 +1,4 @@
-package io.openraven.nightglow.core;
+package io.openraven.nightglow.core.config;
 
 public class PluginConfig<T> {
 

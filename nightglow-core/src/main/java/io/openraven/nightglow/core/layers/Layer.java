@@ -1,4 +1,6 @@
-package io.openraven.nightglow.core;
+package io.openraven.nightglow.core.layers;
+
+import io.openraven.nightglow.core.fifos.FifoException;
 
 import java.util.Set;
 import java.util.regex.Pattern;

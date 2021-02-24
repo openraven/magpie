@@ -1,4 +1,4 @@
-package io.openraven.nightglow.core;
+package io.openraven.nightglow.core.fifos;
 
 public class FifoException extends Exception {
   public FifoException() {
