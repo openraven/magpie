@@ -6,15 +6,19 @@ import io.openraven.nightglow.api.EnumerationPlugin;
 import io.openraven.nightglow.api.IntermediatePlugin;
 import io.openraven.nightglow.api.NightglowPlugin;
 import io.openraven.nightglow.api.TerminalPlugin;
+import io.openraven.nightglow.core.config.ConfigException;
 import io.openraven.nightglow.core.config.NightglowConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 public class PluginManager {
 
@@ -39,14 +43,22 @@ public class PluginManager {
         final var plugin = svc.get();
         try {
           final var configType = plugin.configType();
-          final var pluginConfig = buildPluginConfig(configType, plugin.configType());
-          plugin.init(pluginConfig, LoggerFactory.getLogger(plugin.configType()));
-          var pluginList = plugins.getOrDefault(c, List.of());
-          pluginList.add(plugin);
-          plugins.put(c, pluginList);
-          LOGGER.debug("Loaded {}", plugin.id());
+          final var pluginConfigParent = config.getPlugins().get(plugin.id());
+          if (pluginConfigParent == null) {
+            LOGGER.info("No configuration found for {}, ignoring.", plugin.id());
+          } else if (!pluginConfigParent.isEnabled()) {
+            LOGGER.debug("{} found but is diabled via config. Ignoring}", plugin.id());
+          } else {
+            final var pluginConfig = buildPluginConfig(configType, pluginConfigParent.getConfig());
+
+            plugin.init(pluginConfig, LoggerFactory.getLogger(plugin.configType()));
+            var pluginList = plugins.getOrDefault(c, new ArrayList<>());
+            pluginList.add(plugin);
+            plugins.put(c, pluginList);
+            LOGGER.debug("Loaded {}", plugin.id());
+          }
         } catch (Exception ex) {
-          LOGGER.warn("Failed to load {}", plugin.id(), ex);
+          throw new RuntimeException(ex);
         }
       });
     });
@@ -56,8 +68,17 @@ public class PluginManager {
     return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
   }
 
-  public List<NightglowPlugin<?>> ofType(Class<? extends NightglowPlugin> clazz) {
+  public List<NightglowPlugin<?>> byType(Class<? extends NightglowPlugin> clazz) {
     final var list = plugins.get(clazz);
     return list == null ? Collections.emptyList() :  Collections.unmodifiableList(list);
+  }
+
+  public Optional<NightglowPlugin<?>> byId(String id) {
+    var matches = plugins.values().stream()
+      .flatMap(val -> val.stream())
+      .filter(plugin -> plugin.id().equals(id))
+      .collect(Collectors.toList());
+    assert(matches.size() <= 1);
+    return matches.isEmpty() ? Optional.empty() : Optional.of(matches.get(0));
   }
 }

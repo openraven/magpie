@@ -1,11 +1,10 @@
 layers:
-  discovery:
+  origin:
     type: origin
     queue: xform
     plugins:
       - nightglow.aws
       - nightglow.gcp
-
   transform:
     type: intermediate
     dequeue: xform

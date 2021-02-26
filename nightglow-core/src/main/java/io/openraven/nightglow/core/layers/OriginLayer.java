@@ -15,10 +15,10 @@ public class OriginLayer implements Layer {
   private final static Logger LOGGER = LoggerFactory.getLogger(OriginLayer.class);
 
   private final Session session;
-  private final Collection<EnumerationPlugin<?>> plugins;
+  private final Collection<EnumerationPlugin> plugins;
   private final FifoQueue queue;
 
-  public OriginLayer(Session session, Collection<EnumerationPlugin<?>> plugins, FifoQueue queue) {
+  public OriginLayer(Session session, Collection<EnumerationPlugin> plugins, FifoQueue queue) {
     this.session = session;
     this.plugins = plugins;
     this.queue = queue;

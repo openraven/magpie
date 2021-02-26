@@ -15,10 +15,10 @@ public class IntermediateLayer implements Layer {
   private final static Logger LOGGER = LoggerFactory.getLogger(IntermediateLayer.class);
 
   private final FifoDequeue dequeue;
-  private final Collection<IntermediatePlugin<?>> plugins;
+  private final Collection<IntermediatePlugin> plugins;
   private final FifoQueue queue;
 
-  public IntermediateLayer(FifoDequeue dequeue, Collection<IntermediatePlugin<?>> plugins, FifoQueue queue) {
+  public IntermediateLayer(FifoDequeue dequeue, Collection<IntermediatePlugin> plugins, FifoQueue queue) {
     this.dequeue = dequeue;
     this.plugins = plugins;
     this.queue = queue;

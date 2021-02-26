@@ -13,10 +13,10 @@ public class TerminalLayer implements Layer {
   private final static Logger LOGGER = LoggerFactory.getLogger(TerminalLayer.class);
 
   private final FifoDequeue dequeue;
-  private final Collection<TerminalPlugin<?>> plugins;
+  private final Collection<TerminalPlugin> plugins;
 
 
-  public TerminalLayer(FifoDequeue dequeue, Collection<TerminalPlugin<?>> plugins) {
+  public TerminalLayer(FifoDequeue dequeue, Collection<TerminalPlugin> plugins) {
     this.dequeue = dequeue;
     this.plugins = plugins;
   }
