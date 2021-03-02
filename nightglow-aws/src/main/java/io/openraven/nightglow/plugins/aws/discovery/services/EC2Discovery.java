@@ -17,34 +17,24 @@ public class EC2Discovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(Session session, Ec2Client client, Emitter emitter);
+    void discover(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
   }
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private final Ec2Client client;
-  private final Region region;
-  private final Logger logger;
-
-  public EC2Discovery(Ec2Client client, Region region, Logger logger) {
-    this.client = client;
-    this.region = region;
-    this.logger = logger;
-  }
-
-  public void discover(Session session,  Emitter emitter) {
+  public void discover(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
     final List<LocalDiscovery> methods = List.of(
-      (ds, cl, em) -> discoverEc2Instances(session, client, emitter),
-      (ds, cl, em) -> discoverEIPs(session, client, emitter),
-      (ds, cl, em) -> discoverSecurityGroups(session, client, emitter),
-      (ds, cl, em) -> discoverVolumes(session, client, emitter)
+      (ds, cl, r, em, l) -> discoverEc2Instances(session, client, region, emitter, logger),
+      (ds, cl, r, em, l) -> discoverEIPs(session, client, region, emitter, logger),
+      (ds, cl, r, em, l) -> discoverSecurityGroups(session, client, region, emitter, logger),
+      (ds, cl, r, em, l) -> discoverVolumes(session, client, region, emitter, logger)
     );
 
-    methods.forEach(m -> m.discover(session, client, emitter));
+    methods.forEach(m -> m.discover(session, client, region, emitter, logger));
   }
 
 
-  private void discoverEc2Instances(Session session, Ec2Client client, Emitter emitter) {
+  private void discoverEc2Instances(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
     logger.info("Discovering EC2 Instances in {}", region);
 
     getAwsResponse(
@@ -59,7 +49,7 @@ public class EC2Discovery implements AWSDiscovery {
     logger.info("Finished EC2 Instance discovery in {}", region);
   }
 
-  private void discoverEIPs(Session session, Ec2Client client, Emitter emitter) {
+  private void discoverEIPs(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
 
     logger.info("Discovering EIPs in {}", region);
 
@@ -74,7 +64,7 @@ public class EC2Discovery implements AWSDiscovery {
     logger.info("Finished EIP discovery in {}", region);
   }
 
-  private void discoverSecurityGroups(Session session, Ec2Client client, Emitter emitter) {
+  private void discoverSecurityGroups(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
     logger.info("Discovering SecurityGroups in {}", region);
 
     getAwsResponse(
@@ -89,7 +79,7 @@ public class EC2Discovery implements AWSDiscovery {
     logger.info("Finished SecurityGroup discovery in {}", region);
   }
 
-  private void discoverVolumes(Session discoverySession, Ec2Client client, Emitter emitter) {
+  private void discoverVolumes(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
     logger.info("Discovering Volumes in {}", region);
 
     getAwsResponse(
@@ -97,7 +87,7 @@ public class EC2Discovery implements AWSDiscovery {
       (resp) -> resp.stream()
         .flatMap(r -> r.volumes().stream())
         .forEach(v -> emitter.emit(
-          new NGEnvelope(discoverySession, List.of(AWSDiscoveryPlugin.ID + ":volume"), MAPPER.valueToTree(v.toBuilder()))
+          new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), MAPPER.valueToTree(v.toBuilder()))
         )),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
 
