@@ -12,11 +12,13 @@
   <modules>
     <module>nightglow-core</module>
     <module>nightglow-cli</module>
+    <module>nightglow-aws</module>
   </modules>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <jackson.version>2.12.1</jackson.version>
   </properties>
 
   <dependencyManagement>
@@ -25,6 +27,16 @@
         <groupId>io.openraven.nightglow</groupId>
         <artifactId>nightglow-api</artifactId>
         <version>0.1.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit</groupId>

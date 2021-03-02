@@ -17,11 +17,13 @@ public class IntermediateLayer implements Layer {
   private final FifoDequeue dequeue;
   private final Collection<IntermediatePlugin> plugins;
   private final FifoQueue queue;
+  private final String name;
 
-  public IntermediateLayer(FifoDequeue dequeue, Collection<IntermediatePlugin> plugins, FifoQueue queue) {
+  public IntermediateLayer(String name, FifoDequeue dequeue, Collection<IntermediatePlugin> plugins, FifoQueue queue) {
     this.dequeue = dequeue;
     this.plugins = plugins;
     this.queue = queue;
+    this.name = name;
   }
 
   public void exec() throws FifoException {
@@ -39,6 +41,11 @@ public class IntermediateLayer implements Layer {
         LOGGER.warn("Plugin exception: {}", p.id(), ex);
       }
     });
+  }
+
+  @Override
+  public String getName() {
+    return name;
   }
 
   private void emit(DiscoveryEnvelope env) {

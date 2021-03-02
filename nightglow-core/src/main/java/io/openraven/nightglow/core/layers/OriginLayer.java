@@ -17,11 +17,13 @@ public class OriginLayer implements Layer {
   private final Session session;
   private final Collection<EnumerationPlugin> plugins;
   private final FifoQueue queue;
+  private final String name;
 
-  public OriginLayer(Session session, Collection<EnumerationPlugin> plugins, FifoQueue queue) {
+  public OriginLayer(String name, Session session, Collection<EnumerationPlugin> plugins, FifoQueue queue) {
     this.session = session;
     this.plugins = plugins;
     this.queue = queue;
+    this.name = name;
   }
 
   @Override
@@ -33,6 +35,11 @@ public class OriginLayer implements Layer {
         LOGGER.warn("Plugin exception: {}", p.id(), ex);
       }
     });
+  }
+
+  @Override
+  public String getName() {
+    return name;
   }
 
   private void emit(DiscoveryEnvelope env) {

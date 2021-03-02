@@ -14,11 +14,12 @@ public class TerminalLayer implements Layer {
 
   private final FifoDequeue dequeue;
   private final Collection<TerminalPlugin> plugins;
+  private final String name;
 
-
-  public TerminalLayer(FifoDequeue dequeue, Collection<TerminalPlugin> plugins) {
+  public TerminalLayer(String name, FifoDequeue dequeue, Collection<TerminalPlugin> plugins) {
     this.dequeue = dequeue;
     this.plugins = plugins;
+    this.name = name;
   }
 
   @Override
@@ -37,5 +38,10 @@ public class TerminalLayer implements Layer {
         LOGGER.warn("Plugin exception: {}", p.id(), ex);
       }
     });
+  }
+
+  @Override
+  public String getName() {
+    return name;
   }
 }

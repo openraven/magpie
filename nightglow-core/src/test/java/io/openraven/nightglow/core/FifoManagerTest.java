@@ -21,7 +21,7 @@ class FifoManagerTest {
       var config = MAPPER.readValue(is, NightglowConfig.class);
 
       assertEquals(3, config.getLayers().size());
-      assertTrue(config.getLayers().containsKey("discovery"));
+      assertTrue(config.getLayers().containsKey("enumerate"));
       assertTrue(config.getLayers().containsKey("transform"));
       assertTrue(config.getLayers().containsKey("output"));
       assertFalse(config.getLayers().containsKey("test"));

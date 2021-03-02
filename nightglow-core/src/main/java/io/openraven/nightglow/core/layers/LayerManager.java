@@ -15,6 +15,7 @@ import io.openraven.nightglow.core.plugins.PluginManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,18 +49,18 @@ public class LayerManager {
 
       switch (layerConfig.getType().toLowerCase()) {
         case"origin":
-          layers.put(name, new OriginLayer(session,
+          layers.put(name, new OriginLayer(name, session,
             plugins.stream().map(p -> (EnumerationPlugin)p).collect(Collectors.toList()),
             getOrThrowQueue(name, layerConfig)));
           break;
         case "intermediate":
-          layers.put(name, new IntermediateLayer(
+          layers.put(name, new IntermediateLayer(name,
             getOrThrowDequeue(name, layerConfig),
             plugins.stream().map(p -> (IntermediatePlugin)p).collect(Collectors.toList()),
             getOrThrowQueue(name, layerConfig)));
           break;
         case "terminal":
-          layers.put(name, new TerminalLayer(
+          layers.put(name, new TerminalLayer(name,
             getOrThrowDequeue(name, layerConfig),
             plugins.stream().map(p -> (TerminalPlugin)p).collect(Collectors.toList())));
           break;
@@ -95,5 +96,9 @@ public class LayerManager {
       throw new ConfigException("Couldn't find dequeue " + dequeueName);
     }
     return dequeue;
+  }
+
+  public Map<String, Layer> getLayers() {
+    return Collections.unmodifiableMap(layers);
   }
 }
