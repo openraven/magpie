@@ -1,0 +1,24 @@
+layers:
+  enumerate:
+    type: origin
+    queue: default
+    plugins:
+      - nightglow.aws.discovery
+  output:
+    type: terminal
+    dequeue: default
+    plugins:
+      - nightglow.json
+fifos:
+  default:
+    type: local
+plugins:
+  nightglow.aws.discovery:
+    enabled: true
+    config:
+  nightglow.json:
+    enabled: true
+    config:
+
+
+

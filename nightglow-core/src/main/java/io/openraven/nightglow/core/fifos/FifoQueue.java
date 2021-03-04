@@ -1,8 +1,8 @@
 package io.openraven.nightglow.core.fifos;
 
-import io.openraven.nightglow.api.DiscoveryEnvelope;
+import io.openraven.nightglow.api.NGEnvelope;
 
 @FunctionalInterface
 public interface FifoQueue {
-  void add(DiscoveryEnvelope env) throws FifoException;
+  void add(NGEnvelope env) throws FifoException;
 }

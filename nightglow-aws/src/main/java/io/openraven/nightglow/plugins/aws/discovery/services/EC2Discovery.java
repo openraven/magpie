@@ -1,6 +1,7 @@
 package io.openraven.nightglow.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.nightglow.api.Emitter;
 import io.openraven.nightglow.api.NGEnvelope;
 import io.openraven.nightglow.api.Session;
@@ -19,8 +20,6 @@ public class EC2Discovery implements AWSDiscovery {
   interface LocalDiscovery {
     void discover(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
   }
-
-  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   public void discover(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
     final List<LocalDiscovery> methods = List.of(
@@ -41,9 +40,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeInstancesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.reservations().stream())
-        .forEach(i -> emitter.emit(
-          new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ec2"), MAPPER.valueToTree(i.toBuilder()))
-        )),
+        .forEach(i -> emitter.emit(new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ec2"), i.toBuilder()))),
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
 
     logger.info("Finished EC2 Instance discovery in {}", region);
@@ -56,9 +53,12 @@ public class EC2Discovery implements AWSDiscovery {
     getAwsResponse(
       client::describeAddresses,
       (resp) -> resp.addresses()
-        .forEach(addr -> emitter.emit(
-          new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), MAPPER.valueToTree(addr.toBuilder()))
-        )),
+        .forEach(addr -> {
+
+            emitter.emit(
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), addr.toBuilder())
+            );
+        }),
       (noresp) -> logger.debug("Couldn't query for EIPs in {}.", region));
 
     logger.info("Finished EIP discovery in {}", region);
@@ -71,9 +71,12 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeSecurityGroupsPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.securityGroups().stream())
-        .forEach(sg -> emitter.emit(
-          new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), MAPPER.valueToTree(sg.toBuilder()))
-        )),
+        .forEach(sg -> {
+
+            emitter.emit(
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), sg.toBuilder())
+            );
+        }),
       (noresp) -> logger.debug("Couldn't query for SecurityGroups in {}.", region));
 
     logger.info("Finished SecurityGroup discovery in {}", region);
@@ -86,9 +89,12 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeVolumesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.volumes().stream())
-        .forEach(v -> emitter.emit(
-          new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), MAPPER.valueToTree(v.toBuilder()))
-        )),
+        .forEach(v -> {
+
+            emitter.emit(
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), v.toBuilder())
+            );
+        }),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
 
     logger.info("Finished Volumes discovery in {}", region);

@@ -6,4 +6,5 @@ public interface Layer {
 
   void exec() throws FifoException;
   String getName();
+  LayerType getType();
 }

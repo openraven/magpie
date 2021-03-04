@@ -1,7 +1,7 @@
 package io.openraven.nightglow.core.layers;
 
-import io.openraven.nightglow.api.DiscoveryEnvelope;
 import io.openraven.nightglow.api.EnumerationPlugin;
+import io.openraven.nightglow.api.NGEnvelope;
 import io.openraven.nightglow.api.Session;
 import io.openraven.nightglow.core.fifos.FifoException;
 import io.openraven.nightglow.core.fifos.FifoQueue;
@@ -42,11 +42,16 @@ public class OriginLayer implements Layer {
     return name;
   }
 
-  private void emit(DiscoveryEnvelope env) {
+  private void emit(NGEnvelope env) {
     try {
       queue.add(env);
     } catch (FifoException e) {
       LOGGER.warn("Emitter exception", e);
     }
+  }
+
+  @Override
+  public LayerType getType() {
+    return LayerType.ORIGIN;
   }
 }

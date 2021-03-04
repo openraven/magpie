@@ -47,19 +47,20 @@ public class LayerManager {
         .map(Optional::get)
         .collect(Collectors.toList());
 
-      switch (layerConfig.getType().toLowerCase()) {
-        case"origin":
+      final var layerType = LayerType.valueOf(layerConfig.getType().toUpperCase());
+      switch (layerType) {
+        case ORIGIN:
           layers.put(name, new OriginLayer(name, session,
             plugins.stream().map(p -> (EnumerationPlugin)p).collect(Collectors.toList()),
             getOrThrowQueue(name, layerConfig)));
           break;
-        case "intermediate":
+        case INTERMEDIATE:
           layers.put(name, new IntermediateLayer(name,
             getOrThrowDequeue(name, layerConfig),
             plugins.stream().map(p -> (IntermediatePlugin)p).collect(Collectors.toList()),
             getOrThrowQueue(name, layerConfig)));
           break;
-        case "terminal":
+        case TERMINAL:
           layers.put(name, new TerminalLayer(name,
             getOrThrowDequeue(name, layerConfig),
             plugins.stream().map(p -> (TerminalPlugin)p).collect(Collectors.toList())));

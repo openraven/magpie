@@ -44,4 +44,9 @@ public class TerminalLayer implements Layer {
   public String getName() {
     return name;
   }
+
+  @Override
+  public LayerType getType() {
+    return LayerType.TERMINAL;
+  }
 }

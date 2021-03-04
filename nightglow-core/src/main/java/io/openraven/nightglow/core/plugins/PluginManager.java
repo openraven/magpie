@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class PluginManager {
@@ -37,8 +39,12 @@ public class PluginManager {
   }
 
   private void loadPlugins() {
+    final var pluginsFound = new AtomicLong();
     PLUGIN_CLASSES.forEach(c -> {
       final var loader = ServiceLoader.load(c);
+      var count = loader.stream().count();
+      LOGGER.debug("Found {} {} plugin(s) via the classpath", c.getSimpleName(), count);
+      pluginsFound.addAndGet(count);
       loader.stream().forEach(svc -> {
         final var plugin = svc.get();
         try {
@@ -47,11 +53,11 @@ public class PluginManager {
           if (pluginConfigParent == null) {
             LOGGER.info("No configuration found for {}, ignoring.", plugin.id());
           } else if (!pluginConfigParent.isEnabled()) {
-            LOGGER.debug("{} found but is diabled via config. Ignoring}", plugin.id());
+            LOGGER.debug("{} found but is disabled via config. Ignoring}", plugin.id());
           } else {
             final var pluginConfig = buildPluginConfig(configType, pluginConfigParent.getConfig());
 
-            plugin.init(pluginConfig, LoggerFactory.getLogger(plugin.configType()));
+            plugin.init(pluginConfig, LoggerFactory.getLogger(plugin.getClass()));
             var pluginList = plugins.getOrDefault(c, new ArrayList<>());
             pluginList.add(plugin);
             plugins.put(c, pluginList);
@@ -62,9 +68,16 @@ public class PluginManager {
         }
       });
     });
+
+    if (pluginsFound.get() == 0) {
+      throw new ConfigException("No plugins found");
+    }
   }
 
   private Object buildPluginConfig(Class<?> configType, Object config) throws JsonProcessingException {
+    if (config == null) {
+      return null;
+    }
     return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
   }
 
