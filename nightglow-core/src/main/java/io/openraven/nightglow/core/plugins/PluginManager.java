@@ -51,7 +51,7 @@ public class PluginManager {
           final var configType = plugin.configType();
           final var pluginConfigParent = config.getPlugins().get(plugin.id());
           if (pluginConfigParent == null) {
-            LOGGER.info("No configuration found for {}, ignoring.", plugin.id());
+            LOGGER.debug("No configuration found for {}, ignoring.", plugin.id());
           } else if (!pluginConfigParent.isEnabled()) {
             LOGGER.debug("{} found but is disabled via config. Ignoring}", plugin.id());
           } else {

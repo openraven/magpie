@@ -1,10 +1,15 @@
 package io.openraven.nightglow.core.config;
 
 
-public class FifoConfig {
-  private boolean enabled = true;
+import java.util.HashMap;
+import java.util.Map;
 
+public class FifoConfig {
+
+  private boolean enabled = true;
   private String type = "local";
+  private Map<String, Object> properties = new HashMap<>();
+
 
   public boolean isEnabled() {
     return enabled;
@@ -20,5 +25,13 @@ public class FifoConfig {
 
   public void setType(String type) {
     this.type = type;
+  }
+
+  public Map<String, Object> getProperties() {
+    return properties;
+  }
+
+  public void setProperties(Map<String, Object> properties) {
+    this.properties = properties;
   }
 }

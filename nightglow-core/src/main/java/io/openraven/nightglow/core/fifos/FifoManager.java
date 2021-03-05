@@ -46,14 +46,20 @@ public class FifoManager {
       if (fifoConfig == null) {
         throw new ConfigException("No fifo definition found for " + name);
       }
-      final var queueType = fifoConfig.getType();
-      switch(queueType.toLowerCase()) {
-        case "local":
+      final var queueType = QueueType.valueOf(fifoConfig.getType().toUpperCase());
+      switch(queueType) {
+        case LOCAL:
           var q = new LocalQueue();
           // A LocalQueue implements both Queue and Dequeue, so it must be placed in both
           // collections.
           queues.put(name, q);
           dequeues.put(name, q);
+          break;
+        case KAFKA:
+          var qk = new KafkaQueue(fifoConfig.getProperties());
+          // A LocalQueue implements both Queue and Dequeue, so it must be placed in both
+          // collections.
+          queues.put(name, qk);
           break;
         default:
           throw new ConfigException("Invalid queue type: " + queueType);
@@ -72,10 +78,14 @@ public class FifoManager {
           throw new ConfigException("No fifo definition found for " + name);
         }
 
-        final var queueType = fifoConfig.getType();
-        switch(queueType.toLowerCase()) {
-          case "local":
+        final var queueType = QueueType.valueOf(fifoConfig.getType().toUpperCase());
+        switch(queueType) {
+          case LOCAL:
             // Local queues are handled by the buildQueues method.
+            break;
+          case KAFKA:
+            var dk = new KafkaDequeue(fifoConfig.getProperties());
+            dequeues.put(name, dk);
             break;
           default:
             throw new ConfigException("Invalid queue type: " + queueType);

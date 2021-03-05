@@ -16,6 +16,10 @@ import static io.openraven.nightglow.plugins.aws.discovery.AWSUtils.getAwsRespon
 
 public class EC2Discovery implements AWSDiscovery {
 
+  private static final ObjectMapper MAPPER = new ObjectMapper()
+    .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+    .findAndRegisterModules();
+
   @FunctionalInterface
   interface LocalDiscovery {
     void discover(Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
@@ -40,7 +44,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeInstancesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.reservations().stream())
-        .forEach(i -> emitter.emit(new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ec2"), i.toBuilder()))),
+        .forEach(i -> emitter.emit(new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ec2"), MAPPER.valueToTree(i.toBuilder())))),
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
 
     logger.info("Finished EC2 Instance discovery in {}", region);
@@ -56,7 +60,7 @@ public class EC2Discovery implements AWSDiscovery {
         .forEach(addr -> {
 
             emitter.emit(
-              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), addr.toBuilder())
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), MAPPER.valueToTree(addr.toBuilder()))
             );
         }),
       (noresp) -> logger.debug("Couldn't query for EIPs in {}.", region));
@@ -74,7 +78,7 @@ public class EC2Discovery implements AWSDiscovery {
         .forEach(sg -> {
 
             emitter.emit(
-              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), sg.toBuilder())
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), MAPPER.valueToTree(sg.toBuilder()))
             );
         }),
       (noresp) -> logger.debug("Couldn't query for SecurityGroups in {}.", region));
@@ -92,7 +96,7 @@ public class EC2Discovery implements AWSDiscovery {
         .forEach(v -> {
 
             emitter.emit(
-              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), v.toBuilder())
+              new NGEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), MAPPER.valueToTree(v.toBuilder()))
             );
         }),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
