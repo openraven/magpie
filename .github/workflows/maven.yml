@@ -18,7 +18,9 @@ jobs:
           java-version: 11
           java-package: jdk
       - name: Build, Package, Verify
-        run: mvn -B clean package verify
+        run: mvn -B -P github clean package verify
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Assembly
         run: mvn --projects nightglow-cli assembly:single
       - name: Upload artifacts

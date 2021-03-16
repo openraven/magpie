@@ -58,4 +58,18 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <profiles>
+    <profile>
+      <id>github</id>
+      <repositories>
+        <repository>
+          <id>nightglow-api</id>
+          <name>Nightglow API</name>
+          <url>https://maven.pkg.github.com/openraven/nightglow-api</url>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+
 </project>
