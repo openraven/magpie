@@ -19,6 +19,9 @@ jobs:
           java-package: jdk
       - name: Build, Package, Verify
         run: mvn --settings .github/workflows/settings.xml -B -P github clean package verify
+        env:
+          - MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
+          - MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
       - name: Assembly
         run: mvn --projects nightglow-cli assembly:single
       - name: Upload artifacts

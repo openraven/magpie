@@ -30,8 +30,8 @@
   <servers>
     <server>
       <id>github-nightglow-api</id>
-      <username>${{ secrets.READ_PACKAGES_USERNAME }}</username>
-      <password>${{ secrets.READ_PACKAGES_KEY }}</password>
+      <username>${env.MAVEN_USER}</username>
+      <password>${env.MAVEN_PASSWORD}</password>
     </server>
   </servers>
 </settings>
