@@ -20,7 +20,7 @@ jobs:
       - name: Build, Package, Verify
         run: mvn -B -P github clean package verify
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.READ_PACKAGES_KEY }}
       - name: Assembly
         run: mvn --projects nightglow-cli assembly:single
       - name: Upload artifacts
