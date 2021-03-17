@@ -18,7 +18,7 @@ jobs:
           java-version: 11
           java-package: jdk
       - name: Build, Package, Verify
-        run: mvn --settings .github/workflows/settings.xml -B -P github clean package verify
+        run: mvn --settings .github/workflows/settings.xml -B -P github clean package verify install
         env:
           MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
