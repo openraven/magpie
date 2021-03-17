@@ -17,8 +17,8 @@
           <url>https://repo1.maven.org/maven2</url>
         </repository>
         <repository>
-          <id>github</id>
-          <url>https://maven.pkg.github.com/openraven/*</url>
+          <id>github-nightglow-api</id>
+          <url>https://maven.pkg.github.com/openraven/nightglow-api</url>
           <snapshots>
             <enabled>true</enabled>
           </snapshots>
