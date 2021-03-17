@@ -23,7 +23,10 @@ jobs:
           MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
       - name: Assembly
-        run: mvn --projects nightglow-cli assembly:single
+        run: mvn --settings .github/workflows/settings.xml -B -P github --projects nightglow-cli assembly:single
+        env:
+          MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
       - name: Upload artifacts
         uses:  actions/upload-artifact@v2
         with:
