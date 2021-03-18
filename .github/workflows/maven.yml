@@ -27,10 +27,13 @@ jobs:
         env:
           MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
-      - name: Upload artifacts
+      - name: Upload zip
         uses:  actions/upload-artifact@v2
         with:
-          name: Package
-          path: |
-            nightglow-cli/target/*.zip
-            nightglow-cli/target/*.tar.gz
+          name: nightglow-cli.zip
+          path: nightglow-cli/target/*.zip
+      - name: Upload tar.gz
+        uses:  actions/upload-artifact@v2
+        with:
+          name: nightglow-cli.tar.gz
+          path: nightglow-cli/target/*.tar.gz
