@@ -1,2 +1,0 @@
-#!/bin/sh
-java -Dlogback.configurationFile=logging.xml -cp nightglow-cli.jar:plugins/* io.openraven.nightglow.cli.Main "$@"

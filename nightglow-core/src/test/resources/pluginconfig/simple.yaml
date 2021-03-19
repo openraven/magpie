@@ -1,8 +1,0 @@
-plugins:
-  nightglow.test:
-    enabled: true
-    config:
-      apiKey: deadbeef
-      apiSecret: cafebabe
-  nightglow.test.2:
-    enabled: true

@@ -17,8 +17,8 @@
           <url>https://repo1.maven.org/maven2</url>
         </repository>
         <repository>
-          <id>github-nightglow-api</id>
-          <url>https://maven.pkg.github.com/openraven/nightglow-api</url>
+          <id>github-magpie-api</id>
+          <url>https://maven.pkg.github.com/openraven/magpie-api</url>
           <snapshots>
             <enabled>true</enabled>
           </snapshots>
@@ -29,7 +29,7 @@
 
   <servers>
     <server>
-      <id>github-nightglow-api</id>
+      <id>github-magpie-api</id>
       <username>${env.MAVEN_USER}</username>
       <password>${env.MAVEN_PASSWORD}</password>
     </server>

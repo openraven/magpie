@@ -4,16 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.openraven.nightglow</groupId>
-  <artifactId>nightglow-parent</artifactId>
+  <groupId>io.openraven.magpie</groupId>
+  <artifactId>magpie-parent</artifactId>
   <packaging>pom</packaging>
   <version>0.1.0-SNAPSHOT</version>
 
   <modules>
-    <module>nightglow-core</module>
-    <module>nightglow-cli</module>
-    <module>nightglow-aws</module>
-    <module>nightglow-json</module>
+    <module>magpie-core</module>
+    <module>magpie-cli</module>
+    <module>magpie-aws</module>
+    <module>magpie-json</module>
   </modules>
 
   <properties>
@@ -25,13 +25,13 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>io.openraven.nightglow</groupId>
-        <artifactId>nightglow-api</artifactId>
+        <groupId>io.openraven.magpie</groupId>
+        <artifactId>magpie-api</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.openraven.nightglow</groupId>
-        <artifactId>nightglow-core</artifactId>
+        <groupId>io.openraven.magpie</groupId>
+        <artifactId>magpie-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -59,20 +59,17 @@
     </dependencies>
   </dependencyManagement>
 
-
   <profiles>
     <profile>
       <id>github</id>
       <repositories>
         <repository>
-          <id>github-nightglow-api</id>
-          <name>Nightglow API</name>
-          <url>https://maven.pkg.github.com/openraven/nightglow-api</url>
+          <id>github-magpie-api</id>
+          <name>Magpie API</name>
+          <url>https://maven.pkg.github.com/openraven/magpie-api</url>
         </repository>
       </repositories>
-
     </profile>
   </profiles>
-
 
 </project>

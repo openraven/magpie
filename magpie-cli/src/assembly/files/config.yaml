@@ -1,0 +1,24 @@
+layers:
+  enumerate:
+    type: origin
+    queue: default
+    plugins:
+      - magpie.aws.discovery
+  output:
+    type: terminal
+    dequeue: default
+    plugins:
+      - magpie.json
+fifos:
+  default:
+    type: local
+plugins:
+  magpie.aws.discovery:
+    enabled: true
+    config:
+  magpie.json:
+    enabled: true
+    config:
+
+
+
