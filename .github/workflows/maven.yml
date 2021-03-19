@@ -30,10 +30,10 @@ jobs:
       - name: Upload zip
         uses:  actions/upload-artifact@v2
         with:
-          name: nightglow-cli.zip
+          name: nightglow-cli
           path: nightglow-cli/target/*.zip
       - name: Upload tar.gz
         uses:  actions/upload-artifact@v2
         with:
-          name: nightglow-cli.tar.gz
+          name: nightglow-cli
           path: nightglow-cli/target/*.tar.gz
