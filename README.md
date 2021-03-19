@@ -26,7 +26,7 @@ each layer may exist on separate compute instances.
 ## Building Magpie
 
 ### Clone and install Magpie-API
-(This is required until openraven/magpie-api/#1 has been resolved.)
+(This is required until openraven/magpie-api#1 has been resolved.)
 1. `git clone https://github.com/openraven/magpie-api.git`
 2. `cd magpie-api`
 3. `mvn install`
