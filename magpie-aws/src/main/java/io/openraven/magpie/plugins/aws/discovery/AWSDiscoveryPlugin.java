@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.plugins.aws.discovery.services.AWSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.EC2Discovery;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.S3Discovery;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 
 import java.util.List;
 
-public class AWSDiscoveryPlugin implements EnumerationPlugin<AWSDiscoveryConfig> {
+public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)

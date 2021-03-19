@@ -1,11 +1,11 @@
 package io.openraven.magpie.core.plugins;
 
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import org.slf4j.Logger;
 
-public class MagpieTestPlugin implements EnumerationPlugin<MagpieTestConfig> {
+public class MagpieTestPlugin implements OriginPlugin<MagpieTestConfig> {
 
   protected MagpieTestConfig config;
 

@@ -18,7 +18,7 @@ package io.openraven.magpie.core.plugins;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.IntermediatePlugin;
 import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.api.TerminalPlugin;
@@ -42,7 +42,7 @@ public class PluginManager {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PluginManager.class);
-  private static final List<Class<? extends MagpiePlugin>> PLUGIN_CLASSES = List.of(EnumerationPlugin.class, IntermediatePlugin.class, TerminalPlugin.class);
+  private static final List<Class<? extends MagpiePlugin>> PLUGIN_CLASSES = List.of(OriginPlugin.class, IntermediatePlugin.class, TerminalPlugin.class);
 
   private final MagpieConfig config;
 

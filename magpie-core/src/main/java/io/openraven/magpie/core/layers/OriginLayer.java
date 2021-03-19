@@ -16,7 +16,7 @@
 
 package io.openraven.magpie.core.layers;
 
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.core.fifos.FifoException;
@@ -31,11 +31,11 @@ public class OriginLayer implements Layer {
   private final static Logger LOGGER = LoggerFactory.getLogger(OriginLayer.class);
 
   private final Session session;
-  private final Collection<EnumerationPlugin> plugins;
+  private final Collection<OriginPlugin> plugins;
   private final FifoQueue queue;
   private final String name;
 
-  public OriginLayer(String name, Session session, Collection<EnumerationPlugin> plugins, FifoQueue queue) {
+  public OriginLayer(String name, Session session, Collection<OriginPlugin> plugins, FifoQueue queue) {
     this.session = session;
     this.plugins = plugins;
     this.queue = queue;

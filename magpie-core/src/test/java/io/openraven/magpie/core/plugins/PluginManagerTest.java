@@ -2,7 +2,7 @@ package io.openraven.magpie.core.plugins;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.core.config.MagpieConfig;
 import org.junit.jupiter.api.Test;
 
@@ -21,9 +21,9 @@ class PluginManagerTest {
 
       assertEquals(2, config.getPlugins().size());
       final var pluginManager = new PluginManager(config);
-      assertEquals(2, pluginManager.byType(EnumerationPlugin.class).size());
+      assertEquals(2, pluginManager.byType(OriginPlugin.class).size());
 
-      var plugin = (MagpieTestPlugin)pluginManager.byType(EnumerationPlugin.class).get(0);
+      var plugin = (MagpieTestPlugin)pluginManager.byType(OriginPlugin.class).get(0);
       assertEquals("deadbeef", plugin.config.getApiKey());
       assertEquals("cafebabe", plugin.config.getApiSecret());
     }

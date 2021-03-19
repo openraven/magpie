@@ -16,7 +16,7 @@
 
 package io.openraven.magpie.core.layers;
 
-import io.openraven.magpie.api.EnumerationPlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.IntermediatePlugin;
 import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.api.Session;
@@ -67,7 +67,7 @@ public class LayerManager {
       switch (layerType) {
         case ORIGIN:
           layers.put(name, new OriginLayer(name, session,
-            plugins.stream().map(p -> (EnumerationPlugin)p).collect(Collectors.toList()),
+            plugins.stream().map(p -> (OriginPlugin)p).collect(Collectors.toList()),
             getOrThrowQueue(name, layerConfig)));
           break;
         case INTERMEDIATE:
