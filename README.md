@@ -110,7 +110,7 @@ If you've written a plugin you'd like listed please create a Pull Request with i
 ### Cloud Provider Status
 
 #### AWS
-Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion. We aready have the code built or all services in the list below but just need to port them over from a previous framework. 
+Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion. We have already built the code for all services in the list, but need to port them over from a previous framework. 
 
 - [x] EC2
 - [x] S3
