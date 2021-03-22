@@ -18,15 +18,9 @@ jobs:
           java-version: 11
           java-package: jdk
       - name: Build, Package, Verify
-        run: mvn --settings .github/workflows/settings.xml -B -P github clean package verify install
-        env:
-          MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
+        run: mvn --settings .github/workflows/settings.xml -B clean package verify install
       - name: Assembly
-        run: mvn --settings .github/workflows/settings.xml -B -P github --projects magpie-cli assembly:single
-        env:
-          MAVEN_USER: ${{ secrets.READ_PACKAGES_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.READ_PACKAGES_KEY }}
+        run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
       - name: Upload zip
         uses:  actions/upload-artifact@v2
         with:

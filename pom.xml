@@ -27,7 +27,7 @@
       <dependency>
         <groupId>io.openraven.magpie</groupId>
         <artifactId>magpie-api</artifactId>
-        <version>${project.version}</version>
+        <version>0.1.0</version>
       </dependency>
       <dependency>
         <groupId>io.openraven.magpie</groupId>
@@ -58,18 +58,4 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <profiles>
-    <profile>
-      <id>github</id>
-      <repositories>
-        <repository>
-          <id>github-magpie-api</id>
-          <name>Magpie API</name>
-          <url>https://maven.pkg.github.com/openraven/magpie-api</url>
-        </repository>
-      </repositories>
-    </profile>
-  </profiles>
-
 </project>
