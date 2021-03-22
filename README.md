@@ -26,7 +26,7 @@ each layer may exist on separate compute instances.
 ## Building Magpie
 
 ### Clone and install Magpie-API
-(This is required until magpie-api/issues/#1 has been resolved.)
+(This is required until openraven/magpie-api#1 has been resolved.)
 1. `git clone https://github.com/openraven/magpie-api.git`
 2. `cd magpie-api`
 3. `mvn install`
@@ -110,7 +110,7 @@ If you've written a plugin you'd like listed please create a Pull Request with i
 ### Cloud Provider Status
 
 #### AWS
-Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion.
+Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion. We have already built the code for all services in the list, but need to port them over from a previous framework. 
 
 - [x] EC2
 - [x] S3
