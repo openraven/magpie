@@ -135,6 +135,15 @@ public class AWSUtils {
     return payload;
   }
 
+  public static Pair<Long, GetMetricStatisticsResponse> getCloudwatchMetricMinimum(
+    String regionID, String namespace, String metric, List<Dimension> dimensions) {
+
+    GetMetricStatisticsResponse getMetricStatisticsResult = getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.MINIMUM, dimensions);
+
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::maximum)
+      .map(Double::longValue).max(Long::compareTo).orElse(null), getMetricStatisticsResult);
+  }
+
   public static Pair<Long, GetMetricStatisticsResponse> getCloudwatchMetricMaximum(
     String regionID, String namespace, String metric, List<Dimension> dimensions) {
 
