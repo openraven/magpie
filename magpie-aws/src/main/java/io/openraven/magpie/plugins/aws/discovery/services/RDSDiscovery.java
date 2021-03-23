@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.util.Arrays.asList;
 
-public class RdsDiscovery implements AWSDiscovery {
+public class RDSDiscovery implements AWSDiscovery {
   private final List<LocalDiscovery> discoveryMethods = asList(
     this::discoverTags,
     this::discoverDbClusters,
@@ -68,18 +68,18 @@ public class RdsDiscovery implements AWSDiscovery {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
           var data = mapper.createObjectNode();
+          data.putPOJO("configuration", db.toBuilder());
           data.put("region", region.toString());
 
           if (db.instanceCreateTime() == null) {
             logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
           }
 
-
           for (var dm : discoveryMethods) {
             try {
               dm.discover(client, db, data, logger, mapper);
             } catch (SdkServiceException | SdkClientException ex) {
-              logger.error("Failed to discover data for {}", db.dbName(), ex);
+              logger.error("Failed to discover data for {}", db.dbInstanceArn(), ex);
             }
           }
 
@@ -93,7 +93,7 @@ public class RdsDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting tags for {}", resource.dbName());
+    logger.info("Getting tags for {}", resource.dbInstanceArn());
     var obj = data.putObject("tags");
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceName(resource.dbInstanceArn()).build()),
@@ -155,7 +155,7 @@ public class RdsDiscovery implements AWSDiscovery {
         logger.warn("{} RDS instance is missing size metrics", resource.dbInstanceIdentifier());
       }
     } catch (Exception se) {
-      logger.warn("{} Rds instance is missing size metrics, with error {}", resource.dbInstanceIdentifier(), se.getMessage());
+      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceIdentifier(), se.getMessage());
     }
   }
 
@@ -173,7 +173,7 @@ public class RdsDiscovery implements AWSDiscovery {
         data.put("maxSizeInBytes", Conversions.GibToBytes(resource.allocatedStorage()));
       }
     } catch (Exception se) {
-      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbName(), se.getMessage());
+      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceArn(), se.getMessage());
     }
   }
 
@@ -192,7 +192,7 @@ public class RdsDiscovery implements AWSDiscovery {
 
       }
     } catch (Exception se) {
-      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbName(), se.getMessage());
+      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceArn(), se.getMessage());
     }
   }
 }
