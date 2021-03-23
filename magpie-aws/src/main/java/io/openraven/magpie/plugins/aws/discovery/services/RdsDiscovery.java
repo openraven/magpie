@@ -83,7 +83,7 @@ public class RdsDiscovery implements AWSDiscovery {
             }
           }
 
-          emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":Rds"), data));
+          emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":rds"), data));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("Finished Rds bucket discovery in {}", region);
