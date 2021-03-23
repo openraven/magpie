@@ -131,7 +131,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [ ] Lambda
 - [ ] Lightsail
 - [ ] QLDB
-- [ ] RDS
+- [x] RDS
 - [ ] Redshift
 - [ ] Route 53
 - [ ] Secrets Manager
