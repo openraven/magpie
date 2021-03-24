@@ -40,6 +40,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new EC2Discovery(),
     new S3Discovery(),
     new RDSDiscovery(),
+    new KMSDiscovery(),
     new VPCDiscovery());
 
   private Logger logger;
@@ -47,15 +48,13 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    Ec2Client.create().describeRegions().regions().stream().map(r -> Region.of(r.regionName())).forEach(region -> {
-      DISCOVERY_LIST.forEach(d -> {
-        try {
-          d.discover(MAPPER, session, region, emitter, logger);
-        } catch (Exception ex) {
-          logger.error("Discovery error", ex);
-        }
-      });
-    });
+    Ec2Client.create().describeRegions().regions().stream().map(r -> Region.of(r.regionName())).forEach(region -> DISCOVERY_LIST.forEach(d -> {
+      try {
+        d.discover(MAPPER, session, region, emitter, logger);
+      } catch (Exception ex) {
+        logger.error("Discovery error", ex);
+      }
+    }));
   }
 
   @Override

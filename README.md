@@ -126,7 +126,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [ ] ESS
 - [ ] FSX
 - [ ] Glacier
-- [ ] KMS
+- [x] KMS
 - [ ] Lakeformation
 - [ ] Lambda
 - [ ] Lightsail
