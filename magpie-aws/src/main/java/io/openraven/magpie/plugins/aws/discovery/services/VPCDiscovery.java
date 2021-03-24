@@ -52,7 +52,7 @@ public class VPCDiscovery implements AWSDiscovery {
   }
 
   private void discoverVpcs(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering Vpcs in {}", region);
+    logger.info("Discovering VPCs in {}", region);
 
     getAwsResponse(
       client::describeVpcsPaginator,
@@ -65,9 +65,9 @@ public class VPCDiscovery implements AWSDiscovery {
 
           emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":vpc"), data));
         }),
-      (noresp) -> logger.debug("Couldn't query for Vpcs in {}.", region));
+      (noresp) -> logger.debug("Couldn't query for VPCs in {}.", region));
 
-    logger.info("Finished Vpcs discovery in {}", region);
+    logger.info("Finished VPCs discovery in {}", region);
   }
 
   private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
