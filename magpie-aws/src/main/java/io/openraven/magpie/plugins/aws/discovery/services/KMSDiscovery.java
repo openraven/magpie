@@ -85,7 +85,7 @@ public class KMSDiscovery implements AWSDiscovery {
 
   private void discoverKeyRotation(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
     logger.info("Getting Rotation for {}", resource.keyArn());
-    final String keyname = "Rotation";
+    final String keyname = "rotation";
     getAwsResponse(
       () -> client.getKeyRotationStatus(GetKeyRotationStatusRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -95,9 +95,12 @@ public class KMSDiscovery implements AWSDiscovery {
 
   private void discoverAliases(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
     logger.info("Getting Aliases for {}", resource.keyArn());
-    final String keyname = "Aliases";
+    final String keyname = "aliases";
     getAwsResponse(
-      () -> client.listAliases(ListAliasesRequest.builder().keyId(resource.keyId()).build()),
+      () -> client.listAliasesPaginator(ListAliasesRequest.builder().keyId(resource.keyId()).build()).aliases()
+        .stream()
+        .map(r -> r.toBuilder())
+        .collect(Collectors.toList()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
     );
@@ -105,7 +108,7 @@ public class KMSDiscovery implements AWSDiscovery {
 
   private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
     logger.info("Getting KeyPolicies for {}", resource.keyArn());
-    final String keyname = "KeyPolicies";
+    final String keyname = "keyPolicies";
     getAwsResponse(
       () -> client.listKeyPolicies(ListKeyPoliciesRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -115,7 +118,7 @@ public class KMSDiscovery implements AWSDiscovery {
 
   private void discoverGrants(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
     logger.info("Getting Grants for {}", resource.keyArn());
-    final String keyname = "Grants";
+    final String keyname = "grants";
     getAwsResponse(
       () -> client.listGrants(ListGrantsRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
