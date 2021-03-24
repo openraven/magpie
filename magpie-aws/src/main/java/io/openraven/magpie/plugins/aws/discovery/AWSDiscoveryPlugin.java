@@ -40,7 +40,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new EC2Discovery(),
     new S3Discovery(),
     new RDSDiscovery(),
-    new KMSDiscovery());
+    new KMSDiscovery(),
     new VPCDiscovery());
 
   private Logger logger;
