@@ -37,6 +37,9 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.util.Arrays.asList;
 
 public class ECSDiscovery implements AWSDiscovery {
+
+  private static String SERVICE = "ecs";
+
   private final List<LocalDiscovery> discoveryMethods = asList(
     this::discoverAttributes,
     this::discoverServices,
@@ -50,9 +53,12 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering ECS instances in {}", region);
+  public String service() {
+    return SERVICE;
+  }
 
+  @Override
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = EcsClient.builder().region(region).build();
 
     getAwsResponse(
@@ -65,12 +71,10 @@ public class ECSDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, cluster, data, logger, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ecs"), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
       }),
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );
-
-    logger.info("Finished ECS clusters discovery in {}", region);
   }
 
   private List<Cluster> listDescribedClusters(EcsClient client) {
@@ -82,7 +86,7 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting tags for {}", resource.clusterArn());
+    logger.trace("Getting tags for {}", resource.clusterArn());
     var obj = data.putObject("tags");
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.clusterArn()).build()),
@@ -96,7 +100,7 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   private void discoverAttributes(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting attributes for {}", resource.clusterArn());
+    logger.trace("Getting attributes for {}", resource.clusterArn());
     final String keyname = "attributes";
     getAwsResponse(
       () -> client.listAttributes(ListAttributesRequest.builder().targetType("container-instance").cluster(resource.clusterArn()).build()),
@@ -106,7 +110,7 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   private void discoverServices(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting services for {}", resource.clusterArn());
+    logger.trace("Getting services for {}", resource.clusterArn());
     final String keyname = "services";
     getAwsResponse(
       () -> listDescribedServices(client, resource),
@@ -125,7 +129,7 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   private void discoverTasks(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting tasks for {}", resource.clusterArn());
+    logger.trace("Getting tasks for {}", resource.clusterArn());
     final String keyname = "tasks";
     getAwsResponse(
       () -> listDescribedTasks(client, resource),

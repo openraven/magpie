@@ -16,6 +16,14 @@ plugins:
   magpie.aws.discovery:
     enabled: true
     config:
+      services:
+#      By default all AWS services are scanned. Uncomment the below lines to enable only select services.
+#         - ec2
+#         - s3
+#         - rds
+#         - ecs
+#         - vpc
+#         See the full list at https://github.com/openraven/magpie
   magpie.json:
     enabled: true
     config:

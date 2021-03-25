@@ -23,6 +23,7 @@ import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.AWSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.EC2Discovery;
+import io.openraven.magpie.plugins.aws.discovery.services.ECSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.KMSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.RDSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.S3Discovery;
