@@ -51,7 +51,7 @@ public class ECSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering Ecs instances in {}", region);
+    logger.info("Discovering ECS instances in {}", region);
 
     final var client = EcsClient.builder().region(region).build();
 
@@ -70,7 +70,7 @@ public class ECSDiscovery implements AWSDiscovery {
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );
 
-    logger.info("Finished Ecs clusters discovery in {}", region);
+    logger.info("Finished ECS clusters discovery in {}", region);
   }
 
   private List<Cluster> listDescribedClusters(EcsClient client) {
