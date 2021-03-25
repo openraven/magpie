@@ -27,7 +27,9 @@ import io.openraven.magpie.core.config.MagpieConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -70,7 +72,7 @@ public class PluginManager {
           } else if (!pluginConfigParent.isEnabled()) {
             LOGGER.debug("{} found but is disabled via config. Ignoring}", plugin.id());
           } else {
-            final var pluginConfig = buildPluginConfig(configType, pluginConfigParent.getConfig());
+            final var pluginConfig = buildPluginConfig(plugin.id(), configType, pluginConfigParent.getConfig());
 
             plugin.init(pluginConfig, LoggerFactory.getLogger(plugin.getClass()));
             var pluginList = plugins.getOrDefault(c, new ArrayList<>());
@@ -89,10 +91,27 @@ public class PluginManager {
     }
   }
 
-  private Object buildPluginConfig(Class<?> configType, Object config) throws JsonProcessingException {
-    if (config == null) {
+  private Object buildPluginConfig(String pluginId, Class<?> configType, Object config) throws JsonProcessingException {
+
+    if (configType == null || "Void".equals(configType.getSimpleName())) {
       return null;
     }
+
+    if (config == null) {
+      try {
+        LOGGER.debug("No config section found for {}:{}, attempting to instantiate a default", pluginId, configType.getName());
+        // The plugin configuration had no defined constructor, attempt to instantiate a no-args one.
+        var constructor = Arrays.stream(configType.getDeclaredConstructors()).filter(c -> c.getParameterCount() == 0).findFirst();
+        if (constructor.isEmpty()) {
+          LOGGER.warn("No plugin configuration found for {} and no suitable constructor found to create a default.", pluginId);
+          return null;
+        }
+        return constructor.get().newInstance();
+      } catch (InvocationTargetException | IllegalAccessException | InstantiationException ex) {
+        throw new ConfigException(String.format("Cannot instantiate config for %s with type %s", pluginId, configType.getName()), ex);
+      }
+    }
+
     return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
   }
 

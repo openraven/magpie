@@ -57,8 +57,6 @@ public class Orchestrator {
           LOGGER.warn("Layer exception", ex);
         }
       } while (repeat);
-
-      LOGGER.info("Ended layer loop for {}", layer.getName());
       return layer.getType();
     }
 
@@ -84,7 +82,6 @@ public class Orchestrator {
     final var layerManager = new LayerManager(session, config, fifoManager, pluginManager);
 
     final var layers = layerManager.getLayers();
-//    final var executors = Executors.newFixedThreadPool(layers.size()+5);
     final var executors = Executors.newFixedThreadPool(layers.size(), r -> {
       Thread t = Executors.defaultThreadFactory().newThread(r);
       t.setDaemon(true);
@@ -93,10 +90,8 @@ public class Orchestrator {
 
     final var layerFutures = new ArrayList<Future<LayerType>>(layers.size());
 
-
     final var originLayers = layers.values().stream().filter(l -> l.getType() == LayerType.ORIGIN).collect(Collectors.toSet());
     final var otherLayers = layers.values().stream().filter(l -> !originLayers.contains(l)).collect(Collectors.toSet());
-
 
     var callables = new ArrayList<LayerCallable>();
 
@@ -104,7 +99,7 @@ public class Orchestrator {
       .map(layer -> {
         var c = new LayerCallable(layer, false);
         callables.add(c);
-        LOGGER.info("Submitting callable {}", c.layer.getName());
+        LOGGER.trace("Submitting callable {}", c.layer.getName());
         return executors.submit(c);
       })
       .collect(Collectors.toList());
@@ -113,7 +108,7 @@ public class Orchestrator {
       .map(layer -> {
         var c = new LayerCallable(layer, true);
         callables.add(c);
-        LOGGER.info("Submitting callable {}", c.layer.getName());
+        LOGGER.trace("Submitting callable {}", c.layer.getName());
         return executors.submit(c);
       })
       .collect(Collectors.toList());
@@ -128,7 +123,7 @@ public class Orchestrator {
     futures.forEach(f -> {
       try {
         f.get();
-        LOGGER.info("Got {}", f.get());
+        LOGGER.trace("Got {}", f.get());
       } catch (ExecutionException | InterruptedException ex) {
         LOGGER.error("Layer execution error", ex);
         System.exit(1);
@@ -136,9 +131,9 @@ public class Orchestrator {
     });
 
     try {
-      LOGGER.info("Entering grace period");
+      LOGGER.debug("Entering grace period");
       Thread.sleep(LAYER_GRACE_PERIOD);
-      LOGGER.info("Exited grade period");
+      LOGGER.debug("Exited grade period");
     } catch (InterruptedException ex) {
       LOGGER.error("Grace period interrupted", ex);
     }

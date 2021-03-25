@@ -36,6 +36,8 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class VPCDiscovery implements AWSDiscovery {
 
+  private static String SERVICE = "vpc";
+
   @FunctionalInterface
   interface LocalDiscovery {
     void discover(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
@@ -51,9 +53,12 @@ public class VPCDiscovery implements AWSDiscovery {
     methods.forEach(m -> m.discover(mapper, session, client, region, emitter, logger));
   }
 
-  private void discoverVpcs(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering VPCs in {}", region);
+  @Override
+  public String service() {
+    return SERVICE;
+  }
 
+  private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {
     getAwsResponse(
       client::describeVpcsPaginator,
       (resp) -> resp.vpcs()
@@ -63,16 +68,12 @@ public class VPCDiscovery implements AWSDiscovery {
           var obj = data.putObject("tags");
           AWSUtils.update(obj, getConvertedTags(vpc.tags(), mapper));
 
-          emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":vpc"), data));
+          emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
         }),
       (noresp) -> logger.debug("Couldn't query for VPCs in {}.", region));
-
-    logger.info("Finished VPCs discovery in {}", region);
   }
 
   private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering VPC peering connections in {}", region);
-
     getAwsResponse(
       client::describeVpcPeeringConnectionsPaginator,
       (resp) -> resp.vpcPeeringConnections()
@@ -85,8 +86,6 @@ public class VPCDiscovery implements AWSDiscovery {
           emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":vpcpc"), data));
         }),
       (noresp) -> logger.debug("Couldn't query for VPC peering connections in {}.", region));
-
-    logger.info("Finished VPC peering connections discovery in {}", region);
   }
 
   private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
