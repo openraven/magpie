@@ -71,6 +71,8 @@ import static java.util.Arrays.asList;
 
 public class S3Discovery implements AWSDiscovery {
 
+  private static String SERVICE = "s3";
+
   // This is required due to the way S3 bucket data is implemented in the AWS SDK.  Finding the region for n-buckets
   // requires n+1 API calls, and you can't filter bucket lists by region.  Using this cache we perform this operation once
   // per session and cache it for a fixed number of minutes.
@@ -101,12 +103,16 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   @Override
+  public String service() {
+    return SERVICE;
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering S3 buckets in {}", region);
     final var client = S3Client.builder().region(region).build();
     final var bucketOpt = getbuckets(session, client, region, logger);
     if (bucketOpt.isEmpty()) {
-      logger.info("No buckets found for {}", region);
+      logger.debug("No buckets found for {}", region);
     }
 
     bucketOpt.get().forEach( bucket -> {
@@ -119,7 +125,7 @@ public class S3Discovery implements AWSDiscovery {
           logger.error("Failed to discover dat for {}", bucket.name(), ex);
         }
       }
-      emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":s3"), data));
+      emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
     });
     logger.info("Finished S3 bucket discovery in {}", region);
   }
@@ -134,7 +140,7 @@ public class S3Discovery implements AWSDiscovery {
         //
         @Override
         public Map<Region, List<Bucket>> call() {
-          logger.info("No cache found for {}, creating one now.", session);
+          logger.debug("No cache found for {}, creating one now.", session);
           var map = new HashMap<Region, List<Bucket>>();
           client.listBuckets().buckets().stream().forEach(bucket -> {
             final var resp = client.getBucketLocation(GetBucketLocationRequest.builder().bucket(bucket.name()).build());
@@ -164,8 +170,6 @@ public class S3Discovery implements AWSDiscovery {
 
 
   private void discoverPublic(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting isPublic status for {}", resource.name());
-
     boolean isPublicByACL = false;
     boolean isPublicByPolicy = false;
 
@@ -208,8 +212,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverACLS(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting ACLs for {}", resource.name());
-    final String keyname = "BucketACLConfiguration";
+    final String keyname = "bucketACLConfiguration";
     getAwsResponse(
       () -> client.getBucketAcl(GetBucketAclRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -219,8 +222,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverEncryption(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting encryption keys for {}", resource.name());
-    final String keyname = "ServerSideEncryptionConfiguration";
+    final String keyname = "serverSideEncryptionConfiguration";
     getAwsResponse(
       () -> client.getBucketEncryption(GetBucketEncryptionRequest.builder().bucket(resource.name()).build()).serverSideEncryptionConfiguration(),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -229,8 +231,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverVersioning(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting versioning settings for {}", resource.name());
-    final String keyname = "Versioning";
+    final String keyname = "versioning";
     getAwsResponse(
       () -> client.getBucketVersioning(GetBucketVersioningRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -240,8 +241,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverHosting(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting hosting settings for {}", resource.name());
-    final String keyname = "BucketWebsiteConfiguration";
+    final String keyname = "bucketWebsiteConfiguration";
     getAwsResponse(
       () -> client.getBucketWebsite(GetBucketWebsiteRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -251,9 +251,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverObjectLockConfiguration(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-
-    logger.info("Getting object lock settings for {}", resource.name());
-    final String keyname = "BucketObjectLockConfiguration";
+    final String keyname = "bucketObjectLockConfiguration";
     getAwsResponse(
       () -> client.getObjectLockConfiguration(GetObjectLockConfigurationRequest.builder().bucket(resource.name()).build()).objectLockConfiguration(),
       (resp) ->
@@ -264,8 +262,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverLogging(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting logging settings for {}", resource.name());
-    final String keyname = "BucketLoggingConfiguration";
+    final String keyname = "bucketLoggingConfiguration";
     getAwsResponse(
       () -> client.getBucketLogging(GetBucketLoggingRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -275,8 +272,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverMetrics(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting metrics settings for {}", resource.name());
-    final String keyname = "MetricsConfiguration";
+    final String keyname = "metricsConfiguration";
     getAwsResponse(
       () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().bucket(resource.name()).build()).metricsConfiguration(),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -286,8 +282,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverNotifications(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting notification settings for {}", resource.name());
-    final String keyname = "NotificationConfiguration";
+    final String keyname = "notificationConfiguration";
     getAwsResponse(
       () -> client.getBucketNotificationConfiguration(GetBucketNotificationConfigurationRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -297,8 +292,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverPublicAccess(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting access settings for {}", resource.name());
-    final String keyname = "PublicAccessBlockConfiguration";
+    final String keyname = "publicAccessBlockConfiguration";
     getAwsResponse(
       () -> client.getPublicAccessBlock(GetPublicAccessBlockRequest.builder().bucket(resource.name()).build()).publicAccessBlockConfiguration(),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -308,15 +302,14 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverBucketPolicy(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting access policy for {}", resource.name());
-    final String keyname = "BucketPolicyStatus";
+    final String keyname = "bucketPolicyStatus";
     getAwsResponse(
       () -> client.getBucketPolicyStatus(GetBucketPolicyStatusRequest.builder().bucket(resource.name()).build()).policyStatus(),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
     );
 
-    final String keyname2 = "BucketPolicy";
+    final String keyname2 = "bucketPolicy";
     getAwsResponse(
       () -> client.getBucketPolicy(GetBucketPolicyRequest.builder().bucket(resource.name()).build()).policy(),
       (resp) -> AWSUtils.update(data, Map.of(keyname2, resp)),
@@ -327,8 +320,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverReplication(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting replication settings for {}", resource.name());
-    final String keyname = "ReplicationConfiguration";
+    final String keyname = "replicationConfiguration";
     getAwsResponse(
       () -> client.getBucketReplication(GetBucketReplicationRequest.builder().bucket(resource.name()).build()).replicationConfiguration(),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -337,7 +329,6 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverBucketTags(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting tags for {}", resource.name());
     var obj = data.putObject("tags");
     getAwsResponse(
       () -> client.getBucketTagging(GetBucketTaggingRequest.builder().bucket(resource.name()).build()),
@@ -351,24 +342,23 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverSize(S3Client client, Bucket resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting size for bucket {}", resource.name());
     List<Dimension> dimensions = new ArrayList<>();
-    dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
-    dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());
+    dimensions.add(Dimension.builder().name("bucketName").value(resource.name()).build());
+    dimensions.add(Dimension.builder().name("storageType").value("StandardStorage").build());
     Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
       AWSUtils.getCloudwatchMetricMaximum(data.get("region").asText(), "AWS/S3", "BucketSizeBytes", dimensions);
 
     List<Dimension> dimensions2 = new ArrayList<>();
-    dimensions2.add(Dimension.builder().name("BucketName").value(resource.name()).build());
-    dimensions2.add(Dimension.builder().name("StorageType").value("AllStorageTypes").build());
+    dimensions2.add(Dimension.builder().name("bucketName").value(resource.name()).build());
+    dimensions2.add(Dimension.builder().name("storageType").value("AllStorageTypes").build());
     Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
       AWSUtils.getCloudwatchMetricMaximum(data.get("region").asText(), "AWS/S3", "NumberOfObjects", dimensions2);
 
     if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
       AWSUtils.update(data,
         Map.of("size",
-          Map.of("BucketSizeBytes", bucketSizeBytes.getValue0(),
-            "NumberOfObjects", numberOfObjects.getValue0())));
+          Map.of("bucketSizeBytes", bucketSizeBytes.getValue0(),
+            "numberOfObjects", numberOfObjects.getValue0())));
 
       data.put("sizeInBytes", bucketSizeBytes.getValue0());
     }
