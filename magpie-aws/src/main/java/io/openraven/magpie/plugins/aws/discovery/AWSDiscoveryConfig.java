@@ -16,11 +16,10 @@
 
 package io.openraven.magpie.plugins.aws.discovery;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class AWSDiscoveryConfig {
-  private List<String> services = new ArrayList<>();
+  private List<String> services = List.of();
 
   /**
    * The list of AWS services to enabled for discovery.  By default this list is empty, meaning that all services will
@@ -32,6 +31,6 @@ public class AWSDiscoveryConfig {
   }
 
   public void setServices(List<String> services) {
-    this.services = services;
+    this.services = services == null ? List.of() : services;
   }
 }

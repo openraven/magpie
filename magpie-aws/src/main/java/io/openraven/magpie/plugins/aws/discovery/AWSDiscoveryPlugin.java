@@ -23,6 +23,7 @@ import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.AWSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.EC2Discovery;
+import io.openraven.magpie.plugins.aws.discovery.services.ECSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.KMSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.RDSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.S3Discovery;
@@ -44,6 +45,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new EC2Discovery(),
+    new ECSDiscovery(),
     new S3Discovery(),
     new RDSDiscovery(),
     new KMSDiscovery(),
