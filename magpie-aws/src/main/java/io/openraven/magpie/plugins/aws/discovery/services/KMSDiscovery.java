@@ -42,6 +42,9 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.util.Arrays.asList;
 
 public class KMSDiscovery implements AWSDiscovery {
+
+  private static String SERVICE = "kms";
+
   private final List<LocalDiscovery> discoveryMethods = asList(
     this::discoverKeyRotation,
     this::discoverAliases,
@@ -56,8 +59,12 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public String service() {
+    return SERVICE;
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.info("Discovering KMS instances in {}", region);
     final var client = KmsClient.builder().region(region).build();
 
     try {
@@ -74,17 +81,14 @@ public class KMSDiscovery implements AWSDiscovery {
           }
         }
 
-        emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":kms"), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("Failed to discover data in {}", region, ex);
     }
-
-    logger.info("Finished KMS instances discovery in {}", region);
   }
 
   private void discoverKeyRotation(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting Rotation for {}", resource.keyArn());
     final String keyname = "rotation";
     getAwsResponse(
       () -> client.getKeyRotationStatus(GetKeyRotationStatusRequest.builder().keyId(resource.keyId()).build()),
@@ -94,7 +98,6 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   private void discoverAliases(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting Aliases for {}", resource.keyArn());
     final String keyname = "aliases";
     getAwsResponse(
       () -> client.listAliasesPaginator(ListAliasesRequest.builder().keyId(resource.keyId()).build()).aliases()
@@ -107,7 +110,6 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting KeyPolicies for {}", resource.keyArn());
     final String keyname = "keyPolicies";
     getAwsResponse(
       () -> client.listKeyPolicies(ListKeyPoliciesRequest.builder().keyId(resource.keyId()).build()),
@@ -117,7 +119,6 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   private void discoverGrants(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting Grants for {}", resource.keyArn());
     final String keyname = "grants";
     getAwsResponse(
       () -> client.listGrants(ListGrantsRequest.builder().keyId(resource.keyId()).build()),
@@ -127,7 +128,6 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.info("Getting Tags for {}", resource.keyArn());
     var obj = data.putObject("tags");
     getAwsResponse(
       () -> client.listResourceTags(ListResourceTagsRequest.builder().keyId(resource.keyId()).build()),

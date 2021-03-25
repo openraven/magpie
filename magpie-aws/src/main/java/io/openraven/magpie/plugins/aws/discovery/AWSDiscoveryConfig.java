@@ -16,7 +16,22 @@
 
 package io.openraven.magpie.plugins.aws.discovery;
 
-public class AWSDiscoveryConfig {
+import java.util.ArrayList;
+import java.util.List;
 
-  // TODO
+public class AWSDiscoveryConfig {
+  private List<String> services = new ArrayList<>();
+
+  /**
+   * The list of AWS services to enabled for discovery.  By default this list is empty, meaning that all services will
+   * be scanned.  If this list is not empty, the only the listed services will be scanned.
+   * @return
+   */
+  public List<String> getServices() {
+    return services;
+  }
+
+  public void setServices(List<String> services) {
+    this.services = services;
+  }
 }
