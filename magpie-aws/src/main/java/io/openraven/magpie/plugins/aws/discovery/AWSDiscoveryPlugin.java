@@ -21,13 +21,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.services.AWSDiscovery;
-import io.openraven.magpie.plugins.aws.discovery.services.EC2Discovery;
-import io.openraven.magpie.plugins.aws.discovery.services.ECSDiscovery;
-import io.openraven.magpie.plugins.aws.discovery.services.KMSDiscovery;
-import io.openraven.magpie.plugins.aws.discovery.services.RDSDiscovery;
-import io.openraven.magpie.plugins.aws.discovery.services.S3Discovery;
-import io.openraven.magpie.plugins.aws.discovery.services.VPCDiscovery;
+import io.openraven.magpie.plugins.aws.discovery.services.*;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -46,6 +40,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new EC2Discovery(),
     new ECSDiscovery(),
+    new LambdaDiscovery(),
     new S3Discovery(),
     new RDSDiscovery(),
     new KMSDiscovery(),
