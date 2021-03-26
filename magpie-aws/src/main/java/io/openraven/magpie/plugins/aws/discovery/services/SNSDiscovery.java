@@ -79,7 +79,6 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.trace("DS");
     getAwsResponse(
       () -> client.listSubscriptionsPaginator().subscriptions().
         stream()
