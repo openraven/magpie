@@ -41,7 +41,7 @@ public class AthenaDiscovery implements AWSDiscovery {
   private static final String SERVICE = "athena";
 
   private final List<LocalDiscovery> discoveryMethods = Collections.singletonList(
-    this::discoverAttributes
+    this::discoverDatabases
   );
 
   @FunctionalInterface
@@ -74,7 +74,7 @@ public class AthenaDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAttributes(AthenaClient client, DataCatalogSummary resource, ObjectNode data, ObjectMapper mapper) {
+  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, ObjectNode data, ObjectMapper mapper) {
     final String keyname = "databases";
 
     getAwsResponse(
