@@ -110,7 +110,6 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverFunction(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting function for {}", resource.functionArn());
     final String keyname = "function";
     getAwsResponse(
       () -> client.getFunction(GetFunctionRequest.builder().functionName(resource.functionName()).build()),
