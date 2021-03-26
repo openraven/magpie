@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -70,7 +69,7 @@ public class LambdaDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, function, data, logger, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":ecs"), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
       }),
       (noresp) -> logger.error("Failed to get functions in {}", region)
     );
