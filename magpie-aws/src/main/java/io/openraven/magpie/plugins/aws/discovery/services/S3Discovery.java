@@ -113,10 +113,12 @@ public class S3Discovery implements AWSDiscovery {
     final var bucketOpt = getbuckets(session, client, region, logger);
     if (bucketOpt.isEmpty()) {
       logger.debug("No buckets found for {}", region);
+      return;
     }
 
     bucketOpt.get().forEach( bucket -> {
       var data = mapper.createObjectNode();
+      data.put("bucketName", bucket.name());
       data.put("region", region.toString());
       for (var dm : discoveryMethods) {
         try {
@@ -147,12 +149,8 @@ public class S3Discovery implements AWSDiscovery {
             final var location = resp.locationConstraint();
             // Thanks to https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/model/GetBucketLocationResponse.html#locationConstraint--
             // we need to be aware of both null and UNKNOWN_TO_SDK_VERSION values.
-            if (location == BucketLocationConstraint.UNKNOWN_TO_SDK_VERSION) {
-              logger.warn("Unknown region {} for bucket {}, ignoring", resp.locationConstraintAsString(), bucket.name());
-              return;
-            }
-            logger.debug("Associating {} to region {}", bucket.name(), location);
-            var region = location == null ? Region.US_EAST_1 : Region.of(location.toString());
+            var region = resp.locationConstraintAsString().isEmpty() ? Region.US_EAST_1 : Region.of(location.toString());
+            logger.debug("Associating {} to region {}", bucket.name(), region);
             var list = map.getOrDefault(region, new LinkedList<>());
             list.add(bucket);
             map.put(region, list);
