@@ -17,6 +17,7 @@
     <aws.sdk.version>2.15.69</aws.sdk.version>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
+    <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
   </properties>
 
   <dependencies>
@@ -104,6 +105,26 @@
       <artifactId>logback-classic</artifactId>
       <version>1.2.3</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>software.aws.mcs</groupId>
+      <artifactId>aws-sigv4-auth-cassandra-java-driver-plugin</artifactId>
+      <version>${aws-sigv4-auth-cassandra-java-driver-plugin.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy-json</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
