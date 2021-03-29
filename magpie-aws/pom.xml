@@ -40,6 +40,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>batch</artifactId>
+      <version>${aws.sdk.version}</version>      
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>      
       <artifactId>cloudfront</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
