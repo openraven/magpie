@@ -40,6 +40,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new EC2Discovery(),
     new ECSDiscovery(),
+    new LambdaDiscovery(),
     new S3Discovery(),
     new SNSDiscovery(),
     new RDSDiscovery(),
