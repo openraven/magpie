@@ -38,6 +38,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   public final static String ID = "magpie.aws.discovery";
 
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
+    new AthenaDiscovery(),
     new EC2Discovery(),
     new ECSDiscovery(),
     new LambdaDiscovery(),
