@@ -18,6 +18,7 @@ package io.openraven.magpie.core.layers;
 
 import io.openraven.magpie.api.IntermediatePlugin;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.core.fifos.FifoDequeue;
 import io.openraven.magpie.core.fifos.FifoException;
 import io.openraven.magpie.core.fifos.FifoQueue;
@@ -76,5 +77,10 @@ public class IntermediateLayer implements Layer {
   @Override
   public LayerType getType() {
     return LayerType.INTERMEDIATE;
+  }
+
+  @Override
+  public void shutdown() {
+    plugins.forEach(MagpiePlugin::shutdown);
   }
 }
