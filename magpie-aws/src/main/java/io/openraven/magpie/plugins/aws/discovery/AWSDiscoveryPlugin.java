@@ -39,6 +39,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new AthenaDiscovery(),
+    new CassandraDiscovery(),
     new BackupDiscovery(),    
     new CloudFrontDiscovery(),
     new EC2Discovery(),
