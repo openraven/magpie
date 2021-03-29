@@ -57,10 +57,12 @@ public class Orchestrator {
           LOGGER.warn("Layer exception", ex);
         }
       } while (repeat);
+
       return layer.getType();
     }
 
     public void shutdown() {
+      layer.shutdown();
       repeat = false;
     }
   }
