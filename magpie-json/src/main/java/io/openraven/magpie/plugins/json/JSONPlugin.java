@@ -16,15 +16,21 @@
 
 package io.openraven.magpie.plugins.json;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
 import org.slf4j.Logger;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public class JSONPlugin implements TerminalPlugin<Void> {
+
+  private final Object SYNC = new Object();
 
   private static final String ID = "magpie.json";
   private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -33,15 +39,16 @@ public class JSONPlugin implements TerminalPlugin<Void> {
     .findAndRegisterModules();
 
   private Logger logger;
+  private JsonGenerator generator;
 
   @Override
-  public void accept(MagpieEnvelope ngEnvelope) {
-    try {
-//      final var obj = MAPPER.readTree(ngEnvelope.getContents());
-      var output = MAPPER.writeValueAsString(ngEnvelope);  // Jackson auto-closes streams by default and we don't wish to close stdout.
-      System.out.println(output);
-    } catch (IOException ex) {
-      logger.warn("Couldn't process envelope contents", ex);
+  public void accept(MagpieEnvelope env) {
+    synchronized (SYNC) {
+      try {
+        generator.writeObject(env.getContents());
+      } catch (IOException ex) {
+        logger.warn("Couldn't process envelope contents", ex);
+      }
     }
   }
 
@@ -53,6 +60,24 @@ public class JSONPlugin implements TerminalPlugin<Void> {
   @Override
   public void init(Void unused, Logger logger) {
     this.logger = logger;
+    try {
+      generator = new JsonFactory().createGenerator(System.out, JsonEncoding.UTF8).setCodec(MAPPER);
+      generator.writeStartArray();
+    } catch (IOException ex) {
+      throw new RuntimeException("JSON generator error", ex);
+    }
+  }
+
+  @Override
+  public void shutdown() {
+    synchronized (SYNC) {
+      try {
+        generator.writeEndArray();
+        generator.close();
+      } catch (IOException ex) {
+        throw new RuntimeException("JSON generator error", ex);
+      }
+    }
   }
 
   @Override

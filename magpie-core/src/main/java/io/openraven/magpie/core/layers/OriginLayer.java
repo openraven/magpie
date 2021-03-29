@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.core.layers;
 
+import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
@@ -69,5 +70,10 @@ public class OriginLayer implements Layer {
   @Override
   public LayerType getType() {
     return LayerType.ORIGIN;
+  }
+
+  @Override
+  public void shutdown() {
+    plugins.forEach(MagpiePlugin::shutdown);
   }
 }

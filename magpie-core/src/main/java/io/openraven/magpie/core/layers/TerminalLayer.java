@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.core.layers;
 
+import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.api.TerminalPlugin;
 import io.openraven.magpie.core.fifos.FifoDequeue;
 import io.openraven.magpie.core.fifos.FifoException;
@@ -64,5 +65,10 @@ public class TerminalLayer implements Layer {
   @Override
   public LayerType getType() {
     return LayerType.TERMINAL;
+  }
+
+  @Override
+  public void shutdown() {
+    plugins.forEach(MagpiePlugin::shutdown);
   }
 }
