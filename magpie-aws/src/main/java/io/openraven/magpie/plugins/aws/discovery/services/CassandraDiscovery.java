@@ -30,10 +30,7 @@ import software.aws.mcs.auth.SigV4AuthProvider;
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.lang.String.format;
 
@@ -44,6 +41,31 @@ public class CassandraDiscovery implements AWSDiscovery {
   @Override
   public String service() {
     return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    // https://docs.aws.amazon.com/keyspaces/latest/devguide/programmatic.endpoints.html
+    return Arrays.asList(
+      Region.US_EAST_1,
+      Region.US_EAST_2,
+      Region.US_WEST_1,
+      Region.US_WEST_2,
+      Region.AP_EAST_1,
+      Region.AP_SOUTH_1,
+      Region.AP_NORTHEAST_1,
+      Region.AP_NORTHEAST_2,
+      Region.AP_SOUTHEAST_1,
+      Region.AP_SOUTHEAST_2,
+      Region.CA_CENTRAL_1,
+      Region.CN_NORTH_1,
+      Region.CN_NORTHWEST_1,
+      Region.EU_CENTRAL_1,
+      Region.EU_WEST_1,
+      Region.EU_WEST_2,
+      Region.EU_WEST_3,
+      Region.EU_NORTH_1,
+      Region.SA_EAST_1);
   }
 
   @Override

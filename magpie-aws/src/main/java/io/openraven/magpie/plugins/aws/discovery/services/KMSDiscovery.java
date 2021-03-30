@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -31,11 +30,9 @@ import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.*;
-import software.amazon.awssdk.services.kms.model.Tag;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
@@ -43,7 +40,7 @@ import static java.util.Arrays.asList;
 
 public class KMSDiscovery implements AWSDiscovery {
 
-  private static String SERVICE = "kms";
+  private static final String SERVICE = "kms";
 
   private final List<LocalDiscovery> discoveryMethods = asList(
     this::discoverKeyRotation,
@@ -61,6 +58,11 @@ public class KMSDiscovery implements AWSDiscovery {
   @Override
   public String service() {
     return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    return KmsClient.serviceMetadata().regions();
   }
 
   @Override

@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import org.javatuples.Pair;
@@ -49,7 +48,7 @@ import static java.util.Arrays.asList;
 
 public class RDSDiscovery implements AWSDiscovery {
 
-  private static String SERVICE = "rds";
+  private static final String SERVICE = "rds";
 
   private final List<LocalDiscovery> discoveryMethods = asList(
     this::discoverTags,
@@ -65,6 +64,11 @@ public class RDSDiscovery implements AWSDiscovery {
   @Override
   public String service() {
     return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    return RdsClient.serviceMetadata().regions();
   }
 
   @Override
@@ -90,7 +94,7 @@ public class RDSDiscovery implements AWSDiscovery {
             }
           }
 
-          emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
+          emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":dbInstance"), data));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("Finished Rds bucket discovery in {}", region);
@@ -98,7 +102,6 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting tags for {}", resource.dbInstanceArn());
     var obj = data.putObject("tags");
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceName(resource.dbInstanceArn()).build()),
@@ -112,7 +115,6 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverDbClusters(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting DbClusters for {}", resource.dbInstanceArn());
     final String keyname = "DbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
@@ -122,7 +124,6 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverSize(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting DBSize for {}", resource.dbInstanceArn());
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
     if (engine != null) {

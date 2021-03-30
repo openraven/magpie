@@ -55,6 +55,11 @@ public class AthenaDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return AthenaClient.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = AthenaClient.builder().region(region).build();
 
@@ -68,7 +73,7 @@ public class AthenaDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, dataCatalog, data, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":dataCatalog"), data));
       }),
       (noresp) -> logger.error("Failed to get dataCatalogs in {}", region)
     );

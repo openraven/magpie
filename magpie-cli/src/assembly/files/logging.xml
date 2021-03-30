@@ -20,13 +20,15 @@
   <logger name="software.amazon.awssdk" level="WARN"/>
   <logger name="software.amazon.awssdk.request" level="WARN"/>
   <logger name="org.apache.http" level="WARN"/>
+  <logger name="com.datastax" level="ERROR"/>
+  <logger name="io.netty" level="WARN"/>
 
   <!-- suppress all but warnings from kafka -->
   <logger name="org.apache.kafka" level="warn"/>
   <logger name="org.apache.zookeeper" level="warn"/>
   <logger name="org.apache.curator" level="warn"/>
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDERR" />
   </root>
 </configuration>
