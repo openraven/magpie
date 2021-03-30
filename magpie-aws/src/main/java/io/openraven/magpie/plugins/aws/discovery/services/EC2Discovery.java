@@ -31,7 +31,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class EC2Discovery implements AWSDiscovery {
 
-  private static String SERVICE = "ec2";
+  private static final String SERVICE = "ec2";
 
   @FunctionalInterface
   interface LocalDiscovery {
@@ -53,6 +53,11 @@ public class EC2Discovery implements AWSDiscovery {
   @Override
   public String service() {
     return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    return Ec2Client.serviceMetadata().regions();
   }
 
   private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {

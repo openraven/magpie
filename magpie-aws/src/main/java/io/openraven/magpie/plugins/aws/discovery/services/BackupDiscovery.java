@@ -54,6 +54,11 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return BackupClient.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = BackupClient.builder().region(region).build();
 
@@ -67,7 +72,7 @@ public class BackupDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, backupVault, data, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":vault"), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":backupVault"), data));
       })),
       (noresp) -> logger.error("Failed to get backupVaults in {}", region)
     );

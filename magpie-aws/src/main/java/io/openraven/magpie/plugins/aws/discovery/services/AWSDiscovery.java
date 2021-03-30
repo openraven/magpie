@@ -23,6 +23,8 @@ import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 
+import java.util.List;
+
 public interface AWSDiscovery{
 
   String service();
@@ -38,4 +40,6 @@ public interface AWSDiscovery{
   default String fullService() {
     return AWSDiscoveryPlugin.ID + ":"  + service();
   }
+
+  List<Region> getSupportedRegions();
 }

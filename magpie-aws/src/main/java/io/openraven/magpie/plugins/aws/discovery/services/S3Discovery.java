@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
@@ -35,33 +34,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.Bucket;
-import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
-import software.amazon.awssdk.services.s3.model.GetBucketAclRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketAclResponse;
-import software.amazon.awssdk.services.s3.model.GetBucketEncryptionRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketLoggingRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketMetricsConfigurationRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketNotificationConfigurationRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketPolicyStatusRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketPolicyStatusResponse;
-import software.amazon.awssdk.services.s3.model.GetBucketReplicationRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketTaggingRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketVersioningRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketWebsiteRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectLockConfigurationRequest;
-import software.amazon.awssdk.services.s3.model.GetPublicAccessBlockRequest;
-import software.amazon.awssdk.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -71,7 +47,7 @@ import static java.util.Arrays.asList;
 
 public class S3Discovery implements AWSDiscovery {
 
-  private static String SERVICE = "s3";
+  private static final String SERVICE = "s3";
 
   // This is required due to the way S3 bucket data is implemented in the AWS SDK.  Finding the region for n-buckets
   // requires n+1 API calls, and you can't filter bucket lists by region.  Using this cache we perform this operation once
@@ -108,6 +84,11 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return S3Client.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = S3Client.builder().region(region).build();
     final var bucketOpt = getbuckets(session, client, region, logger);
@@ -127,7 +108,7 @@ public class S3Discovery implements AWSDiscovery {
           logger.error("Failed to discover dat for {}", bucket.name(), ex);
         }
       }
-      emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
+      emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":bucket"), data));
     });
     logger.info("Finished S3 bucket discovery in {}", region);
   }

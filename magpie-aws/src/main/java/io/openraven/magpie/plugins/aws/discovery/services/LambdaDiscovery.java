@@ -56,6 +56,11 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return LambdaClient.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = LambdaClient.builder().region(region).build();
 
@@ -69,7 +74,7 @@ public class LambdaDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, function, data, logger, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService()), data));
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":function"), data));
       }),
       (noresp) -> logger.error("Failed to get functions in {}", region)
     );

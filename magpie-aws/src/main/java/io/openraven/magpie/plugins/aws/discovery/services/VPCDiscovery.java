@@ -36,7 +36,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class VPCDiscovery implements AWSDiscovery {
 
-  private static String SERVICE = "vpc";
+  private static final String SERVICE = "vpc";
 
   @FunctionalInterface
   interface LocalDiscovery {
@@ -56,6 +56,11 @@ public class VPCDiscovery implements AWSDiscovery {
   @Override
   public String service() {
     return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    return Ec2Client.serviceMetadata().regions();
   }
 
   private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {

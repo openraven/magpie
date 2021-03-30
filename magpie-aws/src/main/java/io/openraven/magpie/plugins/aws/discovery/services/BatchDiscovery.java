@@ -43,6 +43,11 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return BatchClient.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = BatchClient.builder().region(region).build();
 

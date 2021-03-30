@@ -23,8 +23,6 @@ import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.*;
 import org.slf4j.Logger;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.ec2.Ec2Client;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,7 +39,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new AthenaDiscovery(),
     new BatchDiscovery(),
     new CassandraDiscovery(),
-    new BackupDiscovery(),    
+    new BackupDiscovery(),
     new CloudFrontDiscovery(),
     new EC2Discovery(),
     new ECSDiscovery(),
@@ -59,13 +57,14 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   public void discover(Session session, Emitter emitter) {
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
 
-    Ec2Client.create().describeRegions().regions().stream().map(r -> Region.of(r.regionName())).forEach(region -> enabledPlugins.forEach(d -> {
-      try {
-        d.discoverWrapper(MAPPER, session, region, emitter, logger);
-      } catch (Exception ex) {
-        logger.error("Discovery error", ex);
-      }
-    }));
+    enabledPlugins.forEach(plugin ->
+      plugin.getSupportedRegions().forEach(region -> {
+        try {
+          plugin.discoverWrapper(MAPPER, session, region, emitter, logger);
+        } catch (Exception ex) {
+          logger.error("Discovery error", ex);
+        }
+      }));
   }
 
   private boolean isEnabled(String svc) {
@@ -73,6 +72,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", svc);
     return enabled;
   }
+
   @Override
   public String id() {
     return ID;

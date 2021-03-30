@@ -55,6 +55,11 @@ public class CloudFrontDiscovery implements AWSDiscovery {
   }
 
   @Override
+  public List<Region> getSupportedRegions() {
+    return CloudFrontClient.serviceMetadata().regions();
+  }
+
+  @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = CloudFrontClient.builder().region(Region.AWS_GLOBAL).build();
 
