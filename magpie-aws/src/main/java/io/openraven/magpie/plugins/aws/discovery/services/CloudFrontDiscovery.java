@@ -61,14 +61,14 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    final var client = CloudFrontClient.builder().region(Region.AWS_GLOBAL).build();
+    final var client = CloudFrontClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listDistributions().distributionList().items(),
       (resp) -> resp.forEach(distributionSummary -> {
         var data = mapper.createObjectNode();
         data.putPOJO("configuration", distributionSummary.toBuilder());
-        data.put("region", Region.AWS_GLOBAL.toString());
+        data.put("region", region.toString());
 
         for (var dm : discoveryMethods)
           dm.discover(client, distributionSummary, data, mapper);
