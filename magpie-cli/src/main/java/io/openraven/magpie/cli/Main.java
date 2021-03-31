@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.core.Orchestrator;
+import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -61,7 +62,7 @@ public class Main {
     }
 
     try(var is = new FileInputStream((configFile))) {
-      final var config = MAPPER.readValue(is, MagpieConfig.class);
+      final var config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
       LOGGER.info("OSS Discovery. Classpath={}", System.getProperties().get("java.class.path"));
       new Orchestrator(config, new Session()).scan();
     }

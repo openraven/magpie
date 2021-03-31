@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class Orchestrator {
@@ -90,8 +89,6 @@ public class Orchestrator {
       return t;
     });
 
-    final var layerFutures = new ArrayList<Future<LayerType>>(layers.size());
-
     final var originLayers = layers.values().stream().filter(l -> l.getType() == LayerType.ORIGIN).collect(Collectors.toSet());
     final var otherLayers = layers.values().stream().filter(l -> !originLayers.contains(l)).collect(Collectors.toSet());
 
@@ -142,6 +139,6 @@ public class Orchestrator {
 
     LOGGER.debug(("Shutting down layers"));
     // Shut down all layers
-    callables.forEach(c -> c.shutdown());
+    callables.forEach(LayerCallable::shutdown);
   }
 }
