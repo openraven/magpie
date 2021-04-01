@@ -90,11 +90,36 @@ plugins:
   magpie.json:
     enabled: true
     config:
-
-
-
-
 ```
+
+#### Overriding config.yaml
+It is possible to override *most* configuration values via environmental variables. This is most useful as an easy way to 
+script a Magpie instance on a one-per-aws-service basis.  To override configuration values, set an environmental variable
+named `MAGPIE_CONFIG` and with a specially formed JSON object or array. For example, to perform an S3 *only* scan using
+with the default configuration:
+
+```bash
+> MAGPIE_CONFIG="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" ./magpie
+```
+The value of `MAGPIE_CONFIG` must be a JSON object where the key is a [JSON Pointer](https://tools.ietf.org/html/rfc6901)
+and the value is legal JSON which should be inserted into the location referenced by the pointer.
+
+In the case where multiple overrides are required you may instead use an array of the above formatted objects as such:
+```bash
+> MAGPIE_CONFIG="[{'/plugins/magpie.aws.discovery/enabled', false }, {'/plugins/magpie.aws.discovery/config/services': ['s3']}]" ./magpie
+```
+
+#### Multiple Overrides
+If you have multiple values to set it may be easier to set multiple override variables instead of attempting to fit it
+in a single env var.  Magpie will accept any and all environmental variables that match the regex `MAGPIE_CONFIG.*`. They
+will be applied in Java's natural String ordering (lexicographic).  For example:
+```bash
+> export MAGPIE_CONFIG_1="[...]"
+> export MAGPIE_CONFIG_2="[...]"
+> ./magpie
+```
+Both variables will be applied, if any duplicate JSON Pointers are provided the last one applied will win.
+
 ### Plugins
 
 ### Community Contributed Plugins
@@ -138,6 +163,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] SNS
 - [ ] Storage Gateway
 - [x] VPC
+
 
 
 
