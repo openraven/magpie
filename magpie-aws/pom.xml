@@ -49,8 +49,13 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>
+      <groupId>software.amazon.awssdk</groupId>      
       <artifactId>cloudsearch</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
@@ -66,6 +71,11 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ecs</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>iam</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
