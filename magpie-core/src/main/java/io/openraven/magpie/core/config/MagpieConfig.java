@@ -18,6 +18,7 @@ package io.openraven.magpie.core.config;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class MagpieConfig {
 
@@ -47,5 +48,18 @@ public class MagpieConfig {
 
   public void setPlugins(Map<String, PluginConfig> plugins) {
     this.plugins = plugins;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    MagpieConfig that = (MagpieConfig) o;
+    return layers.equals(that.layers) && fifos.equals(that.fifos) && plugins.equals(that.plugins);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(layers, fifos, plugins);
   }
 }
