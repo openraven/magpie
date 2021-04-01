@@ -154,6 +154,29 @@ public class AWSUtils {
 
   }
 
+  public static Pair<Double, GetMetricStatisticsResponse> getCloudwatchDoubleMetricMinimum(
+    String regionID, String namespace, String metric, List<Dimension> dimensions) {
+
+    GetMetricStatisticsResponse getMetricStatisticsResult =
+      getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.MINIMUM, dimensions);
+
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::minimum)
+      .max(Double::compare).orElse(null), getMetricStatisticsResult);
+
+  }
+
+  @SuppressWarnings("unused")
+  public static Pair<Double, GetMetricStatisticsResponse> getCloudwatchDoubleMetricMaximum(
+    String regionID, String namespace, String metric, List<Dimension> dimensions) {
+
+    GetMetricStatisticsResponse getMetricStatisticsResult =
+      getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.MAXIMUM, dimensions);
+
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::maximum)
+      .max(Double::compare).orElse(null), getMetricStatisticsResult);
+
+  }
+
   public static GetMetricStatisticsResponse getCloudwatchMetricStatistics( String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions) {
 
     try (final CloudWatchClient client = CloudWatchClient.builder().region(Region.of(regionID)).build();) {
