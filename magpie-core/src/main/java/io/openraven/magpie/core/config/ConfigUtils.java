@@ -33,10 +33,8 @@ public final class ConfigUtils {
   }
 
   /**
-   *
    * @param env Map of key-value pairs, where any keys that match ENV_VAR_OVERRIDE_PATTERN are expected to have values
    *            that map to JSON arrays that map JSON Pointers to JSON values/objects.
-   * @return
    */
   static Map<JsonPointer, JsonNode> envOverrides(Map<String, String> env) {
     var map = new LinkedHashMap<JsonPointer, JsonNode>();
@@ -74,13 +72,6 @@ public final class ConfigUtils {
 
     final var overrides = envOverrides(env);
 
-//    final var overrides = convertOverrides(envOverrides(env));
-
-//    final var overrides = env.entrySet().stream()
-//      .filter(e -> e.getKey().startsWith(PREFIX))
-//      .map(e -> Map.entry(e.getKey().replaceFirst(PREFIX, "/").replaceAll("_", "/"), e.getValue()))
-//      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
     ObjectNode configNode = MAPPER.valueToTree(config);
 
     overrides.forEach((key, value) -> {
@@ -95,40 +86,6 @@ public final class ConfigUtils {
         parentNode.replace(leafName, value);
       }
     });
-
-//    overrides.forEach((key, value) -> {
-//      final var parent = key.head();
-//
-//      var overrideNode = configNode.at(key);
-//      if (overrideNode.isMissingNode()) {
-//        LOGGER.warn("Cannot override {}, no configuration with that path exists", key);
-//      } else {
-//        var name = key.last().toString().replaceFirst("/", "");
-//        ObjectNode parentNode = (ObjectNode) configNode.at(parent);
-//        switch (overrideNode.getNodeType()) {
-//          case STRING:
-//            parentNode.put(name, value);
-//            break;
-//          case BOOLEAN:
-//            parentNode.put(name, Boolean.valueOf(value));
-//            break;
-//          case ARRAY:
-//            try {
-//              var array = parentNode.putArray(name);
-//              MAPPER.readValue(value, new TypeReference<List<String>>() {
-//              }).forEach(array::add);
-//            } catch (JsonProcessingException ex) {
-//              throw new RuntimeException("Couldn't deserialize array value", ex);
-//            }
-//            break;
-//          case NUMBER:
-//            parentNode.put(name, Long.valueOf(value));
-//            break;
-//          default:
-//            LOGGER.warn("Unsupported config override type ({}) for {}", overrideNode.getNodeType(), key);
-//        }
-//      }
-//    });
     return MAPPER.treeToValue(configNode, MagpieConfig.class);
   }
 
