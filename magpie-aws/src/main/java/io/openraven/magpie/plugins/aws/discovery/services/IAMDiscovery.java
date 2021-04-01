@@ -42,7 +42,12 @@ public class IAMDiscovery implements AWSDiscovery {
   private static final String SERVICE = "iam";
 
   private final List<LocalDiscovery> discoveryMethods = List.of(
-    this::discoverAccounts
+    this::discoverCredentialsReport,
+    this::discoverAccounts,
+    this::discoverGroups,
+    this::discoverUsers,
+    this::discoverRoles,
+    this::discoverPolicies
   );
 
   @FunctionalInterface
@@ -256,7 +261,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
         emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":group"), data));
       }),
-      (noresp) -> logger.error("Failed to get users in {}", region)
+      (noresp) -> logger.error("Failed to get groups in {}", region)
     );
   }
 
@@ -352,10 +357,10 @@ public class IAMDiscovery implements AWSDiscovery {
         if (resp) {
           processCredentialsReport(client, mapper, session, region, emitter);
         } else {
-          logger.error("Failed to generate credentials report in {}", region.id());
+          logger.error("Failed to generate credentialsReport in {}", region.id());
         }
       },
-      (noresp) -> logger.error("Failed to get credentials report in {}", region.id())
+      (noresp) -> logger.error("Failed to get credentialsReport in {}", region.id())
     );
   }
 
