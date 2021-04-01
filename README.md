@@ -163,6 +163,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] SNS
 - [ ] Storage Gateway
 - [x] VPC
+- [ ] IAM
 
 
 
