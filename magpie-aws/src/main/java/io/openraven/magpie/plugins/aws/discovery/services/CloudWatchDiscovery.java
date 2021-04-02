@@ -53,8 +53,6 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
     discoverAlarms(mapper, session, region, emitter, logger, client);
     discoverInsightRules(mapper, session, region, emitter, logger, client);
-
-//    discoverMetrics(mapper, session, region, emitter, logger, client);
   }
 
   private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
@@ -113,33 +111,6 @@ public class CloudWatchDiscovery implements AWSDiscovery {
         emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":insightRule"), data));
       }),
       (noresp) -> logger.error("Failed to get insightRules in {}", region)
-    );
-  }
-
-  private void discoverMetrics(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
-    getAwsResponse(
-      () -> client.listMetricsPaginator(ListMetricsRequest.builder().build()).metrics().stream(),
-      (resp) -> resp.forEach(metric -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", metric.toBuilder());
-        data.put("region", region.toString());
-
-        discoverMetricAlarms(client, metric, data);
-
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":metric"), data));
-      }),
-      (noresp) -> logger.error("Failed to get metrics in {}", region)
-    );
-  }
-
-  private void discoverMetricAlarms(CloudWatchClient client, Metric resource, ObjectNode data) {
-    final String keyname = "alarms";
-
-    getAwsResponse(
-      () -> client.describeAlarmsForMetric(
-        DescribeAlarmsForMetricRequest.builder().metricName(resource.metricName()).namespace(resource.namespace()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
     );
   }
 }
