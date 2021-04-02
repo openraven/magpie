@@ -41,8 +41,11 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new CassandraDiscovery(),
     new BackupDiscovery(),
     new CloudFrontDiscovery(),
+    new CloudSearchDiscovery(),
+    new DynamoDbDiscovery(),
     new EC2Discovery(),
     new ECSDiscovery(),
+    new IAMDiscovery(),
     new LambdaDiscovery(),
     new S3Discovery(),
     new SNSDiscovery(),
@@ -62,7 +65,8 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         try {
           plugin.discoverWrapper(MAPPER, session, region, emitter, logger);
         } catch (Exception ex) {
-          logger.error("Discovery error", ex);
+          logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+          logger.debug("Details", ex);
         }
       }));
   }

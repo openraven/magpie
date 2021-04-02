@@ -1,5 +1,5 @@
 # Magpie
-#### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework 
+#### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
 
 
 ## What is Magpie?
@@ -17,7 +17,7 @@ with both cloud providers and downstream processing and storage.
 
 *Magpie is essentially a series of layers separated by FIFOs.*
 
-Depending on the configuration, these FIFOs are either **1) Java queues** (in the default configuratgion) or
+Depending on the configuration, these FIFOs are either **1) Java queues** (in the default configuration) or
 **2) Kafka queues**.  Using Kafka queues allows Magpie to run in a distributed and highly scalable fashion where
 each layer may exist on separate compute instances.
 
@@ -39,12 +39,12 @@ The distribution zip file will be located in `magpie-cli/target/magpie-<version>
 
 Alternatively you can download the latest snapshot build by going to Action->(choose latest) and click the `magpie-cli` artifact,
 which will download a zip distribution.  
- 
+
 ## Running Magpie
 
 *Java 11 is a prerequisite and must be installed to run Magpie.*
 
-Out of the box Magpie supports AWS for the cloud provider and outputs discovery data to `stdout` in JSON format. The 
+Out of the box Magpie supports AWS for the cloud provider and outputs discovery data to `stdout` in JSON format. The
 AWS plugin utilizes the AWS Java SDK and will search for credentials as described in [Using Credentials](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials.html).
 
 Assuming you have read credentials set up, you can start discovery by running:
@@ -61,7 +61,7 @@ Magpie allows for complex configurations to be enabled via the YAML-based config
 
 
 The simplest Magpie configuration is shown below. This configuration enables AWS discovery with a JSON output to `stdout`. To write to a file
-simply redirect the output: 
+simply redirect the output:
 ```shell
 ./magpie > output.json
 ```
@@ -93,7 +93,7 @@ plugins:
 ```
 
 #### Overriding config.yaml
-It is possible to override *most* configuration values via environmental variables. This is most useful as an easy way to 
+It is possible to override *most* configuration values via environmental variables. This is most useful as an easy way to
 script a Magpie instance on a one-per-aws-service basis.  To override configuration values, set an environmental variable
 named `MAGPIE_CONFIG` and with a specially formed JSON object or array. For example, to perform an S3 *only* scan using
 with the default configuration:
@@ -129,7 +129,7 @@ If you've written a plugin you'd like listed please create a Pull Request with i
 ### Cloud Provider Status
 
 #### AWS
-Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion. We have already built the code for all services in the list, but need to port them over from a previous framework. 
+Magpie supports AWS as a core plugin out of the box. Checked boxes are complete and available today, the unchecked are on the roadmap for completion. We have already built the code for all services in the list, but need to port them over from a previous framework.
 
 - [x] EC2
 - [x] S3
@@ -138,7 +138,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Backup
 - [x] Cassandra
 - [x] Cloudfront
-- [ ] Cloudsearch
+- [x] Cloudsearch
 - [ ] DynamoDB
 - [ ] EB
 - [x] ECS
@@ -151,6 +151,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [ ] ESS
 - [ ] FSX
 - [ ] Glacier
+- [x] IAM
 - [x] KMS
 - [ ] Lakeformation
 - [x] Lambda
@@ -163,7 +164,3 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] SNS
 - [ ] Storage Gateway
 - [x] VPC
-
-
-
-
