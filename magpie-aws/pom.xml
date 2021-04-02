@@ -60,6 +60,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>elasticbeanstalk</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>ec2</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
