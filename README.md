@@ -139,7 +139,8 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Cassandra
 - [x] Cloudfront
 - [x] Cloudsearch
-- [ ] DynamoDB
+- [x] CloudWatch
+- [x] DynamoDB
 - [ ] EB
 - [x] ECS
 - [ ] EFS
