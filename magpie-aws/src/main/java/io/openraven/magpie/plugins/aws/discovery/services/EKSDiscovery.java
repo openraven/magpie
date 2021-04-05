@@ -1,0 +1,118 @@
+/*
+ * Copyright 2021 Open Raven Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.openraven.magpie.plugins.aws.discovery.services;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import org.slf4j.Logger;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.eks.EksClient;
+import software.amazon.awssdk.services.eks.model.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+
+public class EKSDiscovery implements AWSDiscovery {
+
+  private static final String SERVICE = "eks";
+
+  @Override
+  public String service() {
+    return SERVICE;
+  }
+
+  @Override
+  public List<Region> getSupportedRegions() {
+    return EksClient.serviceMetadata().regions();
+  }
+
+  @Override
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+    final var client = EksClient.builder().region(region).build();
+
+    getAwsResponse(
+      () -> client.listClustersPaginator().clusters()
+        .stream()
+        .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build())),
+      (resp) -> resp.forEach(cluster -> {
+
+        var data = mapper.createObjectNode();
+        data.putPOJO("configuration", cluster.cluster().toBuilder());
+        data.put("region", region.toString());
+
+        discoverFargateProfiles(client, cluster.cluster(), data);
+        discoverNodegroups(client, cluster.cluster(), data);
+        discoverUpdates(client, cluster.cluster(), data);
+
+        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":cluster"), data));
+      }),
+      (noresp) -> logger.error("Failed to get clusters in {}", region)
+    );
+  }
+
+  private void discoverFargateProfiles(EksClient client, Cluster cluster, ObjectNode data) {
+    final String keyname = "fargateProfiles";
+
+    getAwsResponse(
+      () -> client.listFargateProfilesPaginator(ListFargateProfilesRequest.builder().clusterName(cluster.name()).build()).fargateProfileNames()
+        .stream()
+        .map(profileName -> client.describeFargateProfile(
+          DescribeFargateProfileRequest.builder().clusterName(cluster.name()).fargateProfileName(profileName).build()).fargateProfile())
+        .map(r -> r.toBuilder())
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverNodegroups(EksClient client, Cluster cluster, ObjectNode data) {
+    final String keyname = "nodegroups";
+
+    getAwsResponse(
+      () -> client.listNodegroups(ListNodegroupsRequest.builder().clusterName(cluster.name()).build()).nodegroups()
+        .stream()
+        .map(nodegroupName -> client.describeNodegroup(
+          DescribeNodegroupRequest.builder().clusterName(cluster.name()).nodegroupName(nodegroupName).build()).nodegroup())
+        .map(r -> r.toBuilder())
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverUpdates(EksClient client, Cluster cluster, ObjectNode data) {
+    final String keyname = "updates";
+
+    getAwsResponse(
+      () -> client.listUpdates(ListUpdatesRequest.builder().name(cluster.name()).build()).updateIds()
+        .stream()
+        .map(updateId -> client.describeUpdate(
+          DescribeUpdateRequest.builder().name(cluster.name()).updateId(updateId).build()))
+        .map(r -> r.toBuilder())
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+    );
+  }
+}
