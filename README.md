@@ -143,7 +143,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [ ] EB
 - [x] ECS
 - [ ] EFS
-- [ ] EKS
+- [x] EKS
 - [ ] Elastic Cache
 - [ ] ELB
 - [ ] ELBv2
