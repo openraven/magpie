@@ -72,10 +72,15 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ec2</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>
+    </dependency>          
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>efs</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>eks</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
