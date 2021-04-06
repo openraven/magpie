@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
       - name: Docker Build and Push
-        uses: docker/docker-push-action@v2
+        uses: docker/docker-build-push-action@v2
         with:
           context: ./
           file: ./Dockerfile
