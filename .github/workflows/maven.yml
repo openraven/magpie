@@ -21,16 +21,16 @@ jobs:
         run: mvn --settings .github/workflows/settings.xml -B clean package verify install
       - name: Assembly
         run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
-      - name: Upload zip
-        uses:  actions/upload-artifact@v2
-        with:
-          name: magpie-cli
-          path: magpie-cli/target/*.zip
-      - name: Upload tar.gz
-        uses:  actions/upload-artifact@v2
-        with:
-          name: magpie-cli
-          path: magpie-cli/target/*.tar.gz
+#      - name: Upload zip
+#        uses:  actions/upload-artifact@v2
+#        with:
+#          name: magpie-cli
+#          path: magpie-cli/target/*.zip
+#      - name: Upload tar.gz
+#        uses:  actions/upload-artifact@v2
+#        with:
+#          name: magpie-cli
+#          path: magpie-cli/target/*.tar.gz
       - name: Quay Login
         uses: docker/login-action@v1
         with:
@@ -43,4 +43,4 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: openraven/magpie:latest
+          tags: quay.io/openraven/magpie:latest
