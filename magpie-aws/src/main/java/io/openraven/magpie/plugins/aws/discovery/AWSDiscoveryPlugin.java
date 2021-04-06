@@ -51,6 +51,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new EFSDiscovery(),    
     new EKSDiscovery(),
     new ElastiCacheDiscovery(),
+    new ESDiscovery(),
     new IAMDiscovery(),
     new LambdaDiscovery(),
     new S3Discovery(),
