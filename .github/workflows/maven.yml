@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, docker ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -40,6 +40,7 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     needs: build
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
       - name: Download Artifact
