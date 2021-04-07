@@ -84,7 +84,7 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>
+     <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticache</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -100,9 +100,24 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
-      <artifactId>elasticsearch</artifactId>
+      <artifactId>elasticloadbalancing</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>elasticloadbalancingv2</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>emr</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>iam</artifactId>
