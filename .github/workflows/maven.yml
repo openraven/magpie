@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 11
@@ -27,16 +26,16 @@ jobs:
         run: mvn --settings .github/workflows/settings.xml -B clean package verify install
       - name: Assembly
         run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
-#      - name: Upload zip
-#        uses:  actions/upload-artifact@v2
-#        with:
-#          name: magpie-cli
-#          path: magpie-cli/target/*.zip
-#      - name: Upload tar.gz
-#        uses:  actions/upload-artifact@v2
-#        with:
-#          name: magpie-cli
-#          path: magpie-cli/target/*.tar.gz
+      - name: Upload zip
+        uses:  actions/upload-artifact@v2
+        with:
+          name: magpie-cli-zip
+          path: magpie-cli/target/*.zip
+      - name: Upload tar.gz
+        uses:  actions/upload-artifact@v2
+        with:
+          name: magpie-cli-tar-gz
+          path: magpie-cli/target/*.tar.gz
       - name: Quay Login
         uses: docker/login-action@v1
         with:
@@ -50,3 +49,27 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: quay.io/openraven/magpie:latest
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: magpie-cli-tar-gz
+          path: magpie-cli/target/
+      - name: Quay Login
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Docker Build and Push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: quay.io/openraven/magpie:latest
+
