@@ -36,19 +36,6 @@ jobs:
         with:
           name: magpie-cli-tar-gz
           path: magpie-cli/target/*.tar.gz
-      - name: Quay Login
-        uses: docker/login-action@v1
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-      - name: Docker Build and Push
-        uses: docker/build-push-action@v2
-        with:
-          context: ./
-          file: ./Dockerfile
-          push: true
-          tags: quay.io/openraven/magpie:latest
 
   docker-build:
     runs-on: ubuntu-latest
