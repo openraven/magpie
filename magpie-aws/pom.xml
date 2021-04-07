@@ -120,6 +120,11 @@
     </dependency>    
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>fsx</artifactId>    
+      <version>${aws.sdk.version}</version>
+    </dependency>        
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>iam</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
