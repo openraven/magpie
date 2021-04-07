@@ -20,4 +20,8 @@ public class Conversions {
   public static long GibToBytes(long gib) {
     return gib * 1074000000L;
   }
+
+  public static long MibToBytes (long mib) {
+    return mib * 1049000L;
+  }
 }

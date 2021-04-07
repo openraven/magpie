@@ -84,11 +84,6 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>elasticloadbalancing</artifactId>
-      <version>${aws.sdk.version}</version>
-      </dependency>
-    <dependency>
      <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticache</artifactId>
       <version>${aws.sdk.version}</version>
@@ -105,9 +100,19 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>elasticloadbalancing</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticloadbalancingv2</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>    
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>emr</artifactId>
@@ -136,6 +141,11 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sns</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
@@ -195,6 +205,12 @@
           <artifactId>jackson-core-asl</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>2.7.0</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 

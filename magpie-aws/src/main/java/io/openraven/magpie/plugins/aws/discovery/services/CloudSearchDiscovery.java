@@ -128,7 +128,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("DomainName").value(domainStatus.domainName()).build());
-//    dimensions.add(Dimension.builder().name("ClientId").value().build());
+    dimensions.add(Dimension.builder().name("ClientId").value(getAwsAccountId()).build());
 
     Pair<Double, GetMetricStatisticsResponse> IndexUtilization =
       getCloudwatchDoubleMetricMaximum(data.get("region").asText(), "AWS/CloudSearch", "IndexUtilization", dimensions);
