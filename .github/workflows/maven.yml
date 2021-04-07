@@ -17,6 +17,12 @@ jobs:
         with:
           java-version: 11
           java-package: jdk
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
       - name: Build, Package, Verify
         run: mvn --settings .github/workflows/settings.xml -B clean package verify install
       - name: Assembly
