@@ -48,7 +48,7 @@ mvn clean package && mvn --projects magpie-cli assembly:single
 ```
 git clone git@github.com:openraven/magpie.git
 cd magpie
-mvn clean package && mvn --projects magpie-cli assembly:single
+mvn clean package install && mvn --projects magpie-cli assembly:single
 
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
 
