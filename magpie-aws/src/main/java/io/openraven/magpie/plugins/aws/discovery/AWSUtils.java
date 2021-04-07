@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.cloudwatch.model.Statistic;
+import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.utils.builder.ToCopyableBuilder;
 
 import javax.annotation.Nullable;
@@ -154,6 +155,7 @@ public class AWSUtils {
 
   }
 
+  @SuppressWarnings("unused")
   public static Pair<Double, GetMetricStatisticsResponse> getCloudwatchDoubleMetricMinimum(
     String regionID, String namespace, String metric, List<Dimension> dimensions) {
 
@@ -179,7 +181,7 @@ public class AWSUtils {
 
   public static GetMetricStatisticsResponse getCloudwatchMetricStatistics( String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions) {
 
-    try (final CloudWatchClient client = CloudWatchClient.builder().region(Region.of(regionID)).build();) {
+    try (final CloudWatchClient client = CloudWatchClient.builder().region(Region.of(regionID)).build()) {
 
       // The start time is t-minus 2 days (48 hours) because an asset is considered "active" if it's been updated within
       // 48hrs, otherwise it is considered "terminated/deleted", so start capturing at the longest possible period
@@ -197,5 +199,8 @@ public class AWSUtils {
 
       return client.getMetricStatistics(request);
     }
+  }
+  public static String getAwsAccountId() {
+    return StsClient.create().getCallerIdentity().account();
   }
 }
