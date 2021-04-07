@@ -146,8 +146,10 @@ default config and provides no AWS credentials.
 
 For example: to pass environmental variables for both credentials and configuration:
 ```bash
-docker run -a stdout -a stderr --env MAGPIE_CONFIG_="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" \
--e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN quay.io/openraven/magpie:latest
+docker run -a stdout -a stderr \
+--env MAGPIE_CONFIG="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" \
+-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+quay.io/openraven/magpie:latest
 ```
 
 The two `-a` arguments map both `stdout` and `stderr` to your local terminals, so you can redirect output as you would
