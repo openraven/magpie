@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 
@@ -29,13 +29,13 @@ public interface AWSDiscovery{
 
   String service();
 
-  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     logger.debug("Starting {} discovery in {}", service(), region);
     discover(mapper, session, region, emitter, logger);
     logger.debug("Completed {} discovery in {}", service(), region);
   }
 
-  void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger);
+  void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger);
 
   default String fullService() {
     return AWSDiscoveryPlugin.ID + ":"  + service();

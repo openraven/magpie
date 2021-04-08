@@ -19,11 +19,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -40,10 +40,10 @@ public class VPCDiscovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
+    void discover(ObjectMapper mapper, Session session, Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger);
   }
 
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     final var client = Ec2Client.builder().region(region).build();
     final List<LocalDiscovery> methods = List.of(
       this::discoverVpcs,
@@ -63,7 +63,7 @@ public class VPCDiscovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeVpcsPaginator,
       (resp) -> resp.vpcs()
@@ -78,7 +78,7 @@ public class VPCDiscovery implements AWSDiscovery {
       (noresp) -> logger.debug("Couldn't query for VPCs in {}.", region));
   }
 
-  private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session,  Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeVpcPeeringConnectionsPaginator,
       (resp) -> resp.vpcPeeringConnections()

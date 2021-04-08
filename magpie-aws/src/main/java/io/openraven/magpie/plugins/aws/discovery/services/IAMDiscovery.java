@@ -20,10 +20,10 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
@@ -52,7 +52,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger);
+    void discover(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger);
   }
 
   @Override
@@ -66,13 +66,13 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     final var client = IamClient.builder().region(region).build();
 
     discoveryMethods.forEach(dm -> dm.discover(client, mapper, session, region, emitter, logger));
   }
 
-  private void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listRolesPaginator().roles(),
       (resp) -> resp.forEach(role -> {
@@ -125,7 +125,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverPolicies(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverPolicies(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listPoliciesPaginator(builder -> builder.scope(PolicyScopeType.LOCAL)).policies(),
       (resp) -> resp.forEach(policy -> {
@@ -161,7 +161,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listUsersPaginator().users(),
       (resp) -> resp.forEach(user -> {
@@ -248,7 +248,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listGroups().groups(),
       (resp) -> resp.forEach(group -> {
@@ -298,7 +298,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     var data = mapper.createObjectNode();
     data.put("region", region.toString());
 
@@ -350,7 +350,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> generateCredentialReport(client),
       (resp) -> {
@@ -383,7 +383,7 @@ public class IAMDiscovery implements AWSDiscovery {
     return status.equals("COMPLETE");
   }
 
-  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {
+  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter) {
     var report = client.getCredentialReport();
     String reportContent = report.content().asUtf8String();
 

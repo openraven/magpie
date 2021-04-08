@@ -17,10 +17,10 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -35,10 +35,10 @@ public class EC2Discovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
+    void discover(ObjectMapper mapper, Session session, Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger);
   }
 
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     final var client = Ec2Client.builder().region(region).build();
     final List<LocalDiscovery> methods = List.of(
       (m, ds, cl, r, em, l) -> discoverEc2Instances(mapper, session, client, region, emitter, logger),
@@ -60,7 +60,7 @@ public class EC2Discovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeInstancesPaginator,
       (resp) -> resp.stream()
@@ -69,7 +69,7 @@ public class EC2Discovery implements AWSDiscovery {
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
   }
 
-  private void discoverEIPs(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverEIPs(ObjectMapper mapper, Session session,  Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeAddresses,
       (resp) -> resp.addresses()
@@ -77,7 +77,7 @@ public class EC2Discovery implements AWSDiscovery {
       (noresp) -> logger.debug("Couldn't query for EIPs in {}.", region));
   }
 
-  private void discoverSecurityGroups(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverSecurityGroups(ObjectMapper mapper, Session session,  Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeSecurityGroupsPaginator,
       (resp) -> resp.stream()
@@ -86,7 +86,7 @@ public class EC2Discovery implements AWSDiscovery {
       (noresp) -> logger.debug("Couldn't query for SecurityGroups in {}.", region));
   }
 
-  private void discoverVolumes(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVolumes(ObjectMapper mapper, Session session,  Ec2Client client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       client::describeVolumesPaginator,
       (resp) -> resp.stream()

@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -43,7 +43,7 @@ public class SNSDiscovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger);
+    void discover(SnsClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger);
   }
 
   @Override
@@ -57,13 +57,13 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     final var client = SnsClient.builder().region(region).build();
 
     discoveryMethods.forEach(dm -> dm.discover(client, mapper, session, region, emitter, logger));
   }
 
-  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listTopicsPaginator().topics().
         stream()
@@ -83,7 +83,7 @@ public class SNSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
     getAwsResponse(
       () -> client.listSubscriptionsPaginator().subscriptions().
         stream()

@@ -10,6 +10,22 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>write-project-properties</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.outputDirectory}/properties-from-pom.properties</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.2.4</version>
         <executions>
@@ -63,6 +79,7 @@
     <aws.sdk.version>2.15.69</aws.sdk.version>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
+    <project.version>${version}</project.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
   </properties>
 </project>
