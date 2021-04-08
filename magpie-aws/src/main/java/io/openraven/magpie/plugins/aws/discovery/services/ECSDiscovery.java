@@ -19,10 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ecs.EcsClient;
@@ -62,7 +62,7 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = EcsClient.builder().region(region).build();
 
     getAwsResponse(
@@ -75,7 +75,7 @@ public class ECSDiscovery implements AWSDiscovery {
         for (var dm : discoveryMethods)
           dm.discover(client, cluster, data, logger, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":cluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
       }),
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );

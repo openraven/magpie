@@ -20,11 +20,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -72,7 +72,7 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = RdsClient.builder().region(region).build();
 
     try {
@@ -94,7 +94,7 @@ public class RDSDiscovery implements AWSDiscovery {
             }
           }
 
-          emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":dbInstance"), data));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("Finished Rds bucket discovery in {}", region);

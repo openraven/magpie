@@ -19,10 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.aws.mcs.auth.SigV4AuthProvider;
@@ -69,7 +69,7 @@ public class CassandraDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     List<InetSocketAddress> contactPoints = Collections.singletonList(
       InetSocketAddress.createUnresolved(format("cassandra.%s.amazonaws.com", region), 9142));
 
@@ -90,7 +90,7 @@ public class CassandraDiscovery implements AWSDiscovery {
     }
   }
 
-  private void doRun(Region region, CqlSession cqlSession, VersioningEmitterWrapper emitter, Logger logger, ObjectMapper mapper, Session session) {
+  private void doRun(Region region, CqlSession cqlSession, Emitter emitter, Logger logger, ObjectMapper mapper, Session session) {
     var keyspaces = cqlSession.execute("select * from system_schema.keyspaces");
 
     keyspaces.forEach(keyspace -> {
@@ -102,7 +102,7 @@ public class CassandraDiscovery implements AWSDiscovery {
         data.put("region", region.toString());
 
         discoverTables(cqlSession, keyspaceName, data);
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":keyspace"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":keyspace"), data));
       }
       catch (Exception e){
         logger.debug("Keyspaces discovery error in {}.", region, e);

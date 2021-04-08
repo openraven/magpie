@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.batch.BatchClient;
@@ -34,7 +34,7 @@ public class BatchDiscovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session, BatchClient client, Region region, VersioningEmitterWrapper emitter, Logger logger);
+    void discover(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger);
   }
 
   @Override
@@ -48,7 +48,7 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = BatchClient.builder().region(region).build();
 
     final List<LocalDiscovery> methods = List.of(
@@ -60,7 +60,7 @@ public class BatchDiscovery implements AWSDiscovery {
     methods.forEach(m -> m.discover(mapper, session, client, region, emitter, logger));
   }
 
-  private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger) {
     getAwsResponse(
       () -> client.describeComputeEnvironmentsPaginator().computeEnvironments(),
       (resp) -> resp.forEach(computeEnvironment -> {
@@ -68,13 +68,13 @@ public class BatchDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", computeEnvironment.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":computeEnvironment"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data));
       }),
       (noresp) -> logger.error("Failed to get computeEnvironments in {}", region)
     );
   }
 
-  private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger) {
     getAwsResponse(
       () -> client.describeJobQueuesPaginator().jobQueues(),
       (resp) -> resp.forEach(computeEnvironment -> {
@@ -82,14 +82,14 @@ public class BatchDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", computeEnvironment.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":jobQueue"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data));
       }),
       (noresp) -> logger.error("Failed to get jobQueues in {}", region)
     );
 
   }
 
-  private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger) {
     getAwsResponse(
       () -> client.describeJobDefinitionsPaginator().jobDefinitions(),
       (resp) -> resp.forEach(computeEnvironment -> {
@@ -97,7 +97,7 @@ public class BatchDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", computeEnvironment.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":jobDefinition"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data));
       }),
       (noresp) -> logger.error("Failed to get jobDefinitions in {}", region)
     );

@@ -66,12 +66,10 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   public void discover(Session session, Emitter emitter) {
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
 
-    var versioningEmitter = new VersioningEmitterWrapper(emitter);
-
     enabledPlugins.forEach(plugin ->
       plugin.getSupportedRegions().forEach(region -> {
         try {
-          plugin.discoverWrapper(MAPPER, session, region, versioningEmitter, logger);
+          plugin.discoverWrapper(MAPPER, session, region, emitter, logger);
         } catch (Exception ex) {
           logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
           logger.debug("Details", ex);

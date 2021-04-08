@@ -19,10 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -45,7 +45,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger, DynamoDbClient client);
+    void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client);
   }
 
   @Override
@@ -59,13 +59,13 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = DynamoDbClient.builder().region(region).build();
 
     discoveryMethods.forEach(dm -> dm.discover(mapper,session,region,emitter,logger, client));
   }
 
-  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger, DynamoDbClient client) {
+  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client) {
     getAwsResponse(
       () -> client.listGlobalTables().globalTables().stream()
         .map(globalTable -> client.describeGlobalTable(
@@ -76,13 +76,13 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         data.put("region", region.toString());
 
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":globalTable"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data));
       }),
       (noresp) -> logger.error("Failed to get globalTables in {}", region)
     );
   }
 
-  private void discoverTables(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger, DynamoDbClient client) {
+  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client) {
     getAwsResponse(
       () -> client.listTablesPaginator().tableNames().stream()
         .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build())),
@@ -94,7 +94,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         discoverContinuousBackups(client, table.table(), data);
         discoverTags(client, table.table(), data, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":table"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data));
       }),
       (noresp) -> logger.error("Failed to get tables in {}", region)
     );

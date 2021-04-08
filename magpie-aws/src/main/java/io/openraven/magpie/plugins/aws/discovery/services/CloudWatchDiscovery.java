@@ -19,10 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.VersioningEmitterWrapper;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
@@ -48,14 +48,14 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
     final var client = CloudWatchClient.builder().region(region).build();
 
     discoverAlarms(mapper, session, region, emitter, logger, client);
     discoverInsightRules(mapper, session, region, emitter, logger, client);
   }
 
-  private void discoverAlarms(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger, CloudWatchClient client) {
+  private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
     getAwsResponse(
       () -> client.describeAlarmsPaginator().metricAlarms().stream(),
       (resp) -> resp.forEach(alarm -> {
@@ -66,7 +66,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
         discoverAlarmHistory(client, alarm, data);
         discoverAlarmTags(client, alarm, data, mapper);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":alarm"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alarm"), data));
       }),
       (noresp) -> logger.error("Failed to get alarms in {}", region)
     );
@@ -100,7 +100,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   }
 
 
-  private void discoverInsightRules(ObjectMapper mapper, Session session, Region region, VersioningEmitterWrapper emitter, Logger logger, CloudWatchClient client) {
+  private void discoverInsightRules(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
     getAwsResponse(
       () -> client.describeInsightRulesPaginator(DescribeInsightRulesRequest.builder().build()).stream(),
       (resp) -> resp.forEach(insightRule -> {
@@ -108,7 +108,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", insightRule.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":insightRule"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":insightRule"), data));
       }),
       (noresp) -> logger.error("Failed to get insightRules in {}", region)
     );
