@@ -11,7 +11,7 @@ public class VersionProvider {
 
     Properties properties = new Properties();
     try {
-      properties.load(getClass().getClassLoader().getResourceAsStream("properties-from-pom.properties"));
+      properties.load(getClass().getClassLoader().getResourceAsStream("version.properties"));
     } catch (IOException e) {
     }
 
