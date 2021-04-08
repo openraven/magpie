@@ -79,6 +79,7 @@
     <aws.sdk.version>2.15.69</aws.sdk.version>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
+    <magpie.api.version>0.1.2</magpie.api.version>
     <project.version>${version}</project.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
   </properties>
