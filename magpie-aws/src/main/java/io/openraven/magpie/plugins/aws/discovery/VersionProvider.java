@@ -6,14 +6,13 @@ import java.util.Properties;
 public class VersionProvider {
   private final String awsSdkVersion;
   private final String projectVersion;
-  
+
   public VersionProvider() {
 
     Properties properties = new Properties();
     try {
       properties.load(getClass().getClassLoader().getResourceAsStream("properties-from-pom.properties"));
     } catch (IOException e) {
-      e.printStackTrace();
     }
 
     awsSdkVersion = properties.getProperty("aws.sdk.version");
