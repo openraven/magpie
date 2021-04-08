@@ -12,18 +12,21 @@
   <artifactId>magpie-aws</artifactId>
 
   <properties>
+    <project.version>${version}</project.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <aws.sdk.version>2.15.69</aws.sdk.version>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
+    <magpie.api.version>0.1.2</magpie.api.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>
+      <version>${magpie.api.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -41,15 +44,15 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>batch</artifactId>
-      <version>${aws.sdk.version}</version>      
+      <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>      
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>cloudfront</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>      
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>cloudsearch</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -72,12 +75,12 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ec2</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>          
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>efs</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>eks</artifactId>
@@ -221,6 +224,22 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>write-project-properties</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.outputDirectory}/version.properties</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

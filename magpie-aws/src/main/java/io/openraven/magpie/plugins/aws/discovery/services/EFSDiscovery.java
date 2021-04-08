@@ -19,23 +19,17 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.athena.AthenaClient;
-import software.amazon.awssdk.services.athena.model.DataCatalogSummary;
-import software.amazon.awssdk.services.athena.model.ListDataCatalogsRequest;
-import software.amazon.awssdk.services.athena.model.ListDatabasesRequest;
 import software.amazon.awssdk.services.efs.EfsClient;
 import software.amazon.awssdk.services.efs.model.DescribeMountTargetsRequest;
 import software.amazon.awssdk.services.efs.model.FileSystemDescription;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
@@ -67,7 +61,7 @@ public class EFSDiscovery implements AWSDiscovery {
         discoverMountTargets(client, fileSystem, data);
 
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":fileSystem"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data));
       }),
       (noresp) -> logger.error("Failed to get fileSystems in {}", region)
     );
