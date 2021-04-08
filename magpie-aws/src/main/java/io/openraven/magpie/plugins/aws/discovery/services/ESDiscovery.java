@@ -20,10 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -33,7 +33,6 @@ import software.amazon.awssdk.services.elasticsearch.ElasticsearchClient;
 import software.amazon.awssdk.services.elasticsearch.model.DescribeElasticsearchDomainRequest;
 import software.amazon.awssdk.services.elasticsearch.model.ElasticsearchDomainStatus;
 import software.amazon.awssdk.services.elasticsearch.model.Tag;
-import software.amazon.awssdk.services.sts.StsClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +70,7 @@ public class ESDiscovery implements AWSDiscovery {
         discoverSize(domain, data, region);
 
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":domain"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data));
       }),
       (noresp) -> logger.error("Failed to get domains in {}", region)
     );
