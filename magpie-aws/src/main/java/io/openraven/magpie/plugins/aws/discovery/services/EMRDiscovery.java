@@ -24,8 +24,8 @@ import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.eks.EksClient;
-import software.amazon.awssdk.services.eks.model.*;
+import software.amazon.awssdk.services.emr.EmrClient;
+import software.amazon.awssdk.services.emr.model.*;
 
 import java.util.List;
 import java.util.Map;
@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
-public class EKSDiscovery implements AWSDiscovery {
+public class EMRDiscovery implements AWSDiscovery {
 
-  private static final String SERVICE = "eks";
+  private static final String SERVICE = "emr";
 
   @Override
   public String service() {
@@ -44,41 +44,37 @@ public class EKSDiscovery implements AWSDiscovery {
 
   @Override
   public List<Region> getSupportedRegions() {
-    return EksClient.serviceMetadata().regions();
+    return EmrClient.serviceMetadata().regions();
   }
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    final var client = EksClient.builder().region(region).build();
+    final var client = EmrClient.builder().region(region).build();
 
     getAwsResponse(
-      () -> client.listClustersPaginator().clusters()
-        .stream()
-        .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build())),
+      () -> client.listClustersPaginator().clusters().stream(),
       (resp) -> resp.forEach(cluster -> {
-
         var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cluster.cluster().toBuilder());
+        data.putPOJO("configuration", cluster.toBuilder());
         data.put("region", region.toString());
 
-        discoverFargateProfiles(client, cluster.cluster(), data);
-        discoverNodegroups(client, cluster.cluster(), data);
-        discoverUpdates(client, cluster.cluster(), data);
+        discoverSteps(client, cluster, data);
+        discoverInstances(client, cluster, data);
+        discoverInstanceFleets(client, cluster, data);
+        discoverInstanceGroups(client, cluster, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
       }),
-      (noresp) -> logger.error("Failed to get clusters in {}", region)
+      (noresp) -> logger.error("Failed to get emr cluster in {}", region)
     );
   }
 
-  private void discoverFargateProfiles(EksClient client, Cluster cluster, ObjectNode data) {
-    final String keyname = "fargateProfiles";
+  private void discoverSteps(EmrClient client, ClusterSummary resource, ObjectNode data) {
+    final String keyname = "steps";
 
     getAwsResponse(
-      () -> client.listFargateProfilesPaginator(ListFargateProfilesRequest.builder().clusterName(cluster.name()).build()).fargateProfileNames()
+      () -> client.listStepsPaginator(ListStepsRequest.builder().clusterId(resource.id()).build()).steps()
         .stream()
-        .map(profileName -> client.describeFargateProfile(
-          DescribeFargateProfileRequest.builder().clusterName(cluster.name()).fargateProfileName(profileName).build()).fargateProfile())
         .map(r -> r.toBuilder())
         .collect(Collectors.toList()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -86,14 +82,12 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverNodegroups(EksClient client, Cluster cluster, ObjectNode data) {
-    final String keyname = "nodegroups";
+  private void discoverInstances(EmrClient client, ClusterSummary resource, ObjectNode data) {
+    final String keyname = "instances";
 
     getAwsResponse(
-      () -> client.listNodegroups(ListNodegroupsRequest.builder().clusterName(cluster.name()).build()).nodegroups()
+      () -> client.listInstancesPaginator(ListInstancesRequest.builder().clusterId(resource.id()).build()).instances()
         .stream()
-        .map(nodegroupName -> client.describeNodegroup(
-          DescribeNodegroupRequest.builder().clusterName(cluster.name()).nodegroupName(nodegroupName).build()).nodegroup())
         .map(r -> r.toBuilder())
         .collect(Collectors.toList()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
@@ -101,14 +95,25 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUpdates(EksClient client, Cluster cluster, ObjectNode data) {
-    final String keyname = "updates";
+  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, ObjectNode data) {
+    final String keyname = "instancesFleet";
 
     getAwsResponse(
-      () -> client.listUpdates(ListUpdatesRequest.builder().name(cluster.name()).build()).updateIds()
+      () -> client.listInstanceFleetsPaginator(ListInstanceFleetsRequest.builder().clusterId(resource.id()).build()).instanceFleets()
         .stream()
-        .map(updateId -> client.describeUpdate(
-          DescribeUpdateRequest.builder().name(cluster.name()).updateId(updateId).build()))
+        .map(r -> r.toBuilder())
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, ObjectNode data) {
+    final String keyname = "instancesGroups";
+
+    getAwsResponse(
+      () -> client.listInstanceGroups(ListInstanceGroupsRequest.builder().clusterId(resource.id()).build()).instanceGroups()
+        .stream()
         .map(r -> r.toBuilder())
         .collect(Collectors.toList()),
       (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),

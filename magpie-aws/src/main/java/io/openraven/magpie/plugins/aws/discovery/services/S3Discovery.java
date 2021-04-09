@@ -23,9 +23,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -108,7 +108,7 @@ public class S3Discovery implements AWSDiscovery {
           logger.error("Failed to discover dat for {}", bucket.name(), ex);
         }
       }
-      emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":bucket"), data));
+      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data));
     });
     logger.info("Finished S3 bucket discovery in {}", region);
   }

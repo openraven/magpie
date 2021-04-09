@@ -21,9 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
@@ -86,7 +86,7 @@ public class IAMDiscovery implements AWSDiscovery {
         AWSUtils.update(data, Map.of("tags", mapper.convertValue(role.tags().stream().collect(
           Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)));
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":role"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data));
       }),
       (noresp) -> logger.error("Failed to get roles in {}", region)
     );
@@ -135,7 +135,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
         discoverPolicyDocument(client, data, policy);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":policy"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":policy"), data));
       }),
       (noresp) -> logger.error("Failed to get policies in {}", region)
     );
@@ -177,7 +177,7 @@ public class IAMDiscovery implements AWSDiscovery {
         AWSUtils.update(data, Map.of("tags", mapper.convertValue(user.tags().stream().collect(
           Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)));
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":user"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":user"), data));
       }),
       (noresp) -> logger.error("Failed to get users in {}", region)
     );
@@ -259,7 +259,7 @@ public class IAMDiscovery implements AWSDiscovery {
         discoverGroupInlinePolicies(client,data,group);
         discoverGroupAttachedPolicies(client,data,group);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":group"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":group"), data));
       }),
       (noresp) -> logger.error("Failed to get groups in {}", region)
     );
@@ -307,7 +307,7 @@ public class IAMDiscovery implements AWSDiscovery {
     discoverAccountSummary(client, data);
     discoverVirtualMFADevices(client, data);
 
-    emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":account"), data));
+    emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data));
   }
 
   private void discoverAccountAlias(IamClient client, ObjectNode data) {
@@ -397,7 +397,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
       AWSUtils.update(data, Map.of("report",mapper.valueToTree(credential)));
 
-      emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":credentialsReport"), data));
+      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":credentialsReport"), data));
     }
   }
 }

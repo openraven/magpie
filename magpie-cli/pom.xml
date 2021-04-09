@@ -15,12 +15,14 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <jar.finalName>${project.name}</jar.finalName>
+    <magpie.api.version>0.1.2</magpie.api.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>
+      <version>${magpie.api.version}</version>
     </dependency>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
