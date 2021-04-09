@@ -25,29 +25,20 @@ import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.cloudfront.CloudFrontClient;
-import software.amazon.awssdk.services.cloudfront.model.DistributionSummary;
-import software.amazon.awssdk.services.cloudfront.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.cloudfront.model.Tag;
+import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
+import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeTagsRequest;
+import software.amazon.awssdk.services.elasticloadbalancingv2.model.LoadBalancer;
+import software.amazon.awssdk.services.elasticloadbalancingv2.model.Tag;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
-public class CloudFrontDiscovery implements AWSDiscovery {
+public class ELBV2Discovery implements AWSDiscovery {
 
-  private static final String SERVICE = "cloudFront";
+  private static final String SERVICE = "elbv2";
 
-  private final List<LocalDiscovery> discoveryMethods = Collections.singletonList(
-    this::discoverTags
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(CloudFrontClient client, DistributionSummary resource, ObjectNode data, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -56,37 +47,38 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
   @Override
   public List<Region> getSupportedRegions() {
-    return CloudFrontClient.serviceMetadata().regions();
+    return ElasticLoadBalancingV2Client.serviceMetadata().regions();
   }
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    final var client = CloudFrontClient.builder().region(region).build();
+    final var client = ElasticLoadBalancingV2Client.builder().region(region).build();
 
     getAwsResponse(
-      () -> client.listDistributions().distributionList().items(),
-      (resp) -> resp.forEach(distributionSummary -> {
+      () -> client.describeLoadBalancers().loadBalancers(),
+      (resp) -> resp.forEach(loadBalancerV2 -> {
         var data = mapper.createObjectNode();
-        data.putPOJO("configuration", distributionSummary.toBuilder());
+        data.putPOJO("configuration", loadBalancerV2.toBuilder());
         data.put("region", region.toString());
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, distributionSummary, data, mapper);
+        discoverTags(client, loadBalancerV2, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data));
       }),
-      (noresp) -> logger.error("Failed to get distributions in {}", region)
+      (noresp) -> logger.error("Failed to get loadBalancerV2 in {}", region)
     );
   }
 
-  private void discoverTags(CloudFrontClient client, DistributionSummary resource, ObjectNode data, ObjectMapper mapper) {
+  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, ObjectNode data, ObjectMapper mapper) {
     var obj = data.putObject("tags");
 
     getAwsResponse(
-      () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resource(resource.arn()).build()),
+      () -> client.describeTags(DescribeTagsRequest.builder().resourceArns(resource.loadBalancerArn()).build()).tagDescriptions(),
       (resp) -> {
-        JsonNode tagsNode = mapper.convertValue(resp.tags().items().stream()
-          .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
+        JsonNode tagsNode = mapper.convertValue(
+          resp.stream()
+            .flatMap(tagDescription -> tagDescription.tags().stream())
+            .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
         AWSUtils.update(obj, tagsNode);
       },
       (noresp) -> AWSUtils.update(obj, noresp)

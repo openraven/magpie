@@ -1,5 +1,6 @@
-dependency-reduced-pom.xml
+*/dependency-reduced-pom.xml
 .DS_Store
 target
 .idea
 *.iml
+magpie.log

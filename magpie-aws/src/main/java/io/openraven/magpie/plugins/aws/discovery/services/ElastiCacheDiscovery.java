@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -61,7 +61,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
         discoverRedisSize(cacheCluster, data, region.id());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":cacheCluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data));
       }),
       (noresp) -> logger.error("Failed to get cacheClusters in {}", region)
     );

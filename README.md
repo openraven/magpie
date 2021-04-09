@@ -1,6 +1,21 @@
 # Magpie
 #### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
 
+## Table of Contents
+* [What is Magpie?](#what-is-magpie-)
+* [Overview](#overview)
+    + [Magpie Architecture](#magpie-architecture)
+* [Building Magpie](#building-magpie)
+    + [Clone and build Magpie](#clone-and-build-magpie)
+* [Running Magpie](#running-magpie)
+    + [Configuration](#configuration)
+        - [Overriding config.yaml](#overriding-configyaml)
+        - [Multiple Overrides](#multiple-overrides)
+    + [Running via Docker](#running-via-docker)
+    + [Plugins](#plugins)
+    + [Community Contributed Plugins](#community-contributed-plugins)
+    + [Cloud Provider Status](#cloud-provider-status)
+        - [AWS](#aws)
 
 ## What is Magpie?
 Magpie is a free, open-source framework and a collection of community developed plugins that can be used to build complete end-to-end security tools such as a CSPM or Cloud Security Posture Manager. The project was originally created and is maintained by Open Raven. We build commercial cloud native data security tools and in doing so have learned a great deal about how to discover AWS assets and their security settings at scale.
@@ -29,11 +44,8 @@ each layer may exist on separate compute instances.
 ```shell
 git clone git@github.com:openraven/magpie.git
 cd magpie
-mvn clean package && mvn --projects magpie-cli assembly:single
+mvn clean package install && mvn --projects magpie-cli assembly:single
 ```
-git clone git@github.com:openraven/magpie.git
-cd magpie
-mvn clean package && mvn --projects magpie-cli assembly:single
 
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
 
@@ -120,6 +132,26 @@ will be applied in Java's natural String ordering (lexicographic).  For example:
 ```
 Both variables will be applied, if any duplicate JSON Pointers are provided the last one applied will win.
 
+
+### Running via Docker
+Builds on the `main` branch are automatically uploaded to quay.io under the `latest` tag.  See https://quay.io/repository/openraven/magpie for
+all available tags. Once a stable public release is made this will also be available there.  The Docker image uses the
+default config and provides no AWS credentials.
+
+- Credentials can be added at runtime via volume mapping or passing environmental variables into the container.
+- Configuration overrides can be done via environmental variable.
+
+For example: to pass environmental variables for both credentials and configuration:
+```bash
+docker run -a stdout -a stderr \
+--env MAGPIE_CONFIG="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" \
+-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+quay.io/openraven/magpie:latest
+```
+
+The two `-a` arguments map both `stdout` and `stderr` to your local terminals, so you can redirect output as you would
+with a local Mapgie execution.
+
 ### Plugins
 
 ### Community Contributed Plugins
@@ -147,11 +179,11 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] EFS
 - [x] EKS
 - [x] Elastic Cache
-- [ ] ELB
-- [ ] ELBv2
-- [ ] EMR
-- [ ] ESS
-- [ ] FSX
+- [x] ELB
+- [x] ELBv2
+- [x] EMR
+- [x] ESS
+- [x] FSX
 - [x] Glacier
 - [x] IAM
 - [x] KMS
