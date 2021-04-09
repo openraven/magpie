@@ -20,22 +20,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.efs.EfsClient;
-import software.amazon.awssdk.services.efs.model.DescribeMountTargetsRequest;
-import software.amazon.awssdk.services.efs.model.FileSystemDescription;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
+import software.amazon.awssdk.services.fsx.FSxClient;
+import software.amazon.awssdk.services.fsx.model.FileSystem;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchMetricMinimum;
 
-public class EFSDiscovery implements AWSDiscovery {
+public class FSXDiscovery implements AWSDiscovery {
 
-  private static final String SERVICE = "efs";
+  private static final String SERVICE = "fsx";
 
   @Override
   public String service() {
@@ -44,37 +47,42 @@ public class EFSDiscovery implements AWSDiscovery {
 
   @Override
   public List<Region> getSupportedRegions() {
-    return EfsClient.serviceMetadata().regions();
+    return FSxClient.serviceMetadata().regions();
   }
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    final var client = EfsClient.builder().region(region).build();
+    final var client = FSxClient.builder().region(region).build();
 
     getAwsResponse(
-      () -> client.describeFileSystems().fileSystems(),
+      () -> client.describeFileSystems().fileSystems().stream(),
       (resp) -> resp.forEach(fileSystem -> {
         var data = mapper.createObjectNode();
         data.putPOJO("configuration", fileSystem.toBuilder());
         data.put("region", region.toString());
 
-        discoverMountTargets(client, fileSystem, data);
-
+        discoverSize(fileSystem, data, region);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data));
       }),
-      (noresp) -> logger.error("Failed to get fileSystems in {}", region)
+      (noresp) -> logger.error("Failed to get fileSystem in {}", region)
     );
   }
 
+  private void discoverSize(FileSystem resource, ObjectNode data, Region region) {
+    try {
+      List<Dimension> dimensions = new ArrayList<>();
+      dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());
+      Pair<Long, GetMetricStatisticsResponse> freeStorageCapacity =
+        getCloudwatchMetricMinimum(region.toString(), "AWS/FSx", "FreeDataStorageCapacity", dimensions);
 
-  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, ObjectNode data) {
-    final String keyname = "mountTargets";
+      long capacityAsBytes = Conversions.GibToBytes(resource.storageCapacity());
 
-    getAwsResponse(
-      () ->  client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
-    );
+      data.put("freeDataStorageCapacity", freeStorageCapacity.getValue0());
+      data.put("sizeInBytes", capacityAsBytes - freeStorageCapacity.getValue0());
+      data.put("maxSizeInBytes", capacityAsBytes);
+
+    } catch (Exception ignored) {
+    }
   }
 }

@@ -17,10 +17,11 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -35,7 +36,7 @@ public class EC2Discovery implements AWSDiscovery {
 
   @FunctionalInterface
   interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger);
+    void discover(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger);
   }
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
@@ -65,7 +66,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeInstancesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.reservations().stream())
-        .forEach(i -> emitter.emit(new MagpieEnvelope(session, List.of(fullService()), mapper.valueToTree(i.toBuilder())))),
+        .forEach(i -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), mapper.valueToTree(i.toBuilder())))),
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
   }
 
@@ -73,7 +74,7 @@ public class EC2Discovery implements AWSDiscovery {
     getAwsResponse(
       client::describeAddresses,
       (resp) -> resp.addresses()
-        .forEach(addr -> emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), mapper.valueToTree(addr.toBuilder())))),
+        .forEach(addr -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), mapper.valueToTree(addr.toBuilder())))),
       (noresp) -> logger.debug("Couldn't query for EIPs in {}.", region));
   }
 
@@ -82,7 +83,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeSecurityGroupsPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.securityGroups().stream())
-        .forEach(sg -> emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), mapper.valueToTree(sg.toBuilder())))),
+        .forEach(sg -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), mapper.valueToTree(sg.toBuilder())))),
       (noresp) -> logger.debug("Couldn't query for SecurityGroups in {}.", region));
   }
 
@@ -91,7 +92,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeVolumesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.volumes().stream())
-        .forEach(v -> emitter.emit(new MagpieEnvelope(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), mapper.valueToTree(v.toBuilder())))),
+        .forEach(v -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), mapper.valueToTree(v.toBuilder())))),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
   }
 }

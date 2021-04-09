@@ -35,7 +35,7 @@ public interface AWSDiscovery{
     logger.debug("Completed {} discovery in {}", service(), region);
   }
 
-  void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger);
+  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger);
 
   default String fullService() {
     return AWSDiscoveryPlugin.ID + ":"  + service();
