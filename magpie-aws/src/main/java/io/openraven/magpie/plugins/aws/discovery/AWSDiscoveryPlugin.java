@@ -24,6 +24,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.*;
 import org.slf4j.Logger;
 
+import java.security.spec.RSAOtherPrimeInfo;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new S3Discovery(),
     new SNSDiscovery(),
     new RDSDiscovery(),
+    new Route53Discovery(),
     new KMSDiscovery(),
     new VPCDiscovery());
 
