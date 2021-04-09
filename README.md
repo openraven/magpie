@@ -184,17 +184,17 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] EMR
 - [x] ESS
 - [x] FSX
-- [ ] Glacier
+- [x] Glacier
 - [x] IAM
 - [x] KMS
-- [ ] Lakeformation
+- [x] Lakeformation
 - [x] Lambda
-- [ ] Lightsail
+- [x] Lightsail
 - [x] QLDB
 - [x] RDS
-- [ ] Redshift
+- [x] Redshift
 - [ ] Route 53
-- [ ] Secrets Manager
+- [x] Secrets Manager
 - [x] SNS
-- [ ] Storage Gateway
+- [x] Storage Gateway
 - [x] VPC
