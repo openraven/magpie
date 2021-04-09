@@ -198,6 +198,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>route53</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>  
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>cloudwatch</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
