@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lightsail.LightsailClient;
@@ -66,7 +66,7 @@ public class LightsailDiscovery implements AWSDiscovery {
 
         discoverSize(client, relationalDatabase, data);
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":relationalDatabase"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data));
       }),
       (noresp) -> logger.error("Failed to get relationalDatabases in {}", region)
     );
@@ -102,7 +102,7 @@ public class LightsailDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", instance.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":instance"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data));
       }),
       (noresp) -> logger.error("Failed to get instances in {}", region)
     );
@@ -116,7 +116,7 @@ public class LightsailDiscovery implements AWSDiscovery {
         data.putPOJO("configuration", loadBalancer.toBuilder());
         data.put("region", region.toString());
 
-        emitter.emit(new MagpieEnvelope(session, List.of(fullService() + ":loadBalancer"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data));
       }),
       (noresp) -> logger.error("Failed to get loadBalancers in {}", region)
     );
