@@ -30,9 +30,9 @@ public interface AWSDiscovery{
   String service();
 
   default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
-    logger.error("Starting {} discovery in {}", service(), region);
+    logger.debug("Starting {} discovery in {}", service(), region);
     discover(mapper, session, region, emitter, logger);
-    logger.error("Completed {} discovery in {}", service(), region);
+    logger.debug("Completed {} discovery in {}", service(), region);
   }
 
   void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger);
