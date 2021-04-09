@@ -60,6 +60,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new LambdaDiscovery(),
     new S3Discovery(),
     new SNSDiscovery(),
+    new StorageGatewayDiscovery(),
     new RDSDiscovery(),
     new KMSDiscovery(),
     new VPCDiscovery());
