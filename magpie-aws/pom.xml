@@ -105,7 +105,7 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticloadbalancing</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticloadbalancingv2</artifactId>
@@ -115,17 +115,22 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticsearch</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>emr</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
-      <artifactId>fsx</artifactId>    
+      <artifactId>fsx</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>        
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>glacier</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>iam</artifactId>
@@ -138,7 +143,17 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>lakeformation</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>lambda</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>lightsail</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
@@ -158,12 +173,22 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>storagegateway</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>sts</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>rds</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>redshift</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
