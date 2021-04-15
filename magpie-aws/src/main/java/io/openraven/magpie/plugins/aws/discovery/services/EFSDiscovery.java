@@ -61,6 +61,7 @@ public class EFSDiscovery implements AWSDiscovery {
         data.resourceName = fileSystem.name();
         data.resourceType = "AWS::EFS::FileSystem";
         data.createdIso = fileSystem.creationTime().toString();
+        data.sizeInBytes = fileSystem.sizeInBytes().value();
 
         discoverMountTargets(client, fileSystem, data);
 
@@ -70,14 +71,13 @@ public class EFSDiscovery implements AWSDiscovery {
     );
   }
 
-
   private void discoverMountTargets(EfsClient client, FileSystemDescription resource, AWSResource data) {
     final String keyname = "mountTargets";
 
     getAwsResponse(
       () -> client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.configuration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.configuration, Map.of(keyname, noresp))
     );
   }
 }

@@ -80,8 +80,6 @@ public class ESDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, AWSResource data, ObjectMapper mapper) {
-
-
     getAwsResponse(
       () -> client.listTags(builder -> builder.arn(resource.arn())),
       (resp) -> {
