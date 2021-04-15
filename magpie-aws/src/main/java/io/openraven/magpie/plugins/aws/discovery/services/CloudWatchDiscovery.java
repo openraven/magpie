@@ -112,7 +112,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dashboard"), data.toJsonNode(mapper)));
       }),
-      (noresp) -> logger.error("Failed to get insightRules in {}", region)
+      (noresp) -> logger.error("Failed to get :dashboards in {}", region)
     );
   }
 }

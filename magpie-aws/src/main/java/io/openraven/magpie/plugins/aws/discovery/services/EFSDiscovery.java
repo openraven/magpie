@@ -57,7 +57,7 @@ public class EFSDiscovery implements AWSDiscovery {
         var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
         data.resourceId = fileSystem.fileSystemId();
         data.awsAccountId = fileSystem.ownerId();
-        data.arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
+        data.arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region.toString(), fileSystem.ownerId(), fileSystem.fileSystemId());
         data.resourceName = fileSystem.name();
         data.resourceType = "AWS::EFS::FileSystem";
         data.createdIso = fileSystem.creationTime().toString();

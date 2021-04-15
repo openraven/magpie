@@ -67,7 +67,7 @@ public class EC2Discovery implements AWSDiscovery {
             data.resourceName = instance.instanceId();
             data.resourceId = instance.instanceId();
             data.resourceType = "AWS::EC2::Instance";
-            data.arn = format("arn:aws:ec2:%s:%s:instance/%s", region, reservation.ownerId(), instance.instanceId());
+            data.arn = format("arn:aws:ec2:%s:%s:instance/%s", region.toString(), reservation.ownerId(), instance.instanceId());
             data.createdIso = instance.launchTime().toString();
             data.tags = getConvertedTags(instance.tags(), mapper);
 
@@ -82,7 +82,7 @@ public class EC2Discovery implements AWSDiscovery {
       client::describeAddresses,
       (resp) -> resp.addresses().forEach(eip -> {
         var data = new AWSResource(eip.toBuilder(), region.toString(), account, mapper);
-        data.arn = format("arn:aws:ec2:%s:%s:eip-allocation/%s", region, account, eip.allocationId());
+        data.arn = format("arn:aws:ec2:%s:%s:eip-allocation/%s", region.toString(), account, eip.allocationId());
         data.resourceId = eip.allocationId();
         data.resourceName = eip.publicIp();
         data.resourceType = "AWS::EC2::EIP";
@@ -100,7 +100,7 @@ public class EC2Discovery implements AWSDiscovery {
         .flatMap(r -> r.securityGroups().stream())
         .forEach(securityGroup -> {
           var data = new AWSResource(securityGroup.toBuilder(), region.toString(), account, mapper);
-          data.arn = format("arn:aws:ec2:%s:%s:security-group/%s", region, account, securityGroup.groupId());
+          data.arn = format("arn:aws:ec2:%s:%s:security-group/%s", region.toString(), account, securityGroup.groupId());
           data.resourceId = securityGroup.groupId();
           data.resourceName = securityGroup.groupName();
           data.resourceType = "AWS::EC2::SecurityGroup";
@@ -119,10 +119,10 @@ public class EC2Discovery implements AWSDiscovery {
         .flatMap(r -> r.volumes().stream())
         .forEach(volume -> {
           var data = new AWSResource(volume.toBuilder(), region.toString(), account, mapper);
-          data.arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
+          data.arn = format("arn:aws:ec2:%s:%s:volume/%s", region.toString(), account, volume.volumeId());
           data.resourceId = volume.volumeId();
           data.resourceName = volume.volumeId();
-          data.resourceType = "AWS::EC2::SecurityGroup";
+          data.resourceType = "AWS::EC2::Volume";
           data.tags = getConvertedTags(volume.tags(), mapper);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));

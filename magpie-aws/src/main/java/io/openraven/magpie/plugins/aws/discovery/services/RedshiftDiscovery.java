@@ -62,7 +62,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
         var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
         data.resourceType = "AWS::Redshift::Cluster";
         data.resourceId = cluster.clusterIdentifier();
-        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
+        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region.toString(), account, cluster.clusterIdentifier());
         data.resourceName = cluster.dbName();
         data.createdIso = cluster.clusterCreateTime().toString();
 

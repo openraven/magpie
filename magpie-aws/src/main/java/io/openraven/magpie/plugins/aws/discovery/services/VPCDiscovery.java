@@ -61,7 +61,7 @@ public class VPCDiscovery implements AWSDiscovery {
       (resp) -> resp.vpcs()
         .forEach(vpc -> {
           var data = new AWSResource(vpc.toBuilder(), region.toString(), account, mapper);
-          data.arn = format("arn:aws:ec2:%s:%s:vpc/%s", region, account, vpc.vpcId());
+          data.arn = format("arn:aws:ec2:%s:%s:vpc/%s", region.toString(), account, vpc.vpcId());
           data.resourceId = vpc.vpcId();
           data.resourceName = vpc.vpcId();
           data.resourceType = "AWS::EC2::VPC";
@@ -78,7 +78,7 @@ public class VPCDiscovery implements AWSDiscovery {
       (resp) -> resp.vpcPeeringConnections()
         .forEach(vcpPC -> {
           var data = new AWSResource(vcpPC.toBuilder(), region.toString(), account, mapper);
-          data.arn = format("arn:aws:ec2:%s:%s:vpc-peering-connection/%s", region, account, vcpPC.vpcPeeringConnectionId());
+          data.arn = format("arn:aws:ec2:%s:%s:vpc-peering-connection/%s", region.toString(), account, vcpPC.vpcPeeringConnectionId());
           data.resourceId = vcpPC.vpcPeeringConnectionId();
           data.resourceName = vcpPC.vpcPeeringConnectionId();
           data.resourceType = "AWS::EC2::VPCPeeringConnection";
