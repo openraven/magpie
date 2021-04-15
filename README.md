@@ -104,6 +104,10 @@ plugins:
     config:
 ```
 
+### Per region discovery
+Magpie provides possibility to customize which regions to run discovery on.
+In config.yaml it's possible to set regions to given values. If none are set discovery will be run on all available regions.
+
 #### Overriding config.yaml
 It is possible to override *most* configuration values via environmental variables. This is most useful as an easy way to
 script a Magpie instance on a one-per-aws-service basis.  To override configuration values, set an environmental variable

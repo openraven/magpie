@@ -24,6 +24,12 @@ plugins:
 #         - ecs
 #         - vpc
 #         See the full list at https://github.com/openraven/magpie
+      regions:
+#        - aws-global
+#        - us-east-2
+#        - us-east-1
+#        - us-west-1
+#        - us-west-2
   magpie.json:
     enabled: true
     config:

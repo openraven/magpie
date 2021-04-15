@@ -20,6 +20,7 @@ import java.util.List;
 
 public class AWSDiscoveryConfig {
   private List<String> services = List.of();
+  private List<String> regions = List.of();
 
   /**
    * The list of AWS services to enabled for discovery.  By default this list is empty, meaning that all services will
@@ -32,5 +33,13 @@ public class AWSDiscoveryConfig {
 
   public void setServices(List<String> services) {
     this.services = services == null ? List.of() : services;
+  }
+
+  public List<String> getRegions() {
+    return regions;
+  }
+
+  public void setRegions(List<String> regions) {
+    this.regions = regions == null ? List.of() : regions;
   }
 }
