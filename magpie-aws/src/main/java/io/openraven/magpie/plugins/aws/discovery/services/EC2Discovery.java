@@ -23,12 +23,16 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Tag;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
@@ -71,10 +75,28 @@ public class EC2Discovery implements AWSDiscovery {
             data.createdIso = instance.launchTime().toString();
             data.tags = getConvertedTags(instance.tags(), mapper);
 
+            massageInstanceTypeAndPublicIp(data, instance, mapper);
+
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
           }))),
 
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
+  }
+
+  public void massageInstanceTypeAndPublicIp(AWSResource data, Instance instance, ObjectMapper mapper) {
+    try {
+      var instanceForUpdate = mapper.readerForUpdating(data.configuration);
+
+      data.configuration = instanceForUpdate.readValue(mapper.convertValue(
+        Map.of("instanceType", instance.instanceTypeAsString()), JsonNode.class));
+
+      if (!StringUtils.isEmpty(instance.publicIpAddress())) {
+        data.configuration = instanceForUpdate.readValue(mapper.convertValue(
+          Map.of("publicIp", instance.publicIpAddress()), JsonNode.class));
+      }
+
+    } catch (IOException ignored) {
+    }
   }
 
   private void discoverEIPs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
