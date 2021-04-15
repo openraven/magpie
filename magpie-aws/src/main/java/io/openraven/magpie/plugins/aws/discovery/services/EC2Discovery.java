@@ -16,39 +16,35 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.Session;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.Tag;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class EC2Discovery implements AWSDiscovery {
 
   private static final String SERVICE = "ec2";
 
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger);
-  }
-
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Ec2Client.builder().region(region).build();
-    final List<LocalDiscovery> methods = List.of(
-      (m, ds, cl, r, em, l) -> discoverEc2Instances(mapper, session, client, region, emitter, logger),
-      (m, ds, cl, r, em, l) -> discoverEIPs(mapper, session, client, region, emitter, logger),
-      (m, ds, cl, r, em, l) -> discoverSecurityGroups(mapper, session, client, region, emitter, logger),
-      (m, ds, cl, r, em, l) -> discoverVolumes(mapper, session, client, region, emitter, logger)
-    );
 
-    methods.forEach(m -> m.discover(mapper, session, client, region, emitter, logger));
+    discoverEc2Instances(mapper, session, client, region, emitter, logger, account);
+    discoverEIPs(mapper, session, client, region, emitter, logger, account);
+    discoverSecurityGroups(mapper, session, client, region, emitter, logger, account);
+    discoverVolumes(mapper, session, client, region, emitter, logger, account);
   }
 
   @Override
@@ -61,38 +57,81 @@ public class EC2Discovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeInstancesPaginator,
-      (resp) -> resp.stream()
-        .flatMap(r -> r.reservations().stream())
-        .forEach(i -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), mapper.valueToTree(i.toBuilder())))),
+      (resp) -> resp.stream().forEach(describeInstancesResponse ->
+        describeInstancesResponse.reservations().forEach(reservation ->
+          reservation.instances().forEach(instance -> {
+            var data = new AWSResource(instance.toBuilder(), region.toString(), account, mapper);
+            data.resourceName = instance.instanceId();
+            data.resourceId = instance.instanceId();
+            data.resourceType = "AWS::EC2::Instance";
+            data.arn = format("arn:aws:ec2:%s:%s:instance/%s", region, reservation.ownerId(), instance.instanceId());
+            data.createdIso = instance.launchTime().toString();
+            data.tags = getConvertedTags(instance.tags(), mapper);
+
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
+          }))),
+
       (noresp) -> logger.debug("Couldn't query for EC2 Instances in {}.", region));
   }
 
-  private void discoverEIPs(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverEIPs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeAddresses,
-      (resp) -> resp.addresses()
-        .forEach(addr -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), mapper.valueToTree(addr.toBuilder())))),
+      (resp) -> resp.addresses().forEach(eip -> {
+        var data = new AWSResource(eip.toBuilder(), region.toString(), account, mapper);
+        data.arn = format("arn:aws:ec2:%s:%s:eip-allocation/%s", region, account, eip.allocationId());
+        data.resourceId = eip.allocationId();
+        data.resourceName = eip.publicIp();
+        data.resourceType = "AWS::EC2::EIP";
+        data.tags = getConvertedTags(eip.tags(), mapper);
+
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":eip"), data.toJsonNode(mapper)));
+      }),
       (noresp) -> logger.debug("Couldn't query for EIPs in {}.", region));
   }
 
-  private void discoverSecurityGroups(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverSecurityGroups(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeSecurityGroupsPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.securityGroups().stream())
-        .forEach(sg -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":sg"), mapper.valueToTree(sg.toBuilder())))),
+        .forEach(securityGroup -> {
+          var data = new AWSResource(securityGroup.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:security-group/%s", region, account, securityGroup.groupId());
+          data.resourceId = securityGroup.groupId();
+          data.resourceName = securityGroup.groupName();
+          data.resourceType = "AWS::EC2::SecurityGroup";
+
+          data.tags = getConvertedTags(securityGroup.tags(), mapper);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":securityGroup"), data.toJsonNode(mapper)));
+        }),
       (noresp) -> logger.debug("Couldn't query for SecurityGroups in {}.", region));
   }
 
-  private void discoverVolumes(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeVolumesPaginator,
       (resp) -> resp.stream()
         .flatMap(r -> r.volumes().stream())
-        .forEach(v -> emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":volume"), mapper.valueToTree(v.toBuilder())))),
+        .forEach(volume -> {
+          var data = new AWSResource(volume.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
+          data.resourceId = volume.volumeId();
+          data.resourceName = volume.volumeId();
+          data.resourceType = "AWS::EC2::SecurityGroup";
+          data.tags = getConvertedTags(volume.tags(), mapper);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));
+        }),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
+  }
+
+  private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
+    return mapper.convertValue(tags.stream().collect(
+      Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
   }
 }

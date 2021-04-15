@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -48,33 +48,36 @@ public class EFSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EfsClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeFileSystems().fileSystems(),
       (resp) -> resp.forEach(fileSystem -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", fileSystem.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
+        data.resourceId = fileSystem.fileSystemId();
+        data.awsAccountId = fileSystem.ownerId();
+        data.arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
+        data.resourceName = fileSystem.name();
+        data.resourceType = "AWS::EFS::FileSystem";
+        data.createdIso = fileSystem.creationTime().toString();
 
         discoverMountTargets(client, fileSystem, data);
 
-
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get fileSystems in {}", region)
     );
   }
 
 
-  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, ObjectNode data) {
+  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, AWSResource data) {
     final String keyname = "mountTargets";
 
     getAwsResponse(
-      () ->  client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      () -> client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

@@ -18,11 +18,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -33,24 +32,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class VPCDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "vpc";
 
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger);
-  }
-
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Ec2Client.builder().region(region).build();
-    final List<LocalDiscovery> methods = List.of(
-      this::discoverVpcs,
-      this::discoverVpcPeeringConnections
-    );
 
-    methods.forEach(m -> m.discover(mapper, session, client, region, emitter, logger));
+    discoverVpcs(mapper, session, client, region, emitter, logger, account);
+    discoverVpcPeeringConnections(mapper, session, client, region, emitter, logger, account);
   }
 
   @Override
@@ -63,32 +55,36 @@ public class VPCDiscovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeVpcsPaginator,
       (resp) -> resp.vpcs()
         .forEach(vpc -> {
-          ObjectNode data = mapper.createObjectNode();
-          data.putPOJO("configuration", vpc.toBuilder());
-          var obj = data.putObject("tags");
-          AWSUtils.update(obj, getConvertedTags(vpc.tags(), mapper));
+          var data = new AWSResource(vpc.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:vpc/%s", region, account, vpc.vpcId());
+          data.resourceId = vpc.vpcId();
+          data.resourceName = vpc.vpcId();
+          data.resourceType = "AWS::EC2::VPC";
+          data.tags = getConvertedTags(vpc.tags(), mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
         }),
       (noresp) -> logger.debug("Couldn't query for VPCs in {}.", region));
   }
 
-  private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session,  Ec2Client client, Region region, Emitter emitter, Logger logger) {
+  private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       client::describeVpcPeeringConnectionsPaginator,
       (resp) -> resp.vpcPeeringConnections()
         .forEach(vcpPC -> {
-          ObjectNode data = mapper.createObjectNode();
-          data.putPOJO("configuration", vcpPC.toBuilder());
-          var obj = data.putObject("tags");
-          AWSUtils.update(obj, getConvertedTags(vcpPC.tags(), mapper));
+          var data = new AWSResource(vcpPC.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:vpc-peering-connection/%s", region, account, vcpPC.vpcPeeringConnectionId());
+          data.resourceId = vcpPC.vpcPeeringConnectionId();
+          data.resourceName = vcpPC.vpcPeeringConnectionId();
+          data.resourceType = "AWS::EC2::VPCPeeringConnection";
+          data.tags = getConvertedTags(vcpPC.tags(), mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":vpcpc"), data));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":vpcpc"), data.toJsonNode(mapper)));
         }),
       (noresp) -> logger.debug("Couldn't query for VPC peering connections in {}.", region));
   }

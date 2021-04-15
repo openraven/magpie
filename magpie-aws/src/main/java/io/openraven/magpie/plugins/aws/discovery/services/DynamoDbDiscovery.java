@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -38,15 +38,6 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "dynamoDb";
 
-  private final List<LocalDiscovery> discoveryMethods = List.of(
-    this::discoverTables,
-    this::discoverGlobalTables
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client);
-  }
 
   @Override
   public String service() {
@@ -59,66 +50,69 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = DynamoDbClient.builder().region(region).build();
 
-    discoveryMethods.forEach(dm -> dm.discover(mapper,session,region,emitter,logger, client));
+    discoverGlobalTables(mapper, session, region, emitter, logger, client, account);
+    discoverTables(mapper, session, region, emitter, logger, client, account);
   }
 
-  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client) {
+  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client, String account) {
     getAwsResponse(
       () -> client.listGlobalTables().globalTables().stream()
         .map(globalTable -> client.describeGlobalTable(
           DescribeGlobalTableRequest.builder().globalTableName(globalTable.globalTableName()).build()).globalTableDescription()),
       (resp) -> resp.forEach(globalTable -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", globalTable.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(globalTable.toBuilder(), region.toString(), account, mapper);
+        data.arn = globalTable.globalTableArn();
+        data.resourceName = globalTable.globalTableName();
+        data.resourceType = "AWS::DynamoDB::GlobalTable";
 
-
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get globalTables in {}", region)
     );
   }
 
-  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client) {
+  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client, String account) {
     getAwsResponse(
       () -> client.listTablesPaginator().tableNames().stream()
-        .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build())),
+        .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table()),
       (resp) -> resp.forEach(table -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", table.table().toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(table.toBuilder(), region.toString(), account, mapper);
+        data.resourceName = table.tableName();
+        data.resourceId = table.tableId();
+        data.arn = table.tableArn();
+        data.createdIso = table.creationDateTime().toString();
+        data.resourceType = "AWS::DynamoDB::Table";
 
-        discoverContinuousBackups(client, table.table(), data);
-        discoverTags(client, table.table(), data, mapper);
+        discoverContinuousBackups(client, table, data);
+        discoverTags(client, table, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get tables in {}", region)
     );
   }
 
-
-  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, ObjectNode data) {
+  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, AWSResource data) {
     final String keyname = "continuousBackups";
 
     getAwsResponse(
       () -> client.describeContinuousBackups(builder -> builder.tableName(resource.tableName())),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(DynamoDbClient client, TableDescription resource, ObjectNode data, ObjectMapper mapper) {
+  private void discoverTags(DynamoDbClient client, TableDescription resource, AWSResource data, ObjectMapper mapper) {
     final String keyname = "tags";
 
     getAwsResponse(
       () -> client.listTagsOfResource(ListTagsOfResourceRequest.builder().resourceArn(resource.tableArn()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, mapper.convertValue(
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, mapper.convertValue(
         resp.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class))),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

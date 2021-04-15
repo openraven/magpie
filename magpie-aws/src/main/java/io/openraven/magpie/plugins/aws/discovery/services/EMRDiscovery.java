@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -48,76 +48,79 @@ public class EMRDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EmrClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listClustersPaginator().clusters().stream(),
       (resp) -> resp.forEach(cluster -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cluster.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
+        data.arn = String.format("arn:aws:emr:::cluster/%s", cluster.id());
+        data.resourceId = cluster.id();
+        data.resourceName = cluster.name();
+        data.resourceType = "AWS::EMR::Cluster";
+        data.createdIso = cluster.status().timeline().creationDateTime().toString();
 
         discoverSteps(client, cluster, data);
         discoverInstances(client, cluster, data);
         discoverInstanceFleets(client, cluster, data);
         discoverInstanceGroups(client, cluster, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get emr cluster in {}", region)
     );
   }
 
-  private void discoverSteps(EmrClient client, ClusterSummary resource, ObjectNode data) {
+  private void discoverSteps(EmrClient client, ClusterSummary resource, AWSResource data) {
     final String keyname = "steps";
 
     getAwsResponse(
       () -> client.listStepsPaginator(ListStepsRequest.builder().clusterId(resource.id()).build()).steps()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(StepSummary::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverInstances(EmrClient client, ClusterSummary resource, ObjectNode data) {
+  private void discoverInstances(EmrClient client, ClusterSummary resource, AWSResource data) {
     final String keyname = "instances";
 
     getAwsResponse(
-      () -> client.listInstancesPaginator(ListInstancesRequest.builder().clusterId(resource.id()).build()).instances()
+      () -> client.listInstancesPaginator(ListInstancesRequest.builder().clusterId(resource.id()).build())
         .stream()
-        .map(r -> r.toBuilder())
+        .map(ListInstancesResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, ObjectNode data) {
+  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, AWSResource data) {
     final String keyname = "instancesFleet";
 
     getAwsResponse(
       () -> client.listInstanceFleetsPaginator(ListInstanceFleetsRequest.builder().clusterId(resource.id()).build()).instanceFleets()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(InstanceFleet::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, ObjectNode data) {
+  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, AWSResource data) {
     final String keyname = "instancesGroups";
 
     getAwsResponse(
       () -> client.listInstanceGroups(ListInstanceGroupsRequest.builder().clusterId(resource.id()).build()).instanceGroups()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(InstanceGroup::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

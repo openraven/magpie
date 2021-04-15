@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
@@ -53,54 +53,57 @@ public class RedshiftDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RedshiftClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeClustersPaginator().clusters().stream(),
       (resp) -> resp.forEach(cluster -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cluster.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
+        data.resourceType = "AWS::Redshift::Cluster";
+        data.resourceId = cluster.clusterIdentifier();
+        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
+        data.resourceName = cluster.dbName();
+        data.createdIso = cluster.clusterCreateTime().toString();
 
         discoverStorage(client, data);
         discoverSize(cluster, data, region);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );
   }
 
-  private void discoverStorage(RedshiftClient client, ObjectNode data) {
+  private void discoverStorage(RedshiftClient client, AWSResource data) {
     final String keyname = "storage";
 
     getAwsResponse(
       client::describeStorage,
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverSize(Cluster resource, ObjectNode data, Region region) {
+  private void discoverSize(Cluster resource, AWSResource data, Region region) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());
       Pair<Double, GetMetricStatisticsResponse> percentageDiskSpaceUsed =
         getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/Redshift", "PercentageDiskSpaceUsed", dimensions);
 
-      data.put("PercentageDiskSpaceUsed", percentageDiskSpaceUsed.getValue0());
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("PercentageDiskSpaceUsed", percentageDiskSpaceUsed.getValue0()));
 
       // pull the relevant node(s) from the payload object. See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/redshift.html
-      JsonNode storageCapacityNode = data.at("storage/totalProvisionedStorageInMegaBytes");
-      JsonNode usedPctNode = data.at("storage/PercentageDiskSpaceUsed");
+      JsonNode storageCapacityNode = data.supplementaryConfiguration.at("storage/totalProvisionedStorageInMegaBytes");
+      JsonNode usedPctNode = data.supplementaryConfiguration.at("storage/PercentageDiskSpaceUsed");
       if (!storageCapacityNode.isMissingNode() && !usedPctNode.isMissingNode()) {
         long capacityAsBytes = storageCapacityNode.asLong() * 1049000L;
         @SuppressWarnings("WrapperTypeMayBePrimitive")
         Double dataUsed = (usedPctNode.asDouble() / 100) * capacityAsBytes;
 
-        data.put("sizeInBytes", dataUsed.longValue());
-        data.put("maxSizeInBytes", capacityAsBytes);
+        data.sizeInBytes = dataUsed.longValue();
+        data.maxSizeInBytes = capacityAsBytes;
       }
     } catch (Exception ignored) {
     }

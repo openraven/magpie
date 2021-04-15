@@ -17,9 +17,10 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -29,6 +30,7 @@ import software.amazon.awssdk.services.lightsail.model.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static io.openraven.magpie.plugins.aws.discovery.Conversions.GibToBytes;
@@ -48,31 +50,32 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LightsailClient.builder().region(region).build();
 
-    discoverDatabases(mapper, session, region, emitter, logger, client);
-    discoverInstances(mapper, session, region, emitter, logger, client);
-    discoverLoadBalancers(mapper, session, region, emitter, logger, client);
+    discoverDatabases(mapper, session, region, emitter, logger, client, account);
+    discoverInstances(mapper, session, region, emitter, logger, client, account);
+    discoverLoadBalancers(mapper, session, region, emitter, logger, client, account);
   }
 
-  private void discoverDatabases(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client) {
+  private void discoverDatabases(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client, String account) {
     getAwsResponse(
       () -> client.getRelationalDatabases(GetRelationalDatabasesRequest.builder().build()).relationalDatabases(),
       (resp) -> resp.forEach(relationalDatabase -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", relationalDatabase.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(relationalDatabase.toBuilder(), region.toString(), account, mapper);
+        data.arn = relationalDatabase.arn();
+        data.resourceName = relationalDatabase.name();
+        data.resourceType = "AWS::Lightsail::Database";
 
         discoverSize(client, relationalDatabase, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get relationalDatabases in {}", region)
     );
   }
 
-  private void discoverSize(LightsailClient client, RelationalDatabase resource, ObjectNode data) {
+  private void discoverSize(LightsailClient client, RelationalDatabase resource, AWSResource data) {
     var request = GetRelationalDatabaseMetricDataRequest.builder().
       relationalDatabaseName(resource.name()).
       metricName("FreeStorageSpace").
@@ -86,37 +89,41 @@ public class LightsailDiscovery implements AWSDiscovery {
 
     long diskSizeInBytes = GibToBytes(resource.hardware().diskSizeInGb());
 
-    data.put("maxSizeInBytes", diskSizeInBytes);
-
     if (!response.metricData().isEmpty()) {
-      data.put("FreeStorageSpace", response.metricData().get(0).minimum().longValue());
-      data.put("SizeInBytes", diskSizeInBytes - response.metricData().get(0).minimum().longValue());
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("FreeStorageSpace", response.metricData().get(0).minimum().longValue()));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("SizeInBytes", diskSizeInBytes - response.metricData().get(0).minimum().longValue()));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("DiskSizeInBytes", diskSizeInBytes));
+
+      data.sizeInBytes = diskSizeInBytes - response.metricData().get(0).minimum().longValue();
     }
+    data.maxSizeInBytes = diskSizeInBytes;
   }
 
-  private void discoverInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client) {
+  private void discoverInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client, String account) {
     getAwsResponse(
       () -> client.getInstances(GetInstancesRequest.builder().build()).instances(),
       (resp) -> resp.forEach(instance -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", instance.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(instance.toBuilder(), region.toString(), account, mapper);
+        data.arn = instance.arn();
+        data.resourceName = instance.name();
+        data.resourceType = "AWS::Lightsail::Instance";
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get instances in {}", region)
     );
   }
 
-  private void discoverLoadBalancers(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client) {
+  private void discoverLoadBalancers(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, LightsailClient client, String account) {
     getAwsResponse(
       () -> client.getLoadBalancers().loadBalancers(),
       (resp) -> resp.forEach(loadBalancer -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", loadBalancer.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(loadBalancer.toBuilder(), region.toString(), account, mapper);
+        data.arn = loadBalancer.arn();
+        data.resourceName = loadBalancer.name();
+        data.resourceType = "AWS::Lightsail::LoadBalancer";
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get loadBalancers in {}", region)
     );

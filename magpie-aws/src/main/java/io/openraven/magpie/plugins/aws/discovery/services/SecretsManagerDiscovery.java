@@ -19,6 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -45,21 +46,24 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = SecretsManagerClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listSecretsPaginator(ListSecretsRequest.builder().build()).stream(),
       (resp) -> resp.forEach(secretsPaginatedResponse -> secretsPaginatedResponse.secretList()
         .stream()
-        .map(secretListEntry ->client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
+        .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
         .forEach(secret -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", secret.toBuilder());
-        data.put("region", region.toString());
+          var data = new AWSResource(secret.toBuilder(), region.toString(), account, mapper);
+          data.arn = secret.arn();
+          data.resourceName = secret.name();
+          data.createdIso = secret.createdDate().toString();
+          data.updatedIso = secret.lastChangedDate().toString();
+          data.resourceType = "AWS::SecretsManager";
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data));
-      })),
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
+        })),
       (noresp) -> logger.error("Failed to get secrets in {}", region)
     );
   }

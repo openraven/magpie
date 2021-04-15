@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -36,9 +36,11 @@ import software.amazon.awssdk.services.elasticsearch.model.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.*;
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchDoubleMetricMaximum;
 
 public class ESDiscovery implements AWSDiscovery {
 
@@ -55,46 +57,48 @@ public class ESDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticsearchClient.builder().region(region).build();
 
     getAwsResponse(
-      () ->  client.listDomainNames().domainNames().stream()
-      .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus()),
+      () -> client.listDomainNames().domainNames().stream()
+        .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus()),
       (resp) -> resp.forEach(domain -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", domain.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
+        data.arn = domain.arn();
+        data.resourceId = domain.domainId();
+        data.resourceName = domain.domainName();
+        data.resourceType = "AWS::Elasticsearch::Domain";
 
-        discoverAlarmTags(client, domain, data, mapper);
-        discoverSize(domain, data, region);
+        discoverTags(client, domain, data, mapper);
+        discoverSize(domain, data, region, account);
 
-
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get domains in {}", region)
     );
   }
 
-  private void discoverAlarmTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
+  private void discoverTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, AWSResource data, ObjectMapper mapper) {
+
 
     getAwsResponse(
       () -> client.listTags(builder -> builder.arn(resource.arn())),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tagList().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 
-  private void discoverSize(ElasticsearchDomainStatus resource, ObjectNode data, Region region) {
+  private void discoverSize(ElasticsearchDomainStatus resource, AWSResource data, Region region, String account) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DomainName").value(resource.domainName()).build());
-      dimensions.add(Dimension.builder().name("ClientId").value(getAwsAccountId()).build());
+      dimensions.add(Dimension.builder().name("ClientId").value(account).build());
+
       Pair<Double, GetMetricStatisticsResponse> clusterUsedSpace =
         getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/ES", "ClusterUsedSpace", dimensions);
 
@@ -102,10 +106,11 @@ public class ESDiscovery implements AWSDiscovery {
         final int numNodes = resource.elasticsearchClusterConfig().instanceCount();
         final int volSizeAsGB = resource.ebsOptions().volumeSize();
 
-        data.put("clusterUsedSpace", clusterUsedSpace.getValue0());
+        AWSUtils.update(data.supplementaryConfiguration,
+          Map.of("clusterUsedSpace", clusterUsedSpace.getValue0()));
 
-        data.put("maxSizeInBytes", Conversions.GibToBytes(numNodes * volSizeAsGB));
-        data.put("sizeInBytes", Conversions.MibToBytes(clusterUsedSpace.getValue0().longValue()));
+        data.maxSizeInBytes = Conversions.GibToBytes(numNodes * volSizeAsGB);
+        data.sizeInBytes = Conversions.MibToBytes(clusterUsedSpace.getValue0().longValue());
       }
     } catch (Exception ignored) {
     }

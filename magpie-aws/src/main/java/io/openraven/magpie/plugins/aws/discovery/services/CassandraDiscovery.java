@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -69,7 +69,7 @@ public class CassandraDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     List<InetSocketAddress> contactPoints = Collections.singletonList(
       InetSocketAddress.createUnresolved(format("cassandra.%s.amazonaws.com", region), 9142));
 
@@ -83,39 +83,40 @@ public class CassandraDiscovery implements AWSDiscovery {
         .withLocalDatacenter(region.id())
         .withAuthProvider(new SigV4AuthProvider(region.id()))
         .build()) {
-        doRun(region, cqlSession, emitter, logger, mapper, session);
+        doRun(region, cqlSession, emitter, logger, mapper, session, account);
       }
     } catch (NoSuchAlgorithmException e) {
       logger.error("NoSuchAlgorithmException when getting SSLContext");
     }
   }
 
-  private void doRun(Region region, CqlSession cqlSession, Emitter emitter, Logger logger, ObjectMapper mapper, Session session) {
+  private void doRun(Region region, CqlSession cqlSession, Emitter emitter, Logger logger, ObjectMapper mapper, Session session, String account) {
     var keyspaces = cqlSession.execute("select * from system_schema.keyspaces");
 
     keyspaces.forEach(keyspace -> {
       try {
         String keyspaceName = keyspace.getString("keyspace_name");
 
-        var data = mapper.createObjectNode();
-        data.putPOJO("name", keyspaceName);
-        data.put("region", region.toString());
+        var data = new AWSResource(null, region.toString(), account, mapper);
+        data.arn = format("arn:aws:cassandra:keyspace:%s::%s", region.toString(), keyspaceName);
+        data.resourceId = keyspaceName;
+        data.resourceName = keyspaceName;
+        data.resourceType = "AWS::Cassandra::Keyspace";
 
         discoverTables(cqlSession, keyspaceName, data);
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":keyspace"), data));
-      }
-      catch (Exception e){
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":keyspace"), data.toJsonNode(mapper)));
+      } catch (Exception e) {
         logger.debug("Keyspaces discovery error in {}.", region, e);
       }
     });
   }
 
-  private void discoverTables(CqlSession session, String keyspaceName, ObjectNode data) {
+  private void discoverTables(CqlSession session, String keyspaceName, AWSResource data) {
     var tables = new ArrayList<String>();
 
     String tablesQuery = String.format("SELECT keyspace_name, table_name, status FROM system_schema_mcs.tables WHERE keyspace_name = '%s'", keyspaceName);
     session.execute(tablesQuery).forEach(table -> tables.add(table.getString("table_name")));
 
-    AWSUtils.update(data, Map.of("tables", tables));
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("tables", tables));
   }
 }

@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -30,7 +30,6 @@ import software.amazon.awssdk.services.cloudfront.model.DistributionSummary;
 import software.amazon.awssdk.services.cloudfront.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.cloudfront.model.Tag;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,15 +38,6 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 public class CloudFrontDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "cloudFront";
-
-  private final List<LocalDiscovery> discoveryMethods = Collections.singletonList(
-    this::discoverTags
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(CloudFrontClient client, DistributionSummary resource, ObjectNode data, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -60,36 +50,36 @@ public class CloudFrontDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudFrontClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listDistributions().distributionList().items(),
-      (resp) -> resp.forEach(distributionSummary -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", distributionSummary.toBuilder());
-        data.put("region", region.toString());
+      (resp) -> resp.forEach(distribution -> {
+        var data = new AWSResource(distribution.toBuilder(), region.toString(), account, mapper);
+        data.arn = distribution.arn();
+        data.resourceId = distribution.id();
+        data.resourceName = distribution.domainName();
+        data.resourceType = "AWS::CloudFront::Distribution";
+        data.updatedIso = distribution.lastModifiedTime().toString();
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, distributionSummary, data, mapper);
+        discoverTags(client, distribution, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get distributions in {}", region)
     );
   }
 
-  private void discoverTags(CloudFrontClient client, DistributionSummary resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
-
+  private void discoverTags(CloudFrontClient client, DistributionSummary resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resource(resource.arn()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tags().items().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 }

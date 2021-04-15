@@ -19,9 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -36,24 +36,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.util.Arrays.asList;
 
 public class KMSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "kms";
-
-  private final List<LocalDiscovery> discoveryMethods = asList(
-    this::discoverKeyRotation,
-    this::discoverAliases,
-    this::discoverKeyPolicies,
-    this::discoverGrants,
-    this::discoverTags
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -66,79 +52,78 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = KmsClient.builder().region(region).build();
 
     try {
       client.listKeysPaginator().keys().forEach(key -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", key.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(key.toBuilder(), region.toString(), account, mapper);
+        data.arn = key.keyArn();
+        data.resourceId = key.keyId();
+        data.resourceName = key.toString();
+        data.resourceType = "AWS::Kms::Key";
 
-        for (var dm : discoveryMethods) {
-          try {
-            dm.discover(client, key, data, logger, mapper);
-          } catch (SdkServiceException | SdkClientException ex) {
-            logger.error("Failed to discover data for {}", key.keyArn(), ex);
-          }
-        }
+        discoverKeyRotation(client, key, data);
+        discoverAliases(client, key, data);
+        discoverKeyPolicies(client, key, data);
+        discoverGrants(client, key, data);
+        discoverTags(client, key, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("Failed to discover data in {}", region, ex);
     }
   }
 
-  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, AWSResource data) {
     final String keyname = "rotation";
     getAwsResponse(
       () -> client.getKeyRotationStatus(GetKeyRotationStatusRequest.builder().keyId(resource.keyId()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverAliases(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverAliases(KmsClient client, KeyListEntry resource, AWSResource data) {
     final String keyname = "aliases";
     getAwsResponse(
       () -> client.listAliasesPaginator(ListAliasesRequest.builder().keyId(resource.keyId()).build()).aliases()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(AliasListEntry::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, AWSResource data) {
     final String keyname = "keyPolicies";
     getAwsResponse(
       () -> client.listKeyPolicies(ListKeyPoliciesRequest.builder().keyId(resource.keyId()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverGrants(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverGrants(KmsClient client, KeyListEntry resource, AWSResource data) {
     final String keyname = "grants";
     getAwsResponse(
       () -> client.listGrants(ListGrantsRequest.builder().keyId(resource.keyId()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(KmsClient client, KeyListEntry resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
+  private void discoverTags(KmsClient client, KeyListEntry resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listResourceTags(ListResourceTagsRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tags().stream()
           .collect(Collectors.toMap(Tag::tagKey, Tag::tagValue)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 }

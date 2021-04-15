@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -50,42 +50,45 @@ public class LakeFormationDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LakeFormationClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listResourcesPaginator(ListResourcesRequest.builder().build()).stream(),
-      (resp) -> resp.forEach(list -> list.resourceInfoList().forEach(resourceInfo -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", resourceInfo.toBuilder());
-        data.put("region", region.toString());
+      (resp) -> resp.forEach(list -> list.resourceInfoList()
+        .forEach(resourceInfo -> {
+          var data = new AWSResource(resourceInfo.toBuilder(), region.toString(), account, mapper);
+          data.arn = resourceInfo.resourceArn();
 
-        discoverDataLakeSettings(client, data);
-        discoverPermissions(client, resourceInfo, data);
+          data.resourceType = "AWS::LakeFormation::Resource";
+          data.updatedIso = resourceInfo.lastModified().toString();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":resource"), data));
-      })),
+          discoverDataLakeSettings(client, data);
+          discoverPermissions(client, resourceInfo, data);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":resource"), data.toJsonNode(mapper)));
+        })),
       (noresp) -> logger.error("Failed to get resources in {}", region)
     );
   }
 
-  private void discoverDataLakeSettings(LakeFormationClient client, ObjectNode data) {
+  private void discoverDataLakeSettings(LakeFormationClient client, AWSResource data) {
     final String keyname = "dataLakeSettings";
 
     getAwsResponse(
       () -> client.getDataLakeSettings(GetDataLakeSettingsRequest.builder().build()).dataLakeSettings(),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverPermissions(LakeFormationClient client, ResourceInfo resource, ObjectNode data) {
+  private void discoverPermissions(LakeFormationClient client, ResourceInfo resource, AWSResource data) {
     final String keyname = "permissions";
 
     getAwsResponse(
       () -> client.getEffectivePermissionsForPath(GetEffectivePermissionsForPathRequest.builder().resourceArn(resource.resourceArn()).build()).permissions(),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

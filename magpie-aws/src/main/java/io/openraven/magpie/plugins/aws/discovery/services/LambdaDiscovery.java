@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.util.Arrays.asList;
 
 public class LambdaDiscovery implements AWSDiscovery {
   private static final String SERVICE = "lambda";
@@ -42,92 +41,85 @@ public class LambdaDiscovery implements AWSDiscovery {
     return SERVICE;
   }
 
-  private final List<LocalDiscovery> discoveryMethods = asList(
-    this::discoverFunctionEventInvokeConfigs,
-    this::discoverEventSourceMapping,
-    this::discoverFunction,
-    this::discoverFunctionInvokeConfig,
-    this::discoverAccessPolicy
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper);
-  }
-
   @Override
   public List<Region> getSupportedRegions() {
     return LambdaClient.serviceMetadata().regions();
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LambdaClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listFunctionsPaginator().functions(),
       (resp) -> resp.forEach(function -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", function.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(function.toBuilder(), region.toString(), account, mapper);
+        data.arn = function.functionArn();
+        data.resourceId = function.revisionId();
+        data.resourceName = function.functionName();
+        data.resourceType = "AWS::Lambda::Function";
+        data.updatedIso = function.lastModified();
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, function, data, logger, mapper);
+        discoverFunctionEventInvokeConfigs(client, function, data);
+        discoverEventSourceMapping(client, function, data);
+        discoverFunction(client, function, data);
+        discoverFunctionInvokeConfig(client, function, data);
+        discoverAccessPolicy(client, function, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get functions in {}", region)
     );
   }
 
-  private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
     final String keyname = "functionEventInvokeConfigs";
     getAwsResponse(
       () -> client.listFunctionEventInvokeConfigsPaginator(ListFunctionEventInvokeConfigsRequest.builder().functionName(resource.functionName()).build()).functionEventInvokeConfigs()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(FunctionEventInvokeConfig::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverEventSourceMapping(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverEventSourceMapping(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
     final String keyname = "eventSourceMapping";
     getAwsResponse(
       () -> client.listEventSourceMappingsPaginator(ListEventSourceMappingsRequest.builder().functionName(resource.functionName()).build()).eventSourceMappings()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(EventSourceMappingConfiguration::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverFunctionInvokeConfig(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverFunctionInvokeConfig(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
     final String keyname = "functionInvokeConfig";
     getAwsResponse(
       () -> client.getFunctionEventInvokeConfig(GetFunctionEventInvokeConfigRequest.builder().functionName(resource.functionName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverFunction(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverFunction(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
     final String keyname = "function";
     getAwsResponse(
       () -> client.getFunction(GetFunctionRequest.builder().functionName(resource.functionName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverAccessPolicy(LambdaClient client, FunctionConfiguration resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverAccessPolicy(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
     final String keyname = "accessPolicy";
     getAwsResponse(
       () -> client.getPolicy(GetPolicyRequest.builder().functionName(resource.functionName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

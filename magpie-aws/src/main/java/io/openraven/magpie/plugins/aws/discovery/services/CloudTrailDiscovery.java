@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -49,15 +49,16 @@ public class CloudTrailDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudTrailClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listTrailsPaginator(ListTrailsRequest.builder().build()).trails(),
       (resp) -> resp.forEach(trail -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", trail.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(trail.toBuilder(), region.toString(), account, mapper);
+        data.arn = trail.trailARN();
+        data.resourceName = trail.name();
+        data.resourceType = "AWS::CloudTrail::Trail";
 
         discoverEventSelectors(client, trail, data);
         discoverInsightSelectors(client, trail, data);
@@ -65,65 +66,63 @@ public class CloudTrailDiscovery implements AWSDiscovery {
         discoverTrailStatus(client, trail, data);
         discoverTags(client, trail, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get trails in {}", region)
     );
   }
 
-  private void discoverEventSelectors(CloudTrailClient client, TrailInfo resource, ObjectNode data) {
+  private void discoverEventSelectors(CloudTrailClient client, TrailInfo resource, AWSResource data) {
     final String keyname = "eventSelectors";
 
     getAwsResponse(
       () -> client.getEventSelectors(GetEventSelectorsRequest.builder().trailName(resource.trailARN()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverInsightSelectors(CloudTrailClient client, TrailInfo resource, ObjectNode data) {
+  private void discoverInsightSelectors(CloudTrailClient client, TrailInfo resource, AWSResource data) {
     final String keyname = "insightSelectors";
 
     getAwsResponse(
       () -> client.getInsightSelectors(GetInsightSelectorsRequest.builder().trailName(resource.trailARN()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTrailDetails(CloudTrailClient client, TrailInfo resource, ObjectNode data) {
+  private void discoverTrailDetails(CloudTrailClient client, TrailInfo resource, AWSResource data) {
     final String keyname = "trailDetails";
 
     getAwsResponse(
       () -> client.getTrail(GetTrailRequest.builder().name(resource.trailARN()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTrailStatus(CloudTrailClient client, TrailInfo resource, ObjectNode data) {
+  private void discoverTrailStatus(CloudTrailClient client, TrailInfo resource, AWSResource data) {
     final String keyname = "status";
 
     getAwsResponse(
       () -> client.getTrailStatus(GetTrailStatusRequest.builder().name(resource.trailARN()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(CloudTrailClient client, TrailInfo resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
-
+  private void discoverTags(CloudTrailClient client, TrailInfo resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceIdList(resource.trailARN()).build()).resourceTagList().stream().findFirst(),
       (resp) -> {
-        if(resp.isPresent()) {
+        if (resp.isPresent()) {
           JsonNode tagsNode = mapper.convertValue(resp.get().tagsList().stream()
             .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-          AWSUtils.update(obj, tagsNode);
+          AWSUtils.update(data.supplementaryConfiguration, tagsNode);
         }
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
   }
 }

@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -36,6 +36,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 public class GlacierDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "glacier";
+
   @Override
   public String service() {
     return SERVICE;
@@ -47,15 +48,19 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = GlacierClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listVaultsPaginator().vaultList().stream(),
       (resp) -> resp.forEach(vault -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", vault.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(vault.toBuilder(), region.toString(), account, mapper);
+        data.arn = vault.vaultARN();
+        data.resourceName = vault.vaultName();
+        data.resourceType = "AWS::Glacier::Vault";
+        data.createdIso = vault.creationDate();
+        data.updatedIso = vault.lastInventoryDate();
+        data.sizeInBytes = vault.sizeInBytes();
 
         discoverJobs(client, vault, data);
         discoverMultipartUploads(client, vault, data);
@@ -64,75 +69,75 @@ public class GlacierDiscovery implements AWSDiscovery {
         discoverVaultNotifications(client, vault, data);
         discoverTags(client, vault, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":vault"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":vault"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get vaults in {}", region)
     );
   }
 
-  private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "jobs";
 
     getAwsResponse(
       () -> client.listJobsPaginator(ListJobsRequest.builder().vaultName(resource.vaultName()).build()).jobList()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(GlacierJobDescription::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverMultipartUploads(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverMultipartUploads(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "multipartUploads";
 
     getAwsResponse(
       () -> client.listMultipartUploadsPaginator(ListMultipartUploadsRequest.builder().vaultName(resource.vaultName()).build()).uploadsList()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(UploadListElement::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverAccessPolicy(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverAccessPolicy(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "accessPolicy";
 
     getAwsResponse(
       () -> client.getVaultAccessPolicy(GetVaultAccessPolicyRequest.builder().vaultName(resource.vaultName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverVaultNotifications(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverVaultNotifications(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "vaultNotifications";
 
     getAwsResponse(
       () -> client.getVaultNotifications(GetVaultNotificationsRequest.builder().vaultName(resource.vaultName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverVaultLock(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverVaultLock(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "vaultLock";
 
     getAwsResponse(
       () -> client.getVaultLock(GetVaultLockRequest.builder().vaultName(resource.vaultName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(GlacierClient client, DescribeVaultOutput resource, ObjectNode data) {
+  private void discoverTags(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
     final String keyname = "tags";
 
     getAwsResponse(
       () -> client.listTagsForVault(ListTagsForVaultRequest.builder().vaultName(resource.vaultName()).build()).tags(),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

@@ -17,9 +17,10 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import software.amazon.awssdk.services.elasticache.model.CacheCluster;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.*;
 
@@ -49,25 +51,27 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElastiCacheClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeCacheClusters().cacheClusters(),
       (resp) -> resp.forEach(cacheCluster -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cacheCluster.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(cacheCluster.toBuilder(), region.toString(), account, mapper);
+        data.arn = cacheCluster.arn();
+        data.resourceId = cacheCluster.cacheClusterId();
+        data.resourceName = cacheCluster.cacheClusterId();
+        data.resourceType = "AWS::ElastiCache::Cluster";
 
         discoverRedisSize(cacheCluster, data, region.id());
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get cacheClusters in {}", region)
     );
   }
 
-  private void discoverRedisSize(CacheCluster resource, ObjectNode data, String region) {
+  private void discoverRedisSize(CacheCluster resource, AWSResource data, String region) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("CacheClusterId").value(resource.cacheClusterId()).build());
 
@@ -78,10 +82,10 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
       getCloudwatchDoubleMetricMaximum(region, "AWS/ElastiCache", "DatabaseMemoryUsagePercentage", dimensions);
 
     if (volumeBytesUsed.getValue0() != null) {
-
-      data.put("bytesUsedForCache", volumeBytesUsed.getValue0());
-      data.put("databaseMemoryUsagePercentage", DatabaseMemoryUsagePercentage.getValue0());
-      data.put("databaseMaxSize", (long) (volumeBytesUsed.getValue0() / (DatabaseMemoryUsagePercentage.getValue0() / 100)));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of(
+        "bytesUsedForCache", volumeBytesUsed.getValue0(),
+        "databaseMemoryUsagePercentage", DatabaseMemoryUsagePercentage.getValue0(),
+        "databaseMaxSize", (long) (volumeBytesUsed.getValue0() / (DatabaseMemoryUsagePercentage.getValue0() / 100))));
     }
   }
 }

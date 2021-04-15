@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -50,15 +50,16 @@ public class EBDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticBeanstalkClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeEnvironments().environments(),
       (resp) -> resp.forEach(environment -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", environment.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(environment.toBuilder(), region.toString(), account, mapper);
+        data.arn = environment.environmentArn();
+        data.resourceName = environment.environmentName();
+        data.resourceType = "AWS::ElasticBeanstalk";
 
         discoverApplication(client, environment, data);
         discoverConfigurationSettings(client, environment, data);
@@ -66,24 +67,24 @@ public class EBDiscovery implements AWSDiscovery {
         discoverEnvironmentManagedActions(client, environment, data);
         discoverTags(client, environment, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get environments in {}", region)
     );
   }
 
-  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, ObjectNode data) {
+  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
     final String keyname = "application";
 
     getAwsResponse(
       () -> client.describeApplications(
         DescribeApplicationsRequest.builder().applicationNames(resource.applicationName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, ObjectNode data) {
+  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
     final String keyname = "configurationSettings";
 
     getAwsResponse(
@@ -92,44 +93,42 @@ public class EBDiscovery implements AWSDiscovery {
           applicationName(resource.applicationName()).
           environmentName(resource.environmentName()).
           build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, ObjectNode data) {
+  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
     final String keyname = "environmentResources";
 
     getAwsResponse(
       () -> client.describeEnvironmentResources(DescribeEnvironmentResourcesRequest.builder().
         environmentName(resource.environmentName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, ObjectNode data) {
+  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
     final String keyname = "environmentManagedActions";
 
     getAwsResponse(
       () -> client.describeEnvironmentManagedActions(DescribeEnvironmentManagedActionsRequest.builder().
         environmentName(resource.environmentName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
-
+  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.environmentArn()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.resourceTags().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 }

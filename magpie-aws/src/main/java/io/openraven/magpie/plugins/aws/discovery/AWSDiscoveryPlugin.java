@@ -24,9 +24,10 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.*;
 import org.slf4j.Logger;
 
-import java.security.spec.RSAOtherPrimeInfo;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsAccountId;
 
 public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
@@ -49,7 +50,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new EBDiscovery(),
     new EC2Discovery(),
     new ECSDiscovery(),
-    new EFSDiscovery(),    
+    new EFSDiscovery(),
     new EKSDiscovery(),
     new ElastiCacheDiscovery(),
     new ELBDiscovery(),
@@ -60,15 +61,15 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new GlacierDiscovery(),
     new IAMDiscovery(),
     new LakeFormationDiscovery(),
-    new LambdaDiscovery(),  
+    new LambdaDiscovery(),
     new LightsailDiscovery(),
     new QLDBDiscovery(),
     new S3Discovery(),
-    new SecretsManagerDiscovery(),    
+    new SecretsManagerDiscovery(),
     new SNSDiscovery(),
     new StorageGatewayDiscovery(),
     new RDSDiscovery(),
-    new RedshiftDiscovery(),    
+    new RedshiftDiscovery(),
     new Route53Discovery(),
     new KMSDiscovery(),
     new VPCDiscovery());
@@ -79,11 +80,12 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   @Override
   public void discover(Session session, Emitter emitter) {
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
+    String account = getAwsAccountId();
 
     enabledPlugins.forEach(plugin ->
       plugin.getSupportedRegions().forEach(region -> {
         try {
-          plugin.discoverWrapper(MAPPER, session, region, emitter, logger);
+          plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
         } catch (Exception ex) {
           logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
           logger.debug("Details", ex);

@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class EKSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EksClient.builder().region(region).build();
 
     getAwsResponse(
@@ -56,22 +56,22 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build())),
       (resp) -> resp.forEach(cluster -> {
-
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cluster.cluster().toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(cluster.cluster().toBuilder(), region.toString(), account, mapper);
+        data.arn = cluster.cluster().arn();
+        data.resourceName = cluster.cluster().name();
+        data.resourceType = "AWS::EKS::Cluster";
 
         discoverFargateProfiles(client, cluster.cluster(), data);
         discoverNodegroups(client, cluster.cluster(), data);
         discoverUpdates(client, cluster.cluster(), data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );
   }
 
-  private void discoverFargateProfiles(EksClient client, Cluster cluster, ObjectNode data) {
+  private void discoverFargateProfiles(EksClient client, Cluster cluster, AWSResource data) {
     final String keyname = "fargateProfiles";
 
     getAwsResponse(
@@ -79,14 +79,14 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(profileName -> client.describeFargateProfile(
           DescribeFargateProfileRequest.builder().clusterName(cluster.name()).fargateProfileName(profileName).build()).fargateProfile())
-        .map(r -> r.toBuilder())
+        .map(FargateProfile::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverNodegroups(EksClient client, Cluster cluster, ObjectNode data) {
+  private void discoverNodegroups(EksClient client, Cluster cluster, AWSResource data) {
     final String keyname = "nodegroups";
 
     getAwsResponse(
@@ -94,14 +94,14 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(nodegroupName -> client.describeNodegroup(
           DescribeNodegroupRequest.builder().clusterName(cluster.name()).nodegroupName(nodegroupName).build()).nodegroup())
-        .map(r -> r.toBuilder())
+        .map(Nodegroup::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverUpdates(EksClient client, Cluster cluster, ObjectNode data) {
+  private void discoverUpdates(EksClient client, Cluster cluster, AWSResource data) {
     final String keyname = "updates";
 
     getAwsResponse(
@@ -109,10 +109,10 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(updateId -> client.describeUpdate(
           DescribeUpdateRequest.builder().name(cluster.name()).updateId(updateId).build()))
-        .map(r -> r.toBuilder())
+        .map(DescribeUpdateResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

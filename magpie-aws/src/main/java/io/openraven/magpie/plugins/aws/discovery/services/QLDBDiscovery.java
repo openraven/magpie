@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
@@ -54,7 +54,7 @@ public class QLDBDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = QldbClient.builder().region(region).build();
 
     getAwsResponse(
@@ -63,58 +63,60 @@ public class QLDBDiscovery implements AWSDiscovery {
         .stream()
         .map(ledgerSummary -> client.describeLedger(DescribeLedgerRequest.builder().name(ledgerSummary.name()).build()))
         .forEach(ledger -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", ledgerList.toBuilder());
-        data.put("region", region.toString());
+          var data = new AWSResource(ledger.toBuilder(), region.toString(), account, mapper);
+          data.arn = ledger.arn();
+          data.resourceName = ledger.name();
+          data.resourceType = "AWS::Qldb::Ledger";
+          data.createdIso = ledger.creationDateTime().toString();
 
-        discoverStreams(client, ledger, data);
-        discoverJournalS3Exports(client, ledger, data);
-        discoverTags(client, ledger, data, mapper);
-        discoverSize(ledger, data, region);
+          discoverStreams(client, ledger, data);
+          discoverJournalS3Exports(client, ledger, data);
+          discoverTags(client, ledger, data, mapper);
+          discoverSize(ledger, data, region);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data));
-      })),
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode(mapper)));
+        })),
       (noresp) -> logger.error("Failed to get ledgers in {}", region)
     );
   }
 
-  private void discoverStreams(QldbClient client, DescribeLedgerResponse resource, ObjectNode data) {
+  private void discoverStreams(QldbClient client, DescribeLedgerResponse resource, AWSResource data) {
     final String keyname = "streams";
 
     getAwsResponse(
       () -> client.listJournalKinesisStreamsForLedgerPaginator(ListJournalKinesisStreamsForLedgerRequest.builder().ledgerName(resource.name()).build())
         .stream()
-        .map(r -> r.toBuilder())
+        .map(ListJournalKinesisStreamsForLedgerResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverJournalS3Exports(QldbClient client, DescribeLedgerResponse resource, ObjectNode data) {
+  private void discoverJournalS3Exports(QldbClient client, DescribeLedgerResponse resource, AWSResource data) {
     final String keyname = "journalS3Exports";
 
     getAwsResponse(
       () -> client.listJournalS3ExportsForLedgerPaginator(ListJournalS3ExportsForLedgerRequest.builder().name(resource.name()).build())
         .stream()
-        .map(r -> r.toBuilder())
+        .map(ListJournalS3ExportsForLedgerResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTags(QldbClient client, DescribeLedgerResponse resource, ObjectNode data, ObjectMapper mapper) {
+  private void discoverTags(QldbClient client, DescribeLedgerResponse resource, AWSResource data, ObjectMapper mapper) {
     final String keyname = "tags";
 
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.arn()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, mapper.convertValue(resp.tags(), JsonNode.class))),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, mapper.convertValue(resp.tags(), JsonNode.class))),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverSize(DescribeLedgerResponse resource, ObjectNode data, Region region) {
+  private void discoverSize(DescribeLedgerResponse resource, AWSResource data, Region region) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("LedgerName").value(resource.name()).build());
@@ -123,7 +125,8 @@ public class QLDBDiscovery implements AWSDiscovery {
       getCloudwatchMetricMaximum(region.toString(), "AWS/QLDB", "JournalStorage", dimensions);
 
     if (clusterSize.getValue0() != null) {
-      data.put("sizeInBytes", clusterSize.getValue0());
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("JournalStorage", clusterSize.getValue0()));
+      data.sizeInBytes = clusterSize.getValue0();
     }
   }
 }
