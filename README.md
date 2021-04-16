@@ -1,21 +1,22 @@
-# Magpie
-#### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
+- [Magpie](#magpie)
+  - [[Open Raven's](https://openraven.com) Open Source Cloud Security Framework](#-open-raven-s--https---openravencom--open-source-cloud-security-framework)
+    * [Table of Contents](#table-of-contents)
+    * [What is Magpie?](#what-is-magpie-)
+    * [Overview](#overview)
+        + [Magpie Architecture](#magpie-architecture)
+    * [Building Magpie](#building-magpie)
+        + [Clone and build Magpie](#clone-and-build-magpie)
+    * [Running Magpie](#running-magpie)
+        + [Configuration](#configuration)
+            - [Overriding config.yaml](#overriding-configyaml)
+            - [Multiple Overrides](#multiple-overrides)
+        + [Running via Docker](#running-via-docker)
+        + [Plugins](#plugins)
+        + [Community Contributed Plugins](#community-contributed-plugins)
+        + [Cloud Provider Status](#cloud-provider-status)
+            - [AWS](#aws)
+                * [Per region discovery](#per-region-discovery)
 
-## Table of Contents
-* [What is Magpie?](#what-is-magpie-)
-* [Overview](#overview)
-    + [Magpie Architecture](#magpie-architecture)
-* [Building Magpie](#building-magpie)
-    + [Clone and build Magpie](#clone-and-build-magpie)
-* [Running Magpie](#running-magpie)
-    + [Configuration](#configuration)
-        - [Overriding config.yaml](#overriding-configyaml)
-        - [Multiple Overrides](#multiple-overrides)
-    + [Running via Docker](#running-via-docker)
-    + [Plugins](#plugins)
-    + [Community Contributed Plugins](#community-contributed-plugins)
-    + [Cloud Provider Status](#cloud-provider-status)
-        - [AWS](#aws)
 
 ## What is Magpie?
 Magpie is a free, open-source framework and a collection of community developed plugins that can be used to build complete end-to-end security tools such as a CSPM or Cloud Security Posture Manager. The project was originally created and is maintained by Open Raven. We build commercial cloud native data security tools and in doing so have learned a great deal about how to discover AWS assets and their security settings at scale.
@@ -50,7 +51,7 @@ mvn clean package install && mvn --projects magpie-cli assembly:single
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
 
 Alternatively you can download the latest snapshot build by going to Action->(choose latest) and click the `magpie-cli` artifact,
-which will download a zip distribution.  
+which will download a zip distribution.
 
 ## Running Magpie
 
