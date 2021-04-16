@@ -90,7 +90,7 @@ public class BatchDiscovery implements AWSDiscovery {
         var data = new AWSResource(jobDefinition.toBuilder(), region.toString(), account, mapper);
         data.arn = jobDefinition.jobDefinitionArn();
         data.resourceName = jobDefinition.jobDefinitionName();
-        data.resourceType = "AWS::Batch::JobQueue";
+        data.resourceType = "AWS::Batch::JobDefinition";
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode(mapper)));
       }),
