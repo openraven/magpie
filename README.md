@@ -1,21 +1,22 @@
-- [Magpie](#magpie)
-  - [[Open Raven's](https://openraven.com) Open Source Cloud Security Framework](#-open-raven-s--https---openravencom--open-source-cloud-security-framework)
-    * [Table of Contents](#table-of-contents)
-    * [What is Magpie?](#what-is-magpie-)
-    * [Overview](#overview)
-        + [Magpie Architecture](#magpie-architecture)
-    * [Building Magpie](#building-magpie)
-        + [Clone and build Magpie](#clone-and-build-magpie)
-    * [Running Magpie](#running-magpie)
-        + [Configuration](#configuration)
-            - [Overriding config.yaml](#overriding-configyaml)
-            - [Multiple Overrides](#multiple-overrides)
-        + [Running via Docker](#running-via-docker)
-        + [Plugins](#plugins)
-        + [Community Contributed Plugins](#community-contributed-plugins)
-        + [Cloud Provider Status](#cloud-provider-status)
-            - [AWS](#aws)
-                * [Per region discovery](#per-region-discovery)
+# Magpie
+#### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
+
+## Table of Contents
+- [What is Magpie?](#what-is-magpie-)
+- [Overview](#overview)
+    * [Magpie Architecture](#magpie-architecture)
+- [Building Magpie](#building-magpie)
+    * [Clone and build Magpie](#clone-and-build-magpie)
+- [Running Magpie](#running-magpie)
+    * [Configuration](#configuration)
+        + [Overriding config.yaml](#overriding-configyaml)
+        + [Multiple Overrides](#multiple-overrides)
+    * [Running via Docker](#running-via-docker)
+    * [Plugins](#plugins)
+    * [Community Contributed Plugins](#community-contributed-plugins)
+    * [Cloud Provider Status](#cloud-provider-status)
+        + [AWS](#aws)
+            - [Per region discovery](#per-region-discovery)
 
 
 ## What is Magpie?
@@ -51,7 +52,7 @@ mvn clean package install && mvn --projects magpie-cli assembly:single
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
 
 Alternatively you can download the latest snapshot build by going to Action->(choose latest) and click the `magpie-cli` artifact,
-which will download a zip distribution.
+which will download a zip distribution.  
 
 ## Running Magpie
 
