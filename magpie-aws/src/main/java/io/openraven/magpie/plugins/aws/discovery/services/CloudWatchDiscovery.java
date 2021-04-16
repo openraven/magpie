@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -37,6 +37,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 public class CloudWatchDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "cloudWatch";
+
   @Override
   public String service() {
     return SERVICE;
@@ -48,69 +49,70 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudWatchClient.builder().region(region).build();
 
-    discoverAlarms(mapper, session, region, emitter, logger, client);
-    discoverInsightRules(mapper, session, region, emitter, logger, client);
+    discoverAlarms(mapper, session, region, emitter, logger, client, account);
+    discoverDashboards(mapper, session, region, emitter, logger, client, account);
   }
 
-  private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
+  private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client, String account) {
     getAwsResponse(
       () -> client.describeAlarmsPaginator().metricAlarms().stream(),
       (resp) -> resp.forEach(alarm -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", alarm.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(alarm.toBuilder(), region.toString(), account, mapper);
+        data.arn = alarm.alarmArn();
+        data.resourceName = alarm.alarmName();
+        data.resourceType = "AWS::CloudWatch::Alarm";
+        data.updatedIso = alarm.stateUpdatedTimestamp().toString();
 
         discoverAlarmHistory(client, alarm, data);
         discoverAlarmTags(client, alarm, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alarm"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alarm"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get alarms in {}", region)
     );
   }
 
-  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, ObjectNode data) {
+  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, AWSResource data) {
     final String keyname = "alarmHistory";
 
     getAwsResponse(
       () -> client.describeAlarmHistoryPaginator(DescribeAlarmHistoryRequest.builder().alarmName(resource.alarmName()).build())
         .stream()
-        .map(r -> r.toBuilder())
+        .map(DescribeAlarmHistoryResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
-
+  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceARN(resource.alarmArn()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tags().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 
 
-  private void discoverInsightRules(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client) {
+  private void discoverDashboards(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, CloudWatchClient client, String account) {
     getAwsResponse(
-      () -> client.describeInsightRulesPaginator(DescribeInsightRulesRequest.builder().build()).stream(),
-      (resp) -> resp.forEach(insightRule -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", insightRule.toBuilder());
-        data.put("region", region.toString());
+      () -> client.listDashboardsPaginator(ListDashboardsRequest.builder().build()).dashboardEntries().stream(),
+      (resp) -> resp.forEach(dashboard -> {
+        var data = new AWSResource(dashboard.toBuilder(), region.toString(), account, mapper);
+        data.arn = dashboard.dashboardArn();
+        data.resourceName = dashboard.dashboardName();
+        data.resourceType = "AWS::CloudWatch::Dashboard";
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":insightRule"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dashboard"), data.toJsonNode(mapper)));
       }),
-      (noresp) -> logger.error("Failed to get insightRules in {}", region)
+      (noresp) -> logger.error("Failed to get :dashboards in {}", region)
     );
   }
 }

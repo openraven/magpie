@@ -16,9 +16,11 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.amazonaws.arn.Arn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -30,21 +32,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.util.Arrays.asList;
 
 public class SNSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "sns";
-
-  private final List<LocalDiscovery> discoveryMethods = asList(
-    this::discoverTopics,
-    this::discoverSubscriptions
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger);
-  }
 
   @Override
   public String service() {
@@ -57,13 +48,14 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = SnsClient.builder().region(region).build();
 
-    discoveryMethods.forEach(dm -> dm.discover(client, mapper, session, region, emitter, logger));
+    discoverTopics(client, mapper, session, region, emitter, logger, account);
+    discoverSubscriptions(client, mapper, session, region, emitter, logger, account);
   }
 
-  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       () -> client.listTopicsPaginator().topics().
         stream()
@@ -71,11 +63,17 @@ public class SNSDiscovery implements AWSDiscovery {
       (resp) -> resp.forEach(topic -> getAwsResponse(
         () -> client.getTopicAttributes(GetTopicAttributesRequest.builder().topicArn(topic.topicArn()).build()),
         (attributesResp) -> {
-          var data = mapper.createObjectNode();
-          data.putPOJO("configuration", attributesResp.toBuilder());
-          data.put("region", region.toString());
+          var attributes = attributesResp.attributes();
+          var arn = attributes.get("TopicArn");
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":topic"), data));
+          var data = new AWSResource(attributesResp.toBuilder(), region.toString(), account, mapper);
+          data.awsRegion = Arn.fromString(arn).getRegion();
+          data.awsAccountId = attributesResp.attributes().get("Owner");
+          data.arn = attributes.get("TopicArn");
+          data.resourceName = attributes.get("DisplayName");
+          data.resourceType = "AWS::SNS::Topic";
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":topic"), data.toJsonNode(mapper)));
         },
         (norespAttributes) -> logger.error("Failed to get topicAttributes in {}", region)
       )),
@@ -83,7 +81,7 @@ public class SNSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       () -> client.listSubscriptionsPaginator().subscriptions().
         stream()
@@ -91,15 +89,25 @@ public class SNSDiscovery implements AWSDiscovery {
       (resp) -> resp.forEach(topic -> getAwsResponse(
         () -> client.getSubscriptionAttributes(GetSubscriptionAttributesRequest.builder().subscriptionArn(topic.topicArn()).build()),
         (attributesResp) -> {
-          var data = mapper.createObjectNode();
-          data.putPOJO("configuration", attributesResp.toBuilder());
-          data.put("region", region.toString());
+          var data = new AWSResource(attributesResp.toBuilder(), region.toString(), account, mapper);
+          var attributes = attributesResp.attributes();
+          var arn = Arn.fromString(attributes.get("SubscriptionArn"));
+          data.awsRegion = arn.getRegion();
+          data.awsAccountId = arn.getAccountId();
+          data.arn = arn.toString();
+          data.resourceName = getName(arn);
+          data.resourceType = "AWS::SNS::Subscription";
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":subscription"), data));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":subscription"), data.toJsonNode(mapper)));
         },
         (norespAttributes) -> logger.error("Failed to get subscriptionAttributes in {}", region)
       )),
       (noresp) -> logger.error("Failed to get subscriptionA in {}", region)
     );
+  }
+
+  private String getName(Arn arn) {
+    final var res = arn.getResource();
+    return res.getResourceType() + ":" + res.getResource();
   }
 }

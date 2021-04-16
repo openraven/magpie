@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -51,27 +51,28 @@ public class ELBV2Discovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticLoadBalancingV2Client.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeLoadBalancers().loadBalancers(),
       (resp) -> resp.forEach(loadBalancerV2 -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", loadBalancerV2.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(loadBalancerV2.toBuilder(), region.toString(), account, mapper);
+        data.resourceName = loadBalancerV2.dnsName();
+        data.resourceId = loadBalancerV2.loadBalancerName();
+        data.resourceType = "AWS::ElasticLoadBalancingV2::LoadBalancer";
+        data.arn = loadBalancerV2.loadBalancerArn();
+        data.createdIso = loadBalancerV2.createdTime().toString();
 
         discoverTags(client, loadBalancerV2, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get loadBalancerV2 in {}", region)
     );
   }
 
-  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, ObjectNode data, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
-
+  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.describeTags(DescribeTagsRequest.builder().resourceArns(resource.loadBalancerArn()).build()).tagDescriptions(),
       (resp) -> {
@@ -79,9 +80,9 @@ public class ELBV2Discovery implements AWSDiscovery {
           resp.stream()
             .flatMap(tagDescription -> tagDescription.tags().stream())
             .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 }

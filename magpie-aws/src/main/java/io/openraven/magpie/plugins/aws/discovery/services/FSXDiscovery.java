@@ -17,9 +17,10 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
@@ -32,6 +33,7 @@ import software.amazon.awssdk.services.fsx.model.FileSystem;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchMetricMinimum;
@@ -51,25 +53,28 @@ public class FSXDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = FSxClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeFileSystems().fileSystems().stream(),
       (resp) -> resp.forEach(fileSystem -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", fileSystem.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
+        data.arn = fileSystem.resourceARN();
+        data.resourceId = fileSystem.fileSystemId();
+        data.resourceName = fileSystem.fileSystemId();
+        data.resourceType = "AWS::FSx::FileSystem";
+        data.createdIso = fileSystem.creationTime().toString();
 
         discoverSize(fileSystem, data, region);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get fileSystem in {}", region)
     );
   }
 
-  private void discoverSize(FileSystem resource, ObjectNode data, Region region) {
+  private void discoverSize(FileSystem resource, AWSResource data, Region region) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());
@@ -78,10 +83,11 @@ public class FSXDiscovery implements AWSDiscovery {
 
       long capacityAsBytes = Conversions.GibToBytes(resource.storageCapacity());
 
-      data.put("freeDataStorageCapacity", freeStorageCapacity.getValue0());
-      data.put("sizeInBytes", capacityAsBytes - freeStorageCapacity.getValue0());
-      data.put("maxSizeInBytes", capacityAsBytes);
+      data.sizeInBytes = capacityAsBytes - freeStorageCapacity.getValue0();
+      data.maxSizeInBytes = capacityAsBytes;
 
+      AWSUtils.update(data.supplementaryConfiguration,
+        Map.of("freeDataStorageCapacity", freeStorageCapacity.getValue0()));
     } catch (Exception ignored) {
     }
   }

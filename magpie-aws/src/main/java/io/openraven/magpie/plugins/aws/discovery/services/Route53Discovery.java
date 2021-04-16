@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.route53.Route53Client;
 import software.amazon.awssdk.services.route53.model.HostedZone;
 import software.amazon.awssdk.services.route53.model.ListResourceRecordSetsRequest;
 import software.amazon.awssdk.services.route53.model.ListTrafficPolicyInstancesByHostedZoneRequest;
+import software.amazon.awssdk.services.route53.model.ResourceRecordSet;
 
 import java.util.List;
 import java.util.Map;
@@ -50,45 +51,47 @@ public class Route53Discovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Route53Client.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listHostedZonesPaginator().hostedZones().stream(),
       (resp) -> resp.forEach(hostedZone -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", hostedZone.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(hostedZone.toBuilder(), region.toString(), account, mapper);
+        data.resourceId = hostedZone.id();
+        data.arn = String.format("arn:aws:route53:::hostedZone/%s", hostedZone.id());
+        data.resourceName = hostedZone.name();
+        data.resourceType = "AWS::Route53::HostedZone";
 
         discoverRecordSets(client, hostedZone, data);
         discoverTrafficPolicyInstances(client, hostedZone, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":hostedZone"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":hostedZone"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get hostedZones in {}", region)
     );
   }
 
-  private void discoverRecordSets(Route53Client client, HostedZone resource, ObjectNode data) {
+  private void discoverRecordSets(Route53Client client, HostedZone resource, AWSResource data) {
     final String keyname = "recordSets";
 
     getAwsResponse(
       () -> client.listResourceRecordSetsPaginator(ListResourceRecordSetsRequest.builder().hostedZoneId(resource.id()).build()).resourceRecordSets()
         .stream()
-        .map(r -> r.toBuilder())
+        .map(ResourceRecordSet::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverTrafficPolicyInstances(Route53Client client, HostedZone resource, ObjectNode data) {
+  private void discoverTrafficPolicyInstances(Route53Client client, HostedZone resource, AWSResource data) {
     final String keyname = "trafficPolicyInstances";
 
     getAwsResponse(
       () -> client.listTrafficPolicyInstancesByHostedZone(ListTrafficPolicyInstancesByHostedZoneRequest.builder().hostedZoneId(resource.id()).build()).trafficPolicyInstances(),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

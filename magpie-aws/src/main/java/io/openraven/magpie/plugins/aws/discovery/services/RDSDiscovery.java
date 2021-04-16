@@ -19,9 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -38,28 +38,17 @@ import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.util.Arrays.asList;
 
 public class RDSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "rds";
-
-  private final List<LocalDiscovery> discoveryMethods = asList(
-    this::discoverTags,
-    this::discoverDbClusters,
-    this::discoverSize
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -72,58 +61,57 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RdsClient.builder().region(region).build();
 
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
-          var data = mapper.createObjectNode();
-          data.putPOJO("configuration", db.toBuilder());
-          data.put("region", region.toString());
+          var data = new AWSResource(db.toBuilder(), region.toString(), account, mapper);
+          data.arn = db.dbInstanceArn();
+          data.resourceId = db.dbInstanceArn();
+          data.resourceName = db.dbInstanceIdentifier();
+          data.resourceType = "AWS::RDS::DBInstance";
+          final Instant createTime = db.instanceCreateTime();
+          data.createdIso = null == createTime ? null : createTime.toString();
 
           if (db.instanceCreateTime() == null) {
             logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
           }
 
-          for (var dm : discoveryMethods) {
-            try {
-              dm.discover(client, db, data, logger, mapper);
-            } catch (SdkServiceException | SdkClientException ex) {
-              logger.error("Failed to discover data for {}", db.dbInstanceArn(), ex);
-            }
-          }
+          discoverTags(client, db, data, mapper);
+          discoverDbClusters(client, db, data);
+          discoverSize(db, data, logger);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode(mapper)));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       logger.error("RDS discovery error in {}", region, ex);
     }
   }
 
-  private void discoverTags(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    var obj = data.putObject("tags");
+  private void discoverTags(RdsClient client, DBInstance resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceName(resource.dbInstanceArn()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tagList().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 
-  private void discoverDbClusters(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
     final String keyname = "DbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverSize(RdsClient client, DBInstance resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
+  private void discoverSize(DBInstance resource, AWSResource data, Logger logger) {
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
     if (engine != null) {
@@ -140,23 +128,23 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void setRDSSize(DBInstance resource, ObjectNode data, Logger logger) {
+  private void setRDSSize(DBInstance resource, AWSResource data, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBInstanceIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> freeStorageSpace =
-        AWSUtils.getCloudwatchMetricMinimum(data.get("region").asText(), "AWS/RDS", "FreeStorageSpace", dimensions);
+        AWSUtils.getCloudwatchMetricMinimum(data.awsRegion, "AWS/RDS", "FreeStorageSpace", dimensions);
 
       if (freeStorageSpace.getValue0() != null) {
         logger.warn("{} RDS instance is missing engine property", resource.dbInstanceIdentifier());
-        AWSUtils.update(data, Map.of("size", Map.of("FreeStorageSpace", freeStorageSpace.getValue0())));
+        AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("FreeStorageSpace", freeStorageSpace.getValue0())));
 
         // pull the relevant node(s) from the payload object. See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html
         long freeStorageCapacity = freeStorageSpace.getValue0();
         long storageCapacity = resource.allocatedStorage();
 
-        data.put("sizeInBytes", Conversions.GibToBytes(storageCapacity) - freeStorageCapacity);
-        data.put("maxSizeInBytes", Conversions.GibToBytes(storageCapacity));
+        data.sizeInBytes = Conversions.GibToBytes(storageCapacity) - freeStorageCapacity;
+        data.maxSizeInBytes = Conversions.GibToBytes(storageCapacity);
       } else {
         logger.warn("{} RDS instance is missing size metrics", resource.dbInstanceIdentifier());
       }
@@ -165,36 +153,36 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void setDocDBSize(DBInstance resource, ObjectNode data, Logger logger) {
+  private void setDocDBSize(DBInstance resource, AWSResource data, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
-        AWSUtils.getCloudwatchMetricMaximum(data.get("region").asText(), "AWS/DocDB", "VolumeBytesUsed", dimensions);
+        AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/DocDB", "VolumeBytesUsed", dimensions);
 
       if (volumeBytesUsed.getValue0() != null) {
-          AWSUtils.update(data, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
+        AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
 
-        data.put("sizeInBytes", volumeBytesUsed.getValue0());
-        data.put("maxSizeInBytes", Conversions.GibToBytes(resource.allocatedStorage()));
+        data.sizeInBytes = volumeBytesUsed.getValue0();
+        data.maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
       }
     } catch (Exception se) {
       logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceArn(), se.getMessage());
     }
   }
 
-  private void setAuroraDBSize(DBInstance resource, ObjectNode data, Logger logger) {
+  private void setAuroraDBSize(DBInstance resource, AWSResource data, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
-        AWSUtils.getCloudwatchMetricMaximum(data.get("region").asText(), "AWS/RDS", "VolumeBytesUsed", dimensions);
+        AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/RDS", "VolumeBytesUsed", dimensions);
 
       if (volumeBytesUsed.getValue0() != null) {
-        AWSUtils.update(data, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
+        AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
 
-        data.put("sizeInBytes", volumeBytesUsed.getValue0());
-        data.put("maxSizeInBytes", Conversions.GibToBytes(resource.allocatedStorage()));
+        data.sizeInBytes = volumeBytesUsed.getValue0();
+        data.maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
 
       }
     } catch (Exception se) {

@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
@@ -40,19 +40,6 @@ public class CloudSearchDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "cloudSearch";
 
-  private final List<LocalDiscovery> discoveryMethods = List.of(
-    this::discoverSuggesters,
-    this::discoverServiceAccessPolicies,
-    this::discoverExpressions,
-    this::discoverIndexFields,
-    this::discoverSize
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(CloudSearchClient client, DomainStatus resource, ObjectNode data, ObjectMapper mapper);
-  }
-
   @Override
   public String service() {
     return SERVICE;
@@ -64,82 +51,88 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudSearchClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build())
         .domainStatusList(),
       (resp) -> resp.forEach(domain -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", domain.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
+        data.arn = domain.arn();
+        data.resourceId = domain.domainId();
+        data.resourceName = domain.domainName();
+        data.resourceType = "AWS::CloudSearch::Domain";
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, domain, data, mapper);
+        discoverSuggesters(client, domain, data);
+        discoverServiceAccessPolicies(client, domain, data);
+        discoverExpressions(client, domain, data);
+        discoverIndexFields(client, domain, data);
+        discoverSize(domain, data, account);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get domains in {}", region)
     );
   }
 
-  private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, ObjectNode data, ObjectMapper mapper) {
+  private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, AWSResource data) {
     final String keyname = "suggesters";
 
     getAwsResponse(
       () -> cloudSearchClient.describeSuggesters(DescribeSuggestersRequest.builder().domainName(domainStatus.domainName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverServiceAccessPolicies(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, ObjectNode data, ObjectMapper mapper) {
+  private void discoverServiceAccessPolicies(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, AWSResource data) {
     final String keyname = "serviceAccessPolicies";
 
     getAwsResponse(
       () -> cloudSearchClient.describeServiceAccessPolicies(DescribeServiceAccessPoliciesRequest.builder().domainName(domainStatus.domainName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverIndexFields(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, ObjectNode data, ObjectMapper mapper) {
+  private void discoverIndexFields(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, AWSResource data) {
     final String keyname = "indexFields";
 
     getAwsResponse(
       () -> cloudSearchClient.describeIndexFields(DescribeIndexFieldsRequest.builder().domainName(domainStatus.domainName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverExpressions(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, ObjectNode data, ObjectMapper mapper) {
+  private void discoverExpressions(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, AWSResource data) {
     final String keyname = "expressions";
 
     getAwsResponse(
       () -> cloudSearchClient.describeExpressions(DescribeExpressionsRequest.builder().domainName(domainStatus.domainName()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverSize(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, ObjectNode data, ObjectMapper mapper) {
+  private void discoverSize(DomainStatus domainStatus, AWSResource data, String account) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("DomainName").value(domainStatus.domainName()).build());
-    dimensions.add(Dimension.builder().name("ClientId").value(getAwsAccountId()).build());
+    dimensions.add(Dimension.builder().name("ClientId").value(account).build());
 
     Pair<Double, GetMetricStatisticsResponse> IndexUtilization =
-      getCloudwatchDoubleMetricMaximum(data.get("region").asText(), "AWS/CloudSearch", "IndexUtilization", dimensions);
+      getCloudwatchDoubleMetricMaximum(data.awsRegion, "AWS/CloudSearch", "IndexUtilization", dimensions);
 
     Pair<Long, GetMetricStatisticsResponse> SearchableDocuments =
-      getCloudwatchMetricMaximum(data.get("region").asText(), "AWS/CloudSearch", "SearchableDocuments", dimensions);
+      getCloudwatchMetricMaximum(data.awsRegion, "AWS/CloudSearch", "SearchableDocuments", dimensions);
 
 
     if (IndexUtilization.getValue0() != null && SearchableDocuments.getValue0() != null) {
-      data.put("indexUtilization", IndexUtilization.getValue0());
-      data.put("searchableDocuments", SearchableDocuments.getValue0());
+      AWSUtils.update(data.supplementaryConfiguration, Map.of(
+        "indexUtilization", IndexUtilization.getValue0(),
+        "searchableDocuments", SearchableDocuments.getValue0()));
     }
   }
 }

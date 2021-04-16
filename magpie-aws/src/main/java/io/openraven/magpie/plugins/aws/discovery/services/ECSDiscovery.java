@@ -18,9 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -33,23 +33,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.util.Arrays.asList;
 
 public class ECSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "ecs";
 
-  private final List<LocalDiscovery> discoveryMethods = asList(
-    this::discoverAttributes,
-    this::discoverServices,
-    this::discoverTasks,
-    this::discoverTags
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -62,20 +50,23 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EcsClient.builder().region(region).build();
 
     getAwsResponse(
       () -> listDescribedClusters(client),
       (resp) -> resp.forEach(cluster -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", cluster.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
+        data.arn = cluster.clusterArn();
+        data.resourceName = cluster.clusterName();
+        data.resourceType = "AWS::ECS::Cluster";
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, cluster, data, logger, mapper);
+        discoverAttributes(client, cluster, data);
+        discoverServices(client, cluster, data);
+        discoverTasks(client, cluster, data);
+        discoverTags(client, cluster, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get clusters in {}", region)
     );
@@ -89,37 +80,33 @@ public class ECSDiscovery implements AWSDiscovery {
     return client.describeClusters(DescribeClustersRequest.builder().clusters(clusterArns).build()).clusters();
   }
 
-  private void discoverTags(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting tags for {}", resource.clusterArn());
-    var obj = data.putObject("tags");
+  private void discoverTags(EcsClient client, Cluster resource, AWSResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.clusterArn()).build()),
       (resp) -> {
         JsonNode tagsNode = mapper.convertValue(resp.tags().stream()
           .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
-        AWSUtils.update(obj, tagsNode);
+        AWSUtils.update(data.tags, tagsNode);
       },
-      (noresp) -> AWSUtils.update(obj, noresp)
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 
-  private void discoverAttributes(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting attributes for {}", resource.clusterArn());
+  private void discoverAttributes(EcsClient client, Cluster resource, AWSResource data) {
     final String keyname = "attributes";
     getAwsResponse(
       () -> client.listAttributes(ListAttributesRequest.builder().targetType("container-instance").cluster(resource.clusterArn()).build()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
-  private void discoverServices(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting services for {}", resource.clusterArn());
+  private void discoverServices(EcsClient client, Cluster resource, AWSResource data) {
     final String keyname = "services";
     getAwsResponse(
       () -> listDescribedServices(client, resource),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
@@ -132,13 +119,12 @@ public class ECSDiscovery implements AWSDiscovery {
     return client.describeServices(DescribeServicesRequest.builder().cluster(resource.clusterArn()).services(serviceArns).build());
   }
 
-  private void discoverTasks(EcsClient client, Cluster resource, ObjectNode data, Logger logger, ObjectMapper mapper) {
-    logger.trace("Getting tasks for {}", resource.clusterArn());
+  private void discoverTasks(EcsClient client, Cluster resource, AWSResource data) {
     final String keyname = "tasks";
     getAwsResponse(
       () -> listDescribedTasks(client, resource),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 

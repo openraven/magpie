@@ -17,9 +17,9 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -28,26 +28,18 @@ import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.DataCatalogSummary;
 import software.amazon.awssdk.services.athena.model.ListDataCatalogsRequest;
 import software.amazon.awssdk.services.athena.model.ListDatabasesRequest;
+import software.amazon.awssdk.services.athena.model.ListDatabasesResponse;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class AthenaDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "athena";
-
-  private final List<LocalDiscovery> discoveryMethods = Collections.singletonList(
-    this::discoverDatabases
-  );
-
-  @FunctionalInterface
-  interface LocalDiscovery {
-    void discover(AthenaClient client, DataCatalogSummary resource, ObjectNode data, ObjectMapper mapper);
-  }
 
   @Override
   public String service() {
@@ -60,35 +52,35 @@ public class AthenaDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AthenaClient.builder().region(region).build();
 
     getAwsResponse(
       () -> client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary(),
       (resp) -> resp.forEach(dataCatalog -> {
-        var data = mapper.createObjectNode();
-        data.putPOJO("configuration", dataCatalog.toBuilder());
-        data.put("region", region.toString());
+        var data = new AWSResource(dataCatalog.toBuilder(), region.toString(), account, mapper);
+        data.arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region.toString(), account, dataCatalog.catalogName());
+        data.resourceName = dataCatalog.catalogName();
+        data.resourceType = "AWS::Athena::DataCatalog";
 
-        for (var dm : discoveryMethods)
-          dm.discover(client, dataCatalog, data, mapper);
+        discoverDatabases(client, dataCatalog, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataCatalog"), data));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataCatalog"), data.toJsonNode(mapper)));
       }),
       (noresp) -> logger.error("Failed to get dataCatalogs in {}", region)
     );
   }
 
-  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, ObjectNode data, ObjectMapper mapper) {
+  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, AWSResource data) {
     final String keyname = "databases";
 
     getAwsResponse(
       () -> client.listDatabasesPaginator(ListDatabasesRequest.builder().catalogName(resource.catalogName()).build())
         .stream()
-        .map(r -> r.toBuilder())
+        .map(ListDatabasesResponse::toBuilder)
         .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }

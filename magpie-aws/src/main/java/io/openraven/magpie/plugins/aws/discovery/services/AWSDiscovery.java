@@ -25,20 +25,20 @@ import software.amazon.awssdk.regions.Region;
 
 import java.util.List;
 
-public interface AWSDiscovery{
+public interface AWSDiscovery {
 
   String service();
 
-  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger) {
+  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     logger.debug("Starting {} discovery in {}", service(), region);
-    discover(mapper, session, region, emitter, logger);
+    discover(mapper, session, region, emitter, logger, account);
     logger.debug("Completed {} discovery in {}", service(), region);
   }
 
-  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger);
+  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account);
 
   default String fullService() {
-    return AWSDiscoveryPlugin.ID + ":"  + service();
+    return AWSDiscoveryPlugin.ID + ":" + service();
   }
 
   List<Region> getSupportedRegions();

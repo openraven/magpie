@@ -71,7 +71,7 @@ public class IAMCredential {
   }
 
   private String getNullIfNotPresentOrValue(String string) {
-    if(string.equals("N/A") || string.equals("not_supported")) {
+    if (string.equals("N/A") || string.equals("not_supported")) {
       return null;
     } else {
       return string;
