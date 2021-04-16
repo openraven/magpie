@@ -104,10 +104,6 @@ plugins:
     config:
 ```
 
-### Per region discovery
-Magpie provides possibility to customize which regions to run discovery on.
-In config.yaml it's possible to set regions to given values. If none are set discovery will be run on all available regions.
-
 #### Overriding config.yaml
 It is possible to override *most* configuration values via environmental variables. This is most useful as an easy way to
 script a Magpie instance on a one-per-aws-service basis.  To override configuration values, set an environmental variable
@@ -202,3 +198,18 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] SNS
 - [x] Storage Gateway
 - [x] VPC
+
+##### Per region discovery
+By default the Magpie AWS Plugin will run discovery in all regions.  To narrow down discovery to a subset
+of regions edit the plugins.magpie.aws.discovery.config.regions value to an array of desired region names, for example:
+
+```yaml
+plugins:
+  magpie.aws.discovery:
+    enabled: true
+    config:
+      regions:
+        - us-east-2
+        - us-east-1
+```
+
