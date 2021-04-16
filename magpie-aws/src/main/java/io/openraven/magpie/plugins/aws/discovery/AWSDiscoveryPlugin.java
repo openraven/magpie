@@ -83,7 +83,10 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     String account = getAwsAccountId();
 
     enabledPlugins.forEach(plugin ->
-      plugin.getSupportedRegions().forEach(region -> {
+      plugin.getSupportedRegions()
+        .stream()
+        .filter(region -> isDiscoveryEnabledIn(region.toString()))
+        .forEach(region -> {
         try {
           plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
         } catch (Exception ex) {
@@ -96,6 +99,12 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   private boolean isEnabled(String svc) {
     var enabled = config.getServices().isEmpty() || config.getServices().contains(svc);
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", svc);
+    return enabled;
+  }
+
+  private boolean isDiscoveryEnabledIn(String region) {
+    var enabled = config.getRegions().isEmpty() || config.getRegions().contains(region);
+    logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", region);
     return enabled;
   }
 
