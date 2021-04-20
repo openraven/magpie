@@ -30,6 +30,9 @@ plugins:
 #        - us-east-1
 #        - us-west-1
 #        - us-west-2
+  magpie.json:
+    enabled: false
+    config:
   magpie.persist:
     enabled: true
     config:

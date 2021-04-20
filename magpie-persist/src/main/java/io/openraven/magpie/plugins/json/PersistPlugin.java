@@ -25,6 +25,7 @@ import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -48,6 +49,8 @@ public class PersistPlugin implements TerminalPlugin<Void> {
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
       try {
+        logger.error("accept");
+
         generator.writeObject(env.getContents());
 
 //        String resourceName = env.getContents().findValue("resourceName").toString();
@@ -74,6 +77,8 @@ public class PersistPlugin implements TerminalPlugin<Void> {
   public void init(Void unused, Logger logger) {
     this.logger = logger;
 
+    logger.error("INIT");
+
     try {
       generator = new JsonFactory().createGenerator(System.out, JsonEncoding.UTF8).setCodec(MAPPER);
       generator.writeStartArray();
@@ -83,6 +88,8 @@ public class PersistPlugin implements TerminalPlugin<Void> {
 
     jdbi = Jdbi.create("jdbc:postgresql://localhost:5432/db_name", "admin", "1234")
       .installPlugin(new PostgresPlugin());
+
+
   }
 
   @Override
