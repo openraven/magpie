@@ -76,8 +76,8 @@ public class EFSDiscovery implements AWSDiscovery {
 
     getAwsResponse(
       () -> client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
-      (resp) -> AWSUtils.update(data.configuration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.configuration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 }
