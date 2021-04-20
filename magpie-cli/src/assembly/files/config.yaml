@@ -18,7 +18,7 @@ plugins:
     config:
       services:
 #      By default all AWS services are scanned. Uncomment the below lines to enable only select services.
-#         - ec2
+         - glacier
 #         - s3
 #         - rds
 #         - ecs
@@ -30,7 +30,7 @@ plugins:
 #        - us-east-1
 #        - us-west-1
 #        - us-west-2
-  magpie.json:
+  magpie.persist:
     enabled: true
     config:
 
