@@ -20,6 +20,8 @@ import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
 import org.slf4j.Logger;
 
+import java.time.Instant;
+
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
@@ -50,8 +52,8 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
         contents.get("resourceId").asText(),
         contents.get("resourceType").asText(),
         contents.get("awsRegion").asText(),
-        contents.get("createdIso").asText(),
-        contents.get("updatedIso").asText(),
+        contents.get("createdIso").isNull() ? Instant.now().toString() : contents.get("createdIso").asText(),
+        contents.get("updatedIso").isNull() ? Instant.now().toString() : contents.get("updatedIso").asText(),
         contents.get("discoverySessionId").asText(),
         contents.get("maxSizeInBytes").asLong(),
         contents.get("sizeInBytes").asLong(),
