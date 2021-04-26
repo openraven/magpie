@@ -53,6 +53,7 @@ public class AWSResource {
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
+    data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(arn));
     data.put("arn", arn);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);

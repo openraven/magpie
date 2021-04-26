@@ -1,1 +1,1 @@
-io.openraven.magpie.plugins.json.PersistPlugin
+io.openraven.magpie.plugins.persist.PersistPlugin

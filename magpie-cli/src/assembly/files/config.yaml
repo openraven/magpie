@@ -9,6 +9,7 @@ layers:
     dequeue: default
     plugins:
       - magpie.json
+      - magpie.persist
 fifos:
   default:
     type: local
@@ -18,7 +19,7 @@ plugins:
     config:
       services:
 #      By default all AWS services are scanned. Uncomment the below lines to enable only select services.
-         - glacier
+#         - glacier
 #         - s3
 #         - rds
 #         - ecs
@@ -36,6 +37,8 @@ plugins:
   magpie.persist:
     enabled: true
     config:
-
-
-
+      ip: localhost
+      port: 5432
+      databaseName: db_name
+      user: postgres
+      password: postgres
