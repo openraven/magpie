@@ -19,7 +19,7 @@ plugins:
     config:
       services:
 #      By default all AWS services are scanned. Uncomment the below lines to enable only select services.
-#         - glacier
+#         - ec2
 #         - s3
 #         - rds
 #         - ecs
