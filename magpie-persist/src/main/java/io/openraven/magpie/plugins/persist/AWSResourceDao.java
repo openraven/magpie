@@ -21,6 +21,8 @@ import org.jdbi.v3.sqlobject.customizer.Define;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
+import java.time.Instant;
+
 public interface AWSResourceDao {
   @SqlQuery("SELECT count(*) FROM information_schema.tables WHERE table_name = :table")
   String doesTableExist(@Bind("table") String name);
@@ -87,8 +89,8 @@ public interface AWSResourceDao {
               @Bind("resourceId") String resourceId,
               @Bind("resourceType") String resourceType,
               @Bind("awsRegion") String awsRegion,
-              @Bind("createdIso") String createdIso,
-              @Bind("updatedIso") String updatedIso,
+              @Bind("createdIso") Instant createdIso,
+              @Bind("updatedIso") Instant updatedIso,
               @Bind("discoverySessionId") String discoverySessionId,
               @Bind("maxSizeInBytes") long maxSizeInBytes,
               @Bind("sizeInBytes") long sizeInBytes,

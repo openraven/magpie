@@ -83,7 +83,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         data.resourceName = table.tableName();
         data.resourceId = table.tableId();
         data.arn = table.tableArn();
-        data.createdIso = table.creationDateTime().toString();
+        data.createdIso = table.creationDateTime();
         data.resourceType = "AWS::DynamoDB::Table";
 
         discoverContinuousBackups(client, table, data);

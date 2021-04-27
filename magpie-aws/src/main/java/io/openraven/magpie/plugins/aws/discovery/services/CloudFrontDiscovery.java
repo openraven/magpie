@@ -61,7 +61,7 @@ public class CloudFrontDiscovery implements AWSDiscovery {
         data.resourceId = distribution.id();
         data.resourceName = distribution.domainName();
         data.resourceType = "AWS::CloudFront::Distribution";
-        data.updatedIso = distribution.lastModifiedTime().toString();
+        data.updatedIso = distribution.lastModifiedTime();
 
         discoverTags(client, distribution, data, mapper);
 

@@ -61,7 +61,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
           data.arn = resourceInfo.resourceArn();
 
           data.resourceType = "AWS::LakeFormation::Resource";
-          data.updatedIso = resourceInfo.lastModified().toString();
+          data.updatedIso = resourceInfo.lastModified();
 
           discoverDataLakeSettings(client, data);
           discoverPermissions(client, resourceInfo, data);

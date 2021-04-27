@@ -27,6 +27,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glacier.GlacierClient;
 import software.amazon.awssdk.services.glacier.model.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,8 +59,8 @@ public class GlacierDiscovery implements AWSDiscovery {
         data.arn = vault.vaultARN();
         data.resourceName = vault.vaultName();
         data.resourceType = "AWS::Glacier::Vault";
-        data.createdIso = vault.creationDate();
-        data.updatedIso = vault.lastInventoryDate();
+        data.createdIso = Instant.parse(vault.creationDate());
+        data.updatedIso = Instant.parse(vault.lastInventoryDate());
         data.sizeInBytes = vault.sizeInBytes();
 
         discoverJobs(client, vault, data);

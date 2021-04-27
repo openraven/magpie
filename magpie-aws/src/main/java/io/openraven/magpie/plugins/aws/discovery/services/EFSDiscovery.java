@@ -60,7 +60,7 @@ public class EFSDiscovery implements AWSDiscovery {
         data.arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region.toString(), fileSystem.ownerId(), fileSystem.fileSystemId());
         data.resourceName = fileSystem.name();
         data.resourceType = "AWS::EFS::FileSystem";
-        data.createdIso = fileSystem.creationTime().toString();
+        data.createdIso = fileSystem.creationTime();
         data.sizeInBytes = fileSystem.sizeInBytes().value();
 
         discoverMountTargets(client, fileSystem, data);

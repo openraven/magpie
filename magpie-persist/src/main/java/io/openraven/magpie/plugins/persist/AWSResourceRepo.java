@@ -20,6 +20,8 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
+import java.time.Instant;
+
 import static java.lang.String.format;
 
 public class AWSResourceRepo {
@@ -47,8 +49,8 @@ public class AWSResourceRepo {
               String resourceId,
               String resourceType,
               String awsRegion,
-              String createdIso,
-              String updatedIso,
+              Instant createdIso,
+              Instant updatedIso,
               String discoverySessionId,
               long maxSizeInBytes,
               long sizeInBytes,
