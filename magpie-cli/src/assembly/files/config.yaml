@@ -32,10 +32,10 @@ plugins:
 #        - us-west-1
 #        - us-west-2
   magpie.json:
-    enabled: false
+    enabled: true
     config:
   magpie.persist:
-    enabled: true
+    enabled: false
     config:
       ip: localhost
       port: 5432
