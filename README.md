@@ -223,15 +223,13 @@ plugins:
         - us-east-1
 ```
 
-##### Project endpoint
-By default, the project will print all discovered resources to console. It's possible to modify this behaviour by changing
-configuration. At current state project allows to either print output to console, save it to postgres database or both.
-To modify this behaviour please change below lines of the config file:
+### Saving data to PostgreSQL
+By default, Magpie prints all discovered resources to standard out in JSON format. It's possible to modify this behaviour by changing
+the default configuration.  The Magpie Peristence plugin comes bundled with Magpie but is in the disabled state by default.  To 
+enable it  look at the following lines in the config file (config.yaml). set `enabled: true` and then modify the login
+credentials as needed. Magpie will create all required tables at startup.
 
 ```yaml
-magpie.json:
-    enabled: true
-    config:
 magpie.persist:
     enabled: false
     config:
@@ -240,5 +238,4 @@ magpie.persist:
         databaseName: db_name
         user: postgres
         password: postgres
-```yaml
-
+```
