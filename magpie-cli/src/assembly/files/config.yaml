@@ -37,7 +37,7 @@ plugins:
   magpie.persist:
     enabled: false
     config:
-      ip: localhost
+      hostname: localhost
       port: 5432
       databaseName: db_name
       user: postgres

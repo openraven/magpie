@@ -18,15 +18,15 @@ package io.openraven.magpie.plugins.persist;
 
 
 public class PersistConfig {
-  private String ip;
+  private String hostname;
   private String port;
   private String databaseName;
   private String user;
   private String password;
 
-  public String getIp() { return ip;}
-  public void setIp(String ip) {
-    this.ip = ip == null ? "" : ip;
+  public String getHostname() { return hostname;}
+  public void setHostname(String ip) {
+    this.hostname = ip == null ? "" : ip;
   }
 
   public String getPort() { return port;}

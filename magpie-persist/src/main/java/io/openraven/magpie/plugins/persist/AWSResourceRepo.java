@@ -28,7 +28,7 @@ public class AWSResourceRepo {
   private final Jdbi jdbi;
 
   AWSResourceRepo(PersistConfig config) {
-    String url = format("jdbc:postgresql://%s:%s/%s", config.getIp(), config.getPort(), config.getDatabaseName());
+    String url = format("jdbc:postgresql://%s:%s/%s", config.getHostname(), config.getPort(), config.getDatabaseName());
     jdbi = Jdbi.create(url, config.getUser(), config.getPassword())
       .installPlugin(new PostgresPlugin())
       .installPlugin(new SqlObjectPlugin());

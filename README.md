@@ -104,6 +104,14 @@ plugins:
   magpie.json:
     enabled: true
     config:
+  magpie.persist:
+    enabled: false
+    config:
+      hostName: localhost
+      port: 5432
+      databaseName: db_name
+      user: postgres
+      password: postgres
 ```
 
 #### Overriding config.yaml
@@ -214,4 +222,23 @@ plugins:
         - us-east-2
         - us-east-1
 ```
+
+##### Project endpoint
+By default, the project will print all discovered resources to console. It's possible to modify this behaviour by changing
+configuration. At current state project allows to either print output to console, save it to postgres database or both.
+To modify this behaviour please change below lines of the config file:
+
+```yaml
+magpie.json:
+    enabled: true
+    config:
+magpie.persist:
+    enabled: false
+    config:
+        hostname: localhost
+        port: 5432
+        databaseName: db_name
+        user: postgres
+        password: postgres
+```yaml
 
