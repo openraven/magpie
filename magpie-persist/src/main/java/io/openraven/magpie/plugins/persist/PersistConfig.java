@@ -25,8 +25,8 @@ public class PersistConfig {
   private String password;
 
   public String getHostname() { return hostname;}
-  public void setHostname(String ip) {
-    this.hostname = ip == null ? "" : ip;
+  public void setHostname(String hostname) {
+    this.hostname = hostname == null ? "" : hostname;
   }
 
   public String getPort() { return port;}
