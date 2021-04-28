@@ -62,7 +62,7 @@ public class ELBV2Discovery implements AWSDiscovery {
         data.resourceId = loadBalancerV2.loadBalancerName();
         data.resourceType = "AWS::ElasticLoadBalancingV2::LoadBalancer";
         data.arn = loadBalancerV2.loadBalancerArn();
-        data.createdIso = loadBalancerV2.createdTime().toString();
+        data.createdIso = loadBalancerV2.createdTime();
 
         discoverTags(client, loadBalancerV2, data, mapper);
 

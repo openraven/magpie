@@ -72,7 +72,7 @@ public class IAMDiscovery implements AWSDiscovery {
         data.resourceId = role.roleId();
         data.resourceName = role.roleName();
         data.resourceType = "AWS::IAM::Role";
-        data.createdIso = role.createDate().toString();
+        data.createdIso = role.createDate();
 
         discoverAttachedPolicies(client, data, role);
         discoverInlinePolicies(client, data, role);
@@ -128,7 +128,7 @@ public class IAMDiscovery implements AWSDiscovery {
         data.resourceId = policy.policyId();
         data.resourceName = policy.policyName();
         data.resourceType = "AWS::IAM::Policy";
-        data.createdIso = policy.createDate().toString();
+        data.createdIso = policy.createDate();
 
         discoverPolicyDocument(client, data, policy);
 
@@ -167,7 +167,7 @@ public class IAMDiscovery implements AWSDiscovery {
         data.resourceId = user.userId();
         data.resourceName = user.userName();
         data.resourceType = "AWS::IAM::User";
-        data.createdIso = user.createDate().toString();
+        data.createdIso = user.createDate();
 
         discoverGroupsForUser(client, data, user);
         discoverAttachedUserPolicies(client, data, user);
@@ -256,7 +256,7 @@ public class IAMDiscovery implements AWSDiscovery {
         data.resourceId = group.groupId();
         data.resourceName = group.groupName();
         data.resourceType = "AWS::IAM::Group";
-        data.createdIso = group.createDate().toString();
+        data.createdIso = group.createDate();
 
         discoverGroupInlinePolicies(client, data, group);
         discoverGroupAttachedPolicies(client, data, group);

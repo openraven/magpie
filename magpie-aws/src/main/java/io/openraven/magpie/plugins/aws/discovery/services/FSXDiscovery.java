@@ -64,7 +64,7 @@ public class FSXDiscovery implements AWSDiscovery {
         data.resourceId = fileSystem.fileSystemId();
         data.resourceName = fileSystem.fileSystemId();
         data.resourceType = "AWS::FSx::FileSystem";
-        data.createdIso = fileSystem.creationTime().toString();
+        data.createdIso = fileSystem.creationTime();
 
         discoverSize(fileSystem, data, region);
 

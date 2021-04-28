@@ -30,6 +30,13 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>${project.parent.basedir}/magpie-persist/target/</directory>
+      <outputDirectory>plugins/</outputDirectory>
+      <includes>
+        <include>magpie-persist-${project.version}.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>${project.basedir}/src/assembly/files/plugins</directory>
       <outputDirectory>plugins/</outputDirectory>
       <includes>

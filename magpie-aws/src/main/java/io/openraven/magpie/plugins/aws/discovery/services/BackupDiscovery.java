@@ -61,7 +61,7 @@ public class BackupDiscovery implements AWSDiscovery {
         data.arn = backupVault.backupVaultArn();
         data.resourceName = backupVault.backupVaultName();
         data.resourceId = backupVault.backupVaultName();
-        data.createdIso = backupVault.creationDate().toString();
+        data.createdIso = backupVault.creationDate();
 
         discoverTags(client, backupVault, data);
 

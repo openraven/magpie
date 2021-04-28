@@ -2,22 +2,24 @@
 #### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
 
 ## Table of Contents
-- [What is Magpie?](#what-is-magpie-)
-- [Overview](#overview)
-    * [Magpie Architecture](#magpie-architecture)
-- [Building Magpie](#building-magpie)
-    * [Clone and build Magpie](#clone-and-build-magpie)
-- [Running Magpie](#running-magpie)
-    * [Configuration](#configuration)
-        + [Overriding config.yaml](#overriding-configyaml)
-        + [Multiple Overrides](#multiple-overrides)
-    * [Running via Docker](#running-via-docker)
-    * [Plugins](#plugins)
-    * [Community Contributed Plugins](#community-contributed-plugins)
-    * [Cloud Provider Status](#cloud-provider-status)
-        + [AWS](#aws)
-            - [Per region discovery](#per-region-discovery)
-
+<!--ts-->
+   * [What is Magpie?](#what-is-magpie)
+   * [Overview](#overview)
+      * [Magpie Architecture](#magpie-architecture)
+   * [Building Magpie](#building-magpie)
+      * [Clone and build Magpie](#clone-and-build-magpie)
+   * [Running Magpie](#running-magpie)
+      * [Configuration](#configuration)
+         * [Overriding config.yaml](#overriding-configyaml)
+         * [Multiple Overrides](#multiple-overrides)
+      * [Running via Docker](#running-via-docker)
+      * [Plugins](#plugins)
+      * [Community Contributed Plugins](#community-contributed-plugins)
+      * [Cloud Provider Status](#cloud-provider-status)
+         * [AWS](#aws)
+            * [Per region discovery](#per-region-discovery)
+      * [Saving data to PostgreSQL](#saving-data-to-postgresql)
+<!--te-->
 
 ## What is Magpie?
 Magpie is a free, open-source framework and a collection of community developed plugins that can be used to build complete end-to-end security tools such as a CSPM or Cloud Security Posture Manager. The project was originally created and is maintained by Open Raven. We build commercial cloud native data security tools and in doing so have learned a great deal about how to discover AWS assets and their security settings at scale.
@@ -104,6 +106,14 @@ plugins:
   magpie.json:
     enabled: true
     config:
+  magpie.persist:
+    enabled: false
+    config:
+      hostname: localhost
+      port: 5432
+      databaseName: db_name
+      user: postgres
+      password: postgres
 ```
 
 #### Overriding config.yaml
@@ -215,3 +225,19 @@ plugins:
         - us-east-1
 ```
 
+### Saving data to PostgreSQL
+By default, Magpie prints all discovered resources to standard out in JSON format. It's possible to modify this behaviour by changing
+the default configuration.  The Magpie Peristence plugin comes bundled with Magpie but is in the disabled state by default.  To 
+enable it  look at the following lines in the config file (config.yaml). set `enabled: true` and then modify the login
+credentials as needed. Magpie will create all required tables at startup.
+
+```yaml
+magpie.persist:
+    enabled: false
+    config:
+        hostname: localhost
+        port: 5432
+        databaseName: db_name
+        user: postgres
+        password: postgres
+```
