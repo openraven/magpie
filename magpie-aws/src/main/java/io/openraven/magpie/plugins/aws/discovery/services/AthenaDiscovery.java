@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.DataCatalogSummary;
@@ -54,21 +57,23 @@ public class AthenaDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AthenaClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Athena::DataCatalog";
 
-    getAwsResponse(
-      () -> client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary(),
-      (resp) -> resp.forEach(dataCatalog -> {
+    try {
+      client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary()
+        .forEach(dataCatalog -> {
         var data = new AWSResource(dataCatalog.toBuilder(), region.toString(), account, mapper);
-        data.arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region.toString(), account, dataCatalog.catalogName());
+        data.arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region, account, dataCatalog.catalogName());
         data.resourceName = dataCatalog.catalogName();
-        data.resourceType = "AWS::Athena::DataCatalog";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverDatabases(client, dataCatalog, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataCatalog"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get dataCatalogs in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, AWSResource data) {

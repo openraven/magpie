@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeTagsRequest;
@@ -53,23 +56,24 @@ public class ELBV2Discovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticLoadBalancingV2Client.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::ElasticLoadBalancingV2::LoadBalancer";
 
-    getAwsResponse(
-      () -> client.describeLoadBalancers().loadBalancers(),
-      (resp) -> resp.forEach(loadBalancerV2 -> {
+    try {
+      client.describeLoadBalancers().loadBalancers().forEach(loadBalancerV2 -> {
         var data = new AWSResource(loadBalancerV2.toBuilder(), region.toString(), account, mapper);
         data.resourceName = loadBalancerV2.dnsName();
         data.resourceId = loadBalancerV2.loadBalancerName();
-        data.resourceType = "AWS::ElasticLoadBalancingV2::LoadBalancer";
+        data.resourceType = RESOURCE_TYPE;
         data.arn = loadBalancerV2.loadBalancerArn();
         data.createdIso = loadBalancerV2.createdTime().toString();
 
         discoverTags(client, loadBalancerV2, data, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get loadBalancerV2 in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, AWSResource data, ObjectMapper mapper) {

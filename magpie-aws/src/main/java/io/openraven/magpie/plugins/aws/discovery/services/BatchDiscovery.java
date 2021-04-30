@@ -20,14 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.batch.BatchClient;
 
 import java.util.List;
-
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class BatchDiscovery implements AWSDiscovery {
 
@@ -47,54 +48,60 @@ public class BatchDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = BatchClient.builder().region(region).build();
 
-    discoverComputeEnvironments(mapper, session, client, region, emitter, logger, account);
-    discoverJobQueues(mapper, session, client, region, emitter, logger, account);
-    discoverJobDefinitions(mapper, session, client, region, emitter, logger, account);
+    discoverComputeEnvironments(mapper, session, client, region, emitter, account);
+    discoverJobQueues(mapper, session, client, region, emitter, account);
+    discoverJobDefinitions(mapper, session, client, region, emitter, account);
   }
 
-  private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger, String account) {
-    getAwsResponse(
-      () -> client.describeComputeEnvironmentsPaginator().computeEnvironments(),
-      (resp) -> resp.forEach(computeEnvironment -> {
-        var data = new AWSResource(computeEnvironment.toBuilder(), region.toString(), account, mapper);
-        data.arn = computeEnvironment.computeEnvironmentArn();
-        data.resourceName = computeEnvironment.computeEnvironmentName();
-        data.resourceType = "AWS::Batch::ComputeEnvironment";
+  private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::Batch::ComputeEnvironment";
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get computeEnvironments in {}", region)
-    );
+    try {
+      client.describeComputeEnvironmentsPaginator().computeEnvironments()
+        .forEach( computeEnvironment -> {
+          var data = new AWSResource(computeEnvironment.toBuilder(), region.toString(), account, mapper);
+          data.arn = computeEnvironment.computeEnvironmentArn();
+          data.resourceName = computeEnvironment.computeEnvironmentName();
+          data.resourceType = RESOURCE_TYPE;
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
-  private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger, String account) {
-    getAwsResponse(
-      () -> client.describeJobQueuesPaginator().jobQueues(),
-      (resp) -> resp.forEach(jobQueue -> {
+  private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::Batch::JobQueue";
+
+    try {
+      client.describeJobQueuesPaginator().jobQueues().forEach(jobQueue -> {
         var data = new AWSResource(jobQueue.toBuilder(), region.toString(), account, mapper);
         data.arn = jobQueue.jobQueueArn();
         data.resourceName = jobQueue.jobQueueName();
-        data.resourceType = "AWS::Batch::JobQueue";
+        data.resourceType = RESOURCE_TYPE;
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get jobQueues in {}", region)
-    );
-
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
-  private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, Logger logger, String account) {
-    getAwsResponse(
-      () -> client.describeJobDefinitionsPaginator().jobDefinitions(),
-      (resp) -> resp.forEach(jobDefinition -> {
+  private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::Batch::JobDefinition";
+
+    try {
+      client.describeJobDefinitionsPaginator().jobDefinitions().forEach(jobDefinition -> {
         var data = new AWSResource(jobDefinition.toBuilder(), region.toString(), account, mapper);
         data.arn = jobDefinition.jobDefinitionArn();
         data.resourceName = jobDefinition.jobDefinitionName();
-        data.resourceType = "AWS::Batch::JobDefinition";
+        data.resourceType = RESOURCE_TYPE;
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get jobDefinitions in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 }

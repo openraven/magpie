@@ -21,9 +21,12 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudsearch.CloudSearchClient;
 import software.amazon.awssdk.services.cloudsearch.model.*;
@@ -53,27 +56,28 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudSearchClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::CloudSearch::Domain";
 
-    getAwsResponse(
-      () -> client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build())
-        .domainStatusList(),
-      (resp) -> resp.forEach(domain -> {
-        var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
-        data.arn = domain.arn();
-        data.resourceId = domain.domainId();
-        data.resourceName = domain.domainName();
-        data.resourceType = "AWS::CloudSearch::Domain";
+    try {
+      client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build()).domainStatusList()
+        .forEach(domain -> {
+          var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
+          data.arn = domain.arn();
+          data.resourceId = domain.domainId();
+          data.resourceName = domain.domainName();
+          data.resourceType = RESOURCE_TYPE;
 
-        discoverSuggesters(client, domain, data);
-        discoverServiceAccessPolicies(client, domain, data);
-        discoverExpressions(client, domain, data);
-        discoverIndexFields(client, domain, data);
-        discoverSize(domain, data, account);
+          discoverSuggesters(client, domain, data);
+          discoverServiceAccessPolicies(client, domain, data);
+          discoverExpressions(client, domain, data);
+          discoverIndexFields(client, domain, data);
+          discoverSize(domain, data, account);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get domains in {}", region)
-    );
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, AWSResource data) {

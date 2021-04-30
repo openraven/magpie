@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lakeformation.LakeFormationClient;
 import software.amazon.awssdk.services.lakeformation.model.GetDataLakeSettingsRequest;
@@ -52,24 +55,26 @@ public class LakeFormationDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LakeFormationClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::LakeFormation::Resource";
 
-    getAwsResponse(
-      () -> client.listResourcesPaginator(ListResourcesRequest.builder().build()).stream(),
-      (resp) -> resp.forEach(list -> list.resourceInfoList()
-        .forEach(resourceInfo -> {
-          var data = new AWSResource(resourceInfo.toBuilder(), region.toString(), account, mapper);
-          data.arn = resourceInfo.resourceArn();
+    try {
+      client.listResourcesPaginator(ListResourcesRequest.builder().build()).stream()
+        .forEach(list -> list.resourceInfoList()
+          .forEach(resourceInfo -> {
+            var data = new AWSResource(resourceInfo.toBuilder(), region.toString(), account, mapper);
+            data.arn = resourceInfo.resourceArn();
 
-          data.resourceType = "AWS::LakeFormation::Resource";
-          data.updatedIso = resourceInfo.lastModified().toString();
+            data.resourceType = RESOURCE_TYPE;
+            data.updatedIso = resourceInfo.lastModified().toString();
 
-          discoverDataLakeSettings(client, data);
-          discoverPermissions(client, resourceInfo, data);
+            discoverDataLakeSettings(client, data);
+            discoverPermissions(client, resourceInfo, data);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":resource"), data.toJsonNode(mapper)));
-        })),
-      (noresp) -> logger.error("Failed to get resources in {}", region)
-    );
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":resource"), data.toJsonNode(mapper)));
+          }));
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverDataLakeSettings(LakeFormationClient client, AWSResource data) {

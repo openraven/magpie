@@ -23,6 +23,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -54,6 +55,7 @@ public class KMSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = KmsClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Kms::Key";
 
     try {
       client.listKeysPaginator().keys().forEach(key -> {
@@ -61,7 +63,7 @@ public class KMSDiscovery implements AWSDiscovery {
         data.arn = key.keyArn();
         data.resourceId = key.keyId();
         data.resourceName = key.toString();
-        data.resourceType = "AWS::Kms::Key";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverKeyRotation(client, key, data);
         discoverAliases(client, key, data);
@@ -72,7 +74,7 @@ public class KMSDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      logger.error("Failed to discover data in {}", region, ex);
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
     }
   }
 

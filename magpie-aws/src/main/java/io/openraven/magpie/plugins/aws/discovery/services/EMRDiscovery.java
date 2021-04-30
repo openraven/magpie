@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.emr.EmrClient;
 import software.amazon.awssdk.services.emr.model.*;
@@ -50,15 +53,15 @@ public class EMRDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EmrClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::EMR::Cluster";
 
-    getAwsResponse(
-      () -> client.listClustersPaginator().clusters().stream(),
-      (resp) -> resp.forEach(cluster -> {
+    try {
+      client.listClustersPaginator().clusters().stream().forEach(cluster ->{
         var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
         data.arn = String.format("arn:aws:emr:::cluster/%s", cluster.id());
         data.resourceId = cluster.id();
         data.resourceName = cluster.name();
-        data.resourceType = "AWS::EMR::Cluster";
+        data.resourceType = RESOURCE_TYPE;
         data.createdIso = cluster.status().timeline().creationDateTime().toString();
 
         discoverSteps(client, cluster, data);
@@ -67,9 +70,10 @@ public class EMRDiscovery implements AWSDiscovery {
         discoverInstanceGroups(client, cluster, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get emr cluster in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverSteps(EmrClient client, ClusterSummary resource, AWSResource data) {

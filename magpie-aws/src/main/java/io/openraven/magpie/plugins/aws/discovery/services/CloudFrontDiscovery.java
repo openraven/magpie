@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudfront.CloudFrontClient;
 import software.amazon.awssdk.services.cloudfront.model.DistributionSummary;
@@ -52,23 +55,24 @@ public class CloudFrontDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudFrontClient.builder().region(region).build();
+    String RESOURCE_TYPE = "AWS::CloudFront::Distribution";
 
-    getAwsResponse(
-      () -> client.listDistributions().distributionList().items(),
-      (resp) -> resp.forEach(distribution -> {
+    try {
+      client.listDistributions().distributionList().items().forEach(distribution -> {
         var data = new AWSResource(distribution.toBuilder(), region.toString(), account, mapper);
         data.arn = distribution.arn();
         data.resourceId = distribution.id();
         data.resourceName = distribution.domainName();
-        data.resourceType = "AWS::CloudFront::Distribution";
+        data.resourceType = RESOURCE_TYPE;
         data.updatedIso = distribution.lastModifiedTime().toString();
 
         discoverTags(client, distribution, data, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get distributions in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverTags(CloudFrontClient client, DistributionSummary resource, AWSResource data, ObjectMapper mapper) {

@@ -20,6 +20,8 @@
     <javatuples.version>1.2</javatuples.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
     <magpie.api.version>0.1.2</magpie.api.version>
+    <segment.version>2.1.1</segment.version>
+    <sentry.version>1.7.28</sentry.version>
   </properties>
 
   <dependencies>
@@ -206,6 +208,7 @@
       <artifactId>cloudwatch</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
+
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
@@ -220,6 +223,17 @@
       <groupId>org.javatuples</groupId>
       <artifactId>javatuples</artifactId>
       <version>${javatuples.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.sentry</groupId>
+      <artifactId>sentry</artifactId>
+      <version>1.7.28</version>
+    </dependency>
+    <dependency>
+      <groupId>com.segment.analytics.java</groupId>
+      <artifactId>analytics</artifactId>
+      <version>2.1.1</version>
     </dependency>
 
     <!-- Test scope -->

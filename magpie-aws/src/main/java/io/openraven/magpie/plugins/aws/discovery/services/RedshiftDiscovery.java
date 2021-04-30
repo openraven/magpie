@@ -22,9 +22,12 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
@@ -55,14 +58,14 @@ public class RedshiftDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RedshiftClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Redshift::Cluster";
 
-    getAwsResponse(
-      () -> client.describeClustersPaginator().clusters().stream(),
-      (resp) -> resp.forEach(cluster -> {
+    try {
+      client.describeClustersPaginator().clusters().stream().forEach(cluster -> {
         var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
-        data.resourceType = "AWS::Redshift::Cluster";
+        data.resourceType = RESOURCE_TYPE;
         data.resourceId = cluster.clusterIdentifier();
-        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region.toString(), account, cluster.clusterIdentifier());
+        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
         data.resourceName = cluster.dbName();
         data.createdIso = cluster.clusterCreateTime().toString();
 
@@ -70,9 +73,10 @@ public class RedshiftDiscovery implements AWSDiscovery {
         discoverSize(cluster, data, region);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get clusters in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+    }
   }
 
   private void discoverStorage(RedshiftClient client, AWSResource data) {
