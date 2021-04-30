@@ -133,7 +133,7 @@ public class IAMDiscovery implements AWSDiscovery {
         data.arn = policy.arn();
         data.resourceId = policy.policyId();
         data.resourceName = policy.policyName();
-        data.resourceType = "AWS::IAM::Policy";
+        data.resourceType = RESOURCE_TYPE;
         data.createdIso = policy.createDate();
 
         discoverPolicyDocument(client, data, policy);

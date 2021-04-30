@@ -62,7 +62,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
           var data = new AWSResource(trail.toBuilder(), region.toString(), account, mapper);
           data.arn = trail.trailARN();
           data.resourceName = trail.name();
-          data.resourceType = "AWS::CloudTrail::Trail";
+          data.resourceType = RESOURCE_TYPE;
 
           discoverEventSelectors(client, trail, data);
           discoverInsightSelectors(client, trail, data);

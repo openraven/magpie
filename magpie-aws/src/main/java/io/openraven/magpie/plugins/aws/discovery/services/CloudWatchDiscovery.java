@@ -67,7 +67,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
         var data = new AWSResource(alarm.toBuilder(), region.toString(), account, mapper);
         data.arn = alarm.alarmArn();
         data.resourceName = alarm.alarmName();
-        data.resourceType = "AWS::CloudWatch::Alarm";
+        data.resourceType = RESOURCE_TYPE;
         data.updatedIso = alarm.stateUpdatedTimestamp();
 
         discoverAlarmHistory(client, alarm, data);
