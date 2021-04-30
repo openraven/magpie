@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.time.Instant;
+
 public class AWSResource {
   public String arn;
   public String resourceName;
@@ -27,8 +29,8 @@ public class AWSResource {
   public String resourceType;
   public String awsRegion;
   public String awsAccountId;
-  public String createdIso;
-  public String updatedIso;
+  public Instant createdIso;
+  public Instant updatedIso;
   public String discoverySessionId;
   public Long maxSizeInBytes = null;
   public Long sizeInBytes = null;
@@ -53,14 +55,15 @@ public class AWSResource {
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
+    data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(arn));
     data.put("arn", arn);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
     data.put("awsRegion", awsRegion);
     data.put("awsAccountId", awsAccountId);
-    data.put("createdIso", createdIso);
-    data.put("updatedIso", updatedIso);
+    data.put("createdIso", createdIso == null ? null : createdIso.toString());
+    data.put("updatedIso", updatedIso == null ? null : updatedIso.toString());
     data.put("discoverySessionId", discoverySessionId);
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);

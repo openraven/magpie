@@ -83,7 +83,7 @@ public class S3Discovery implements AWSDiscovery {
         data.resourceName = bucket.name();
         data.resourceId = bucket.name();
         data.resourceType = RESOURCE_TYPE;
-        data.createdIso = bucket.creationDate().toString();
+        data.createdIso = bucket.creationDate();
 
         discoverEncryption(client, bucket, data);
         discoverHosting(client, bucket, data);

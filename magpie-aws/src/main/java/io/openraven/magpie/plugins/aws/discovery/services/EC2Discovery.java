@@ -74,7 +74,7 @@ public class EC2Discovery implements AWSDiscovery {
             data.resourceId = instance.instanceId();
             data.resourceType = RESOURCE_TYPE;
             data.arn = format("arn:aws:ec2:%s:%s:instance/%s", region, reservation.ownerId(), instance.instanceId());
-            data.createdIso = instance.launchTime().toString();
+            data.createdIso = instance.launchTime();
             data.tags = getConvertedTags(instance.tags(), mapper);
 
             massageInstanceTypeAndPublicIp(data, instance, mapper);

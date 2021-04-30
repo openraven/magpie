@@ -63,9 +63,8 @@ public class LakeFormationDiscovery implements AWSDiscovery {
           .forEach(resourceInfo -> {
             var data = new AWSResource(resourceInfo.toBuilder(), region.toString(), account, mapper);
             data.arn = resourceInfo.resourceArn();
-
             data.resourceType = RESOURCE_TYPE;
-            data.updatedIso = resourceInfo.lastModified().toString();
+            data.updatedIso = resourceInfo.lastModified();
 
             discoverDataLakeSettings(client, data);
             discoverPermissions(client, resourceInfo, data);

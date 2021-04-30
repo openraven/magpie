@@ -9,6 +9,7 @@ layers:
     dequeue: default
     plugins:
       - magpie.json
+      - magpie.persist
 fifos:
   default:
     type: local
@@ -36,6 +37,11 @@ plugins:
   magpie.json:
     enabled: true
     config:
-
-
-
+  magpie.persist:
+    enabled: false
+    config:
+      hostname: localhost
+      port: 5432
+      databaseName: db_name
+      user: postgres
+      password: postgres

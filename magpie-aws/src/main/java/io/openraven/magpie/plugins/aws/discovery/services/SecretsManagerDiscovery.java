@@ -60,8 +60,8 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
           var data = new AWSResource(secret.toBuilder(), region.toString(), account, mapper);
           data.arn = secret.arn();
           data.resourceName = secret.name();
-          data.createdIso = secret.createdDate().toString();
-          data.updatedIso = secret.lastChangedDate().toString();
+          data.createdIso = secret.createdDate();
+          data.updatedIso = secret.lastChangedDate();
           data.resourceType = RESOURCE_TYPE;
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));

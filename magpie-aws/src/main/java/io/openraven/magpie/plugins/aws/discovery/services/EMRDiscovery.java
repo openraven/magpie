@@ -62,7 +62,7 @@ public class EMRDiscovery implements AWSDiscovery {
         data.resourceId = cluster.id();
         data.resourceName = cluster.name();
         data.resourceType = RESOURCE_TYPE;
-        data.createdIso = cluster.status().timeline().creationDateTime().toString();
+        data.createdIso = cluster.status().timeline().creationDateTime();
 
         discoverSteps(client, cluster, data);
         discoverInstances(client, cluster, data);

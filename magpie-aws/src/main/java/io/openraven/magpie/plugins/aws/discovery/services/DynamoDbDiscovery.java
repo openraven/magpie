@@ -81,6 +81,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
   private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
     final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
+
     try {
       client.listTablesPaginator().tableNames().stream()
         .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table())
@@ -89,7 +90,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
           data.resourceName = table.tableName();
           data.resourceId = table.tableId();
           data.arn = table.tableArn();
-          data.createdIso = table.creationDateTime().toString();
+          data.createdIso = table.creationDateTime());
           data.resourceType = RESOURCE_TYPE;
 
           discoverContinuousBackups(client, table, data);

@@ -71,7 +71,7 @@ public class QLDBDiscovery implements AWSDiscovery {
           data.arn = ledger.arn();
           data.resourceName = ledger.name();
           data.resourceType = RESOURCE_TYPE;
-          data.createdIso = ledger.creationDateTime().toString();
+          data.createdIso = ledger.creationDateTime();
 
           discoverStreams(client, ledger, data);
           discoverJournalS3Exports(client, ledger, data);

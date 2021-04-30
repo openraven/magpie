@@ -65,7 +65,7 @@ public class ELBDiscovery implements AWSDiscovery {
         data.resourceId = loadBalancer.loadBalancerName();
         data.resourceType = RESOURCE_TYPE;
         data.arn = String.format("arn:aws:elasticloadbalancing:%s:%s:loadbalancer/%s", region, account, loadBalancer.loadBalancerName());
-        data.createdIso = loadBalancer.createdTime().toString();
+        data.createdIso = loadBalancer.createdTime();
 
         discoverTags(client, loadBalancer, data, mapper);
 

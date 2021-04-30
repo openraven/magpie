@@ -71,7 +71,7 @@ public class RDSDiscovery implements AWSDiscovery {
           data.resourceName = db.dbInstanceIdentifier();
           data.resourceType = RESOURCE_TYPE;
           final Instant createTime = db.instanceCreateTime();
-          data.createdIso = null == createTime ? null : createTime.toString();
+          data.createdIso = null == createTime ? null : createTime;
 
           if (db.instanceCreateTime() == null) {
             logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());

@@ -30,6 +30,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -61,7 +62,7 @@ public class LambdaDiscovery implements AWSDiscovery {
         data.resourceId = function.revisionId();
         data.resourceName = function.functionName();
         data.resourceType = RESOURCE_TYPE;
-        data.updatedIso = function.lastModified();
+//        data.updatedIso = Instant.parse(function.lastModified());
 
         discoverFunctionEventInvokeConfigs(client, function, data);
         discoverEventSourceMapping(client, function, data);
