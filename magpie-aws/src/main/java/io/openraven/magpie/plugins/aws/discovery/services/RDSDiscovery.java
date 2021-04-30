@@ -33,12 +33,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.*;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +68,7 @@ public class RDSDiscovery implements AWSDiscovery {
           data.resourceId = db.dbInstanceArn();
           data.resourceName = db.dbInstanceIdentifier();
           data.resourceType = "AWS::RDS::DBInstance";
-          final Instant createTime = db.instanceCreateTime();
-          data.createdIso = null == createTime ? null : createTime;
+          data.createdIso = db.instanceCreateTime();
 
           if (db.instanceCreateTime() == null) {
             logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
@@ -81,6 +76,7 @@ public class RDSDiscovery implements AWSDiscovery {
 
           discoverTags(client, db, data, mapper);
           discoverDbClusters(client, db, data);
+          discoverDbSnapshots(client, db, data);
           discoverSize(db, data, logger);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode(mapper)));
@@ -103,9 +99,22 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
-    final String keyname = "DbClusters";
+    final String keyname = "dbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverDbSnapshots(RdsClient client, DBInstance resource, AWSResource data) {
+    final String keyname = "dbSnapshot";
+    getAwsResponse(
+      () -> client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder()
+        .dbInstanceIdentifier(resource.dbInstanceIdentifier())
+        .includePublic(false)
+        .includeShared(true)
+        .build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
