@@ -67,7 +67,7 @@ public class BatchDiscovery implements AWSDiscovery {
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode(mapper)));
         });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -84,7 +84,7 @@ public class BatchDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -101,7 +101,7 @@ public class BatchDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 }

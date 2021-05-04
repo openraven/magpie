@@ -31,9 +31,6 @@ plugins:
 #        - us-east-1
 #        - us-west-1
 #        - us-west-2
-      analyticsEnabled: true
-      analyticsKey: mLZedQqPeRGL19unziVuoVQXDXjMl94F
-      analyticsMagpieContext: dev
   magpie.json:
     enabled: true
     config:

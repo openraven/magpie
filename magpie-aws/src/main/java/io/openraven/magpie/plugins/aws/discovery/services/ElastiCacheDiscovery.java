@@ -72,7 +72,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
       });
     } catch (SdkServiceException | SdkClientException ex) {
 
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 

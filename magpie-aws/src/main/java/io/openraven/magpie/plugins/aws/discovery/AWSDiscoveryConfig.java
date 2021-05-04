@@ -22,10 +22,6 @@ public class AWSDiscoveryConfig {
   private List<String> services = List.of();
   private List<String> regions = List.of();
 
-  private Boolean analyticsEnabled = false;
-  private String analyticsKey = "";
-  private String analyticsMagpieContext = "";
-
   /**
    * The list of AWS services to enabled for discovery.  By default this list is empty, meaning that all services will
    * be scanned.  If this list is not empty, the only the listed services will be scanned.
@@ -45,29 +41,5 @@ public class AWSDiscoveryConfig {
 
   public void setRegions(List<String> regions) {
     this.regions = regions == null ? List.of() : regions;
-  }
-
-  public Boolean getAnalyticsEnabled() {
-    return analyticsEnabled;
-  }
-
-  public void setAnalyticsEnabled(Boolean analyticsEnabled) {
-    this.analyticsEnabled = analyticsEnabled == null ? false : analyticsEnabled;
-  }
-
-  public String getAnalyticsKey() {
-    return analyticsKey;
-  }
-
-  public void setAnalyticsKey(String analyticsKey) {
-    this.analyticsKey = analyticsKey == null ? "" : analyticsKey;
-  }
-
-  public String getAnalyticsMagpieContext() {
-    return analyticsMagpieContext;
-  }
-
-  public void setAnalyticsMagpieContext(String analyticsMagpieContext) {
-    this.analyticsMagpieContext = analyticsMagpieContext == null ? "" : analyticsMagpieContext;
   }
 }

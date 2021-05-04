@@ -120,9 +120,6 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     this.config = config;
 
     Sentry.init();
-    if(config.getAnalyticsEnabled()) {
-      DiscoveryExceptions.configureAnalytics(config.getAnalyticsMagpieContext(), config.getAnalyticsKey());
-    }
   }
 
   @Override

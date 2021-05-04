@@ -94,7 +94,7 @@ public class CassandraDiscovery implements AWSDiscovery {
         logger.error("NoSuchAlgorithmException when getting SSLContext");
       }
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 

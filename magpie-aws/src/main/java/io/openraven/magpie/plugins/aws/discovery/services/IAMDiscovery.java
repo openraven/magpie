@@ -87,7 +87,7 @@ public class IAMDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -141,7 +141,7 @@ public class IAMDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":policy"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -187,7 +187,7 @@ public class IAMDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":user"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -274,7 +274,7 @@ public class IAMDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":group"), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -323,7 +323,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode(mapper)));
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException("Account", null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException("Account", null, region, ex);
     }
   }
 

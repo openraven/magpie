@@ -74,7 +74,7 @@ public class KMSDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex, session.getId());
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
