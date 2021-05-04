@@ -22,13 +22,15 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.athena.model.ListDatabasesResponse;
+import software.amazon.awssdk.services.cloudfront.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ec2.model.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,10 +47,11 @@ public class EC2Discovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Ec2Client.builder().region(region).build();
 
-    discoverEc2Instances(mapper, session, client, region, emitter, logger, account);
-    discoverEIPs(mapper, session, client, region, emitter, logger, account);
-    discoverSecurityGroups(mapper, session, client, region, emitter, logger, account);
-    discoverVolumes(mapper, session, client, region, emitter, logger, account);
+//    discoverEc2Instances(mapper, session, client, region, emitter, logger, account);
+//    discoverEIPs(mapper, session, client, region, emitter, logger, account);
+//    discoverSecurityGroups(mapper, session, client, region, emitter, logger, account);
+//    discoverVolumes(mapper, session, client, region, emitter, logger, account);
+    discoverSnapshots(mapper, session, client, region, emitter, logger, account);
   }
 
   @Override
@@ -150,6 +153,40 @@ public class EC2Discovery implements AWSDiscovery {
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));
         }),
       (noresp) -> logger.debug("Couldn't query for Volumes in {}.", region));
+  }
+
+  private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, Logger logger, String account) {
+    getAwsResponse(
+      () -> client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream(),
+      (resp) -> resp
+        .forEach(snapshot -> {
+          var data = new AWSResource(snapshot.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
+          data.resourceId = snapshot.snapshotId();
+          data.resourceName = snapshot.snapshotId();
+          data.resourceType = "AWS::EC2::Snapshot";
+          data.tags = getConvertedTags(snapshot.tags(), mapper);
+
+          discoverSnapshotVolumes(client, data, snapshot);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));
+        }),
+      (noresp) -> logger.error("Failed to get snapshots in {}", region)
+    );
+  }
+
+  private void discoverSnapshotVolumes(Ec2Client client, AWSResource data, Snapshot snapshot) {
+    final String keyname = "volumes";
+    var snapshotFilter = Filter.builder().name("snapshot-id").values(List.of(snapshot.snapshotId())).build();
+
+    getAwsResponse(
+      () -> client.describeVolumesPaginator(DescribeVolumesRequest.builder().filters(List.of(snapshotFilter)).build())
+        .stream()
+        .map(DescribeVolumesResponse::toBuilder)
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
   }
 
   private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
