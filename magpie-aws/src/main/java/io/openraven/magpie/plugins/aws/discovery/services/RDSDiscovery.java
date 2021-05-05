@@ -21,10 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.Conversions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -63,6 +60,7 @@ public class RDSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RdsClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
 
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
@@ -71,7 +69,7 @@ public class RDSDiscovery implements AWSDiscovery {
           data.arn = db.dbInstanceArn();
           data.resourceId = db.dbInstanceArn();
           data.resourceName = db.dbInstanceIdentifier();
-          data.resourceType = "AWS::RDS::DBInstance";
+          data.resourceType = RESOURCE_TYPE;
           final Instant createTime = db.instanceCreateTime();
           data.createdIso = null == createTime ? null : createTime;
 
@@ -86,7 +84,7 @@ public class RDSDiscovery implements AWSDiscovery {
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode(mapper)));
         });
     } catch (SdkServiceException | SdkClientException ex) {
-      logger.error("RDS discovery error in {}", region, ex);
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 

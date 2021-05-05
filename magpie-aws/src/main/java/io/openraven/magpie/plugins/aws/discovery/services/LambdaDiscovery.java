@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
@@ -50,15 +53,15 @@ public class LambdaDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LambdaClient.builder().region(region).build();
-
-    getAwsResponse(
-      () -> client.listFunctionsPaginator().functions(),
-      (resp) -> resp.forEach(function -> {
+    final String RESOURCE_TYPE = "AWS::Lambda::Function";
+    
+    try {
+      client.listFunctionsPaginator().functions().forEach(function -> {
         var data = new AWSResource(function.toBuilder(), region.toString(), account, mapper);
         data.arn = function.functionArn();
         data.resourceId = function.revisionId();
         data.resourceName = function.functionName();
-        data.resourceType = "AWS::Lambda::Function";
+        data.resourceType = RESOURCE_TYPE;
 //        data.updatedIso = Instant.parse(function.lastModified());
 
         discoverFunctionEventInvokeConfigs(client, function, data);
@@ -68,9 +71,10 @@ public class LambdaDiscovery implements AWSDiscovery {
         discoverAccessPolicy(client, function, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get functions in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, AWSResource data) {

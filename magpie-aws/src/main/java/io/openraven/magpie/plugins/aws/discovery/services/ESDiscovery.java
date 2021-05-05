@@ -20,12 +20,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.Conversions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
@@ -59,24 +58,26 @@ public class ESDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticsearchClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Elasticsearch::Domain";
 
-    getAwsResponse(
-      () -> client.listDomainNames().domainNames().stream()
-        .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus()),
-      (resp) -> resp.forEach(domain -> {
-        var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
-        data.arn = domain.arn();
-        data.resourceId = domain.domainId();
-        data.resourceName = domain.domainName();
-        data.resourceType = "AWS::Elasticsearch::Domain";
+    try {
+      client.listDomainNames().domainNames().stream()
+        .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus())
+        .forEach(domain -> {
+          var data = new AWSResource(domain.toBuilder(), region.toString(), account, mapper);
+          data.arn = domain.arn();
+          data.resourceId = domain.domainId();
+          data.resourceName = domain.domainName();
+          data.resourceType = RESOURCE_TYPE;
 
-        discoverTags(client, domain, data, mapper);
-        discoverSize(domain, data, region, account);
+          discoverTags(client, domain, data, mapper);
+          discoverSize(domain, data, region, account);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get domains in {}", region)
-    );
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, AWSResource data, ObjectMapper mapper) {

@@ -22,9 +22,12 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
@@ -56,17 +59,18 @@ public class QLDBDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = QldbClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Qldb::Ledger";
 
-    getAwsResponse(
-      () -> client.listLedgersPaginator(ListLedgersRequest.builder().build()).stream(),
-      (resp) -> resp.forEach(ledgerList -> ledgerList.ledgers()
+    try {
+      client.listLedgersPaginator(ListLedgersRequest.builder().build()).stream()
+        .forEach(ledgerList -> ledgerList.ledgers()
         .stream()
         .map(ledgerSummary -> client.describeLedger(DescribeLedgerRequest.builder().name(ledgerSummary.name()).build()))
         .forEach(ledger -> {
           var data = new AWSResource(ledger.toBuilder(), region.toString(), account, mapper);
           data.arn = ledger.arn();
           data.resourceName = ledger.name();
-          data.resourceType = "AWS::Qldb::Ledger";
+          data.resourceType = RESOURCE_TYPE;
           data.createdIso = ledger.creationDateTime();
 
           discoverStreams(client, ledger, data);
@@ -75,9 +79,10 @@ public class QLDBDiscovery implements AWSDiscovery {
           discoverSize(ledger, data, region);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode(mapper)));
-        })),
-      (noresp) -> logger.error("Failed to get ledgers in {}", region)
-    );
+        }));
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverStreams(QldbClient client, DescribeLedgerResponse resource, AWSResource data) {

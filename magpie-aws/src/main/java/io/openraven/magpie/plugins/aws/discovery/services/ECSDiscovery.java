@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ecs.EcsClient;
 import software.amazon.awssdk.services.ecs.model.*;
@@ -52,14 +55,14 @@ public class ECSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EcsClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::ECS::Cluster";
 
-    getAwsResponse(
-      () -> listDescribedClusters(client),
-      (resp) -> resp.forEach(cluster -> {
+    try {
+      listDescribedClusters(client).forEach(cluster -> {
         var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
         data.arn = cluster.clusterArn();
         data.resourceName = cluster.clusterName();
-        data.resourceType = "AWS::ECS::Cluster";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverAttributes(client, cluster, data);
         discoverServices(client, cluster, data);
@@ -67,9 +70,10 @@ public class ECSDiscovery implements AWSDiscovery {
         discoverTags(client, cluster, data, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get clusters in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private List<Cluster> listDescribedClusters(EcsClient client) {

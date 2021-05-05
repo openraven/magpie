@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.storagegateway.StorageGatewayClient;
 import software.amazon.awssdk.services.storagegateway.model.DescribeGatewayInformationRequest;
@@ -50,22 +53,23 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = StorageGatewayClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::StorageGateway::Gateway";
 
-    getAwsResponse(
-      () -> client.listGatewaysPaginator().gateways().stream(),
-      (resp) -> resp.forEach(gateway -> {
+    try {
+      client.listGatewaysPaginator().gateways().stream().forEach(gateway -> {
         var data = new AWSResource(gateway.toBuilder(), region.toString(), account, mapper);
         data.arn = gateway.gatewayARN();
         data.resourceName = gateway.gatewayName();
         data.resourceId = gateway.gatewayId();
-        data.resourceType = "AWS::StorageGateway::Gateway";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverGatewayInfo(client, gateway, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":gateway"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get gateways in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverGatewayInfo(StorageGatewayClient client, GatewayInfo resource, AWSResource data) {
