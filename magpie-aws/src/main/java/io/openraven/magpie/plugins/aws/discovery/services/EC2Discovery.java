@@ -47,10 +47,10 @@ public class EC2Discovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Ec2Client.builder().region(region).build();
 
-//    discoverEc2Instances(mapper, session, client, region, emitter, logger, account);
-//    discoverEIPs(mapper, session, client, region, emitter, logger, account);
-//    discoverSecurityGroups(mapper, session, client, region, emitter, logger, account);
-//    discoverVolumes(mapper, session, client, region, emitter, logger, account);
+    discoverEc2Instances(mapper, session, client, region, emitter, logger, account);
+    discoverEIPs(mapper, session, client, region, emitter, logger, account);
+    discoverSecurityGroups(mapper, session, client, region, emitter, logger, account);
+    discoverVolumes(mapper, session, client, region, emitter, logger, account);
     discoverSnapshots(mapper, session, client, region, emitter, logger, account);
   }
 
