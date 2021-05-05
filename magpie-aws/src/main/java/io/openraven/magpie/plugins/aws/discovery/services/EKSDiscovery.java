@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eks.EksClient;
 import software.amazon.awssdk.services.eks.model.*;
@@ -50,25 +53,27 @@ public class EKSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = EksClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::EKS::Cluster";
 
-    getAwsResponse(
-      () -> client.listClustersPaginator().clusters()
+    try {
+      client.listClustersPaginator().clusters()
         .stream()
-        .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build())),
-      (resp) -> resp.forEach(cluster -> {
-        var data = new AWSResource(cluster.cluster().toBuilder(), region.toString(), account, mapper);
-        data.arn = cluster.cluster().arn();
-        data.resourceName = cluster.cluster().name();
-        data.resourceType = "AWS::EKS::Cluster";
+        .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build()))
+        .forEach(cluster -> {
+          var data = new AWSResource(cluster.cluster().toBuilder(), region.toString(), account, mapper);
+          data.arn = cluster.cluster().arn();
+          data.resourceName = cluster.cluster().name();
+          data.resourceType = RESOURCE_TYPE;
 
-        discoverFargateProfiles(client, cluster.cluster(), data);
-        discoverNodegroups(client, cluster.cluster(), data);
-        discoverUpdates(client, cluster.cluster(), data);
+          discoverFargateProfiles(client, cluster.cluster(), data);
+          discoverNodegroups(client, cluster.cluster(), data);
+          discoverUpdates(client, cluster.cluster(), data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get clusters in {}", region)
-    );
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverFargateProfiles(EksClient client, Cluster cluster, AWSResource data) {

@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.aws.mcs.auth.SigV4AuthProvider;
 
@@ -37,6 +40,8 @@ import static java.lang.String.format;
 public class CassandraDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "cassandra";
+
+  private static final String RESOURCE_TYPE = "AWS::Cassandra::Keyspace";
 
   @Override
   public String service() {
@@ -72,21 +77,24 @@ public class CassandraDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     List<InetSocketAddress> contactPoints = Collections.singletonList(
       InetSocketAddress.createUnresolved(format("cassandra.%s.amazonaws.com", region), 9142));
-
-    SSLContext sslContext;
     try {
-      sslContext = SSLContext.getDefault();
+      SSLContext sslContext;
+      try {
+        sslContext = SSLContext.getDefault();
 
-      try (CqlSession cqlSession = CqlSession.builder()
-        .addContactPoints(contactPoints)
-        .withSslContext(sslContext)
-        .withLocalDatacenter(region.id())
-        .withAuthProvider(new SigV4AuthProvider(region.id()))
-        .build()) {
-        doRun(region, cqlSession, emitter, logger, mapper, session, account);
+        try (CqlSession cqlSession = CqlSession.builder()
+          .addContactPoints(contactPoints)
+          .withSslContext(sslContext)
+          .withLocalDatacenter(region.id())
+          .withAuthProvider(new SigV4AuthProvider(region.id()))
+          .build()) {
+          doRun(region, cqlSession, emitter, logger, mapper, session, account);
+        }
+      } catch (NoSuchAlgorithmException e) {
+        logger.error("NoSuchAlgorithmException when getting SSLContext");
       }
-    } catch (NoSuchAlgorithmException e) {
-      logger.error("NoSuchAlgorithmException when getting SSLContext");
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -98,10 +106,10 @@ public class CassandraDiscovery implements AWSDiscovery {
         String keyspaceName = keyspace.getString("keyspace_name");
 
         var data = new AWSResource(null, region.toString(), account, mapper);
-        data.arn = format("arn:aws:cassandra:keyspace:%s::%s", region.toString(), keyspaceName);
+        data.arn = format("arn:aws:cassandra:keyspace:%s::%s", region, keyspaceName);
         data.resourceId = keyspaceName;
         data.resourceName = keyspaceName;
-        data.resourceType = "AWS::Cassandra::Keyspace";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverTables(cqlSession, keyspaceName, data);
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":keyspace"), data.toJsonNode(mapper)));

@@ -25,9 +25,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
@@ -66,38 +68,43 @@ public class S3Discovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = S3Client.builder().region(region).build();
-    final var bucketOpt = getBuckets(session, client, region, logger);
-    if (bucketOpt.isEmpty()) {
-      logger.debug("No buckets found for {}", region);
-      return;
+    final String RESOURCE_TYPE = "AWS::S3::Bucket";
+
+    try {
+      final var bucketOpt = getBuckets(session, client, region, logger);
+      if (bucketOpt.isEmpty()) {
+        logger.debug("No buckets found for {}", region);
+        return;
+      }
+
+      bucketOpt.get().forEach(bucket -> {
+        var data = new AWSResource(bucket.toBuilder(), region.toString(), account, mapper);
+        data.arn = "arn:aws:s3:::" + bucket.name();
+        data.resourceName = bucket.name();
+        data.resourceId = bucket.name();
+        data.resourceType = RESOURCE_TYPE;
+        data.createdIso = bucket.creationDate();
+
+        discoverEncryption(client, bucket, data);
+        discoverHosting(client, bucket, data);
+        discoverACLS(client, bucket, data);
+        discoverPublicAccess(client, bucket, data);
+        discoverLogging(client, bucket, data);
+        discoverMetrics(client, bucket, data);
+        discoverNotifications(client, bucket, data);
+        discoverBucketPolicy(client, bucket, data);
+        discoverObjectLockConfiguration(client, bucket, data);
+        discoverReplication(client, bucket, data);
+        discoverPublic(client, bucket, data);
+        discoverVersioning(client, bucket, data);
+        discoverBucketTags(client, bucket, data, mapper);
+        discoverSize(bucket, data);
+
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode(mapper)));
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
-
-    bucketOpt.get().forEach(bucket -> {
-      var data = new AWSResource(bucket.toBuilder(), region.toString(), account, mapper);
-      data.arn = "arn:aws:s3:::" + bucket.name();
-      data.resourceName = bucket.name();
-      data.resourceId = bucket.name();
-      data.resourceType = "AWS::S3::Bucket";
-      data.createdIso = bucket.creationDate();
-
-      discoverEncryption(client, bucket, data);
-      discoverHosting(client, bucket, data);
-      discoverACLS(client, bucket, data);
-      discoverPublicAccess(client, bucket, data);
-      discoverLogging(client, bucket, data);
-      discoverMetrics(client, bucket, data);
-      discoverNotifications(client, bucket, data);
-      discoverBucketPolicy(client, bucket, data);
-      discoverObjectLockConfiguration(client, bucket, data);
-      discoverReplication(client, bucket, data);
-      discoverPublic(client, bucket, data);
-      discoverVersioning(client, bucket, data);
-      discoverBucketTags(client, bucket, data, mapper);
-      discoverSize(bucket, data);
-
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode(mapper)));
-    });
-    logger.info("Finished S3 bucket discovery in {}", region);
   }
 
   private Optional<List<Bucket>> getBuckets(Session session, S3Client client, Region bucketRegion, Logger logger) {
