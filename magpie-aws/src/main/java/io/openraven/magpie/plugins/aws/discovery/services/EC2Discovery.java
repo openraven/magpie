@@ -27,8 +27,6 @@ import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.athena.model.ListDatabasesResponse;
-import software.amazon.awssdk.services.cloudfront.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
