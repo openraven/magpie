@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glacier.GlacierClient;
 import software.amazon.awssdk.services.glacier.model.*;
@@ -51,14 +54,14 @@ public class GlacierDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = GlacierClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::Glacier::Vault";
 
-    getAwsResponse(
-      () -> client.listVaultsPaginator().vaultList().stream(),
-      (resp) -> resp.forEach(vault -> {
+    try {
+      client.listVaultsPaginator().vaultList().stream().forEach(vault -> {
         var data = new AWSResource(vault.toBuilder(), region.toString(), account, mapper);
         data.arn = vault.vaultARN();
         data.resourceName = vault.vaultName();
-        data.resourceType = "AWS::Glacier::Vault";
+        data.resourceType = RESOURCE_TYPE;
         data.createdIso = Instant.parse(vault.creationDate());
         data.updatedIso = Instant.parse(vault.lastInventoryDate());
         data.sizeInBytes = vault.sizeInBytes();
@@ -71,9 +74,10 @@ public class GlacierDiscovery implements AWSDiscovery {
         discoverTags(client, vault, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":vault"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get vaults in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {

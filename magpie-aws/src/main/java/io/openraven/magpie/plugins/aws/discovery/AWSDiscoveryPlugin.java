@@ -22,6 +22,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.*;
+import io.sentry.Sentry;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -117,6 +118,8 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   public void init(AWSDiscoveryConfig config, Logger logger) {
     this.logger = logger;
     this.config = config;
+
+    Sentry.init();
   }
 
   @Override

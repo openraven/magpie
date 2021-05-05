@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.time.Instant;
+import java.util.Map;
 
 public class AWSResource {
   public String arn;
@@ -40,16 +41,20 @@ public class AWSResource {
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
+  private static final VersionProvider versionProvider = new VersionProvider();
+
   private AWSResource() {}
 
   public AWSResource(Object configuration, String region, String account, ObjectMapper mapper) {
+    this.awsRegion = region;
+    this.awsAccountId = account;
+
     this.configuration = mapper.valueToTree(configuration);
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
-    this.discoveryMeta = mapper.createObjectNode();
 
-    this.awsRegion = region;
-    this.awsAccountId = account;
+    this.discoveryMeta = mapper.createObjectNode();
+    AWSUtils.update(this.discoveryMeta, Map.of("version",  getVersionNode(mapper)));
   }
 
   public ObjectNode toJsonNode(ObjectMapper mapper) {
@@ -74,6 +79,14 @@ public class AWSResource {
     data.set("discoveryMeta", discoveryMeta);
 
     return data;
+  }
+
+  private JsonNode getVersionNode(ObjectMapper mapper) {
+    ObjectNode versionNode = mapper.createObjectNode();
+    versionNode.put("magpie.aws.version", versionProvider.getProjectVersion());
+    versionNode.put("aws.sdk.version", versionProvider.getAwsSdkVersion());
+
+    return versionNode;
   }
 }
 
