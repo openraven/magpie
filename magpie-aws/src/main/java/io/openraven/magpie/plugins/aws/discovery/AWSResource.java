@@ -40,16 +40,31 @@ public class AWSResource {
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
+  private static final VersionProvider versionProvider = new VersionProvider();
+
   private AWSResource() {}
 
   public AWSResource(Object configuration, String region, String account, ObjectMapper mapper) {
+    this.awsRegion = region;
+    this.awsAccountId = account;
+
     this.configuration = mapper.valueToTree(configuration);
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
-    this.discoveryMeta = mapper.createObjectNode();
 
-    this.awsRegion = region;
-    this.awsAccountId = account;
+    this.discoveryMeta = getMetadataWithVersionInfo(mapper);
+  }
+
+  private ObjectNode getMetadataWithVersionInfo(ObjectMapper mapper) {
+    ObjectNode meta = mapper.createObjectNode();
+
+    ObjectNode versionNode = mapper.createObjectNode();
+    versionNode.put("magpie.aws.versionNode", versionProvider.getProjectVersion());
+    versionNode.put("aws.sdk.versionNode", versionProvider.getAwsSdkVersion());
+
+    meta.set("versionNode", versionNode);
+
+    return meta;
   }
 
   public ObjectNode toJsonNode(ObjectMapper mapper) {
