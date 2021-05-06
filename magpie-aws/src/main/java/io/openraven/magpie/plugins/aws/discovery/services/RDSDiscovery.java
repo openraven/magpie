@@ -56,6 +56,32 @@ public class RDSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RdsClient.builder().region(region).build();
+
+    discoverDbSnapshot(mapper, session, region, emitter, logger, account, client);
+    discoverDbInstances(mapper, session, region, emitter, logger, account, client);
+  }
+
+  private void discoverDbSnapshot(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
+    final String RESOURCE_TYPE = "AWS::RDS::DBSnapshot";
+
+    try {
+      client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder().includeShared(true).includePublic(false).build()).dbSnapshots()
+        .forEach(snapshot -> {
+          var data = new AWSResource(snapshot.toBuilder(), region.toString(), account, mapper);
+          data.arn = snapshot.dbSnapshotArn();
+          data.resourceId = snapshot.dbSnapshotArn();
+          data.resourceName = snapshot.dbSnapshotIdentifier();
+          data.resourceType = RESOURCE_TYPE;
+          data.createdIso = snapshot.instanceCreateTime();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbSnapshot"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
     final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
 
     try {
@@ -73,9 +99,9 @@ public class RDSDiscovery implements AWSDiscovery {
           }
 
           discoverTags(client, db, data, mapper);
-          discoverDbClusters(client, db, data);
-          discoverDbSnapshots(client, db, data);
-          discoverSize(db, data, logger);
+          discoverInstanceDbClusters(client, db, data);
+          discoverInstanceDbSnapshots(client, db, data);
+          discoverInstanceSize(db, data, logger);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode(mapper)));
         });
@@ -96,7 +122,7 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
+  private void discoverInstanceDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
     final String keyname = "dbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
@@ -105,7 +131,7 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverDbSnapshots(RdsClient client, DBInstance resource, AWSResource data) {
+  private void discoverInstanceDbSnapshots(RdsClient client, DBInstance resource, AWSResource data) {
     final String keyname = "dbSnapshot";
     getAwsResponse(
       () -> client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder()
@@ -118,7 +144,7 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DBInstance resource, AWSResource data, Logger logger) {
+  private void discoverInstanceSize(DBInstance resource, AWSResource data, Logger logger) {
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
     if (engine != null) {
