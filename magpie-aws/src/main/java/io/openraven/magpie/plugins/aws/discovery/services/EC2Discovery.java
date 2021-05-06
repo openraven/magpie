@@ -22,6 +22,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.apache.commons.lang.StringUtils;
@@ -30,14 +31,14 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ec2.model.*;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class EC2Discovery implements AWSDiscovery {
@@ -51,6 +52,7 @@ public class EC2Discovery implements AWSDiscovery {
     discoverEIPs(mapper, session, client, region, emitter, account);
     discoverSecurityGroups(mapper, session, client, region, emitter, account);
     discoverVolumes(mapper, session, client, region, emitter, account);
+    discoverSnapshots(mapper, session, client, region, emitter, account);
   }
 
   @Override
@@ -163,6 +165,42 @@ public class EC2Discovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::EC2::Snapshot";
+
+    try {
+      client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()
+        .forEach(snapshot -> {
+          var data = new AWSResource(snapshot.toBuilder(), region.toString(), account, mapper);
+          data.arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
+          data.resourceId = snapshot.snapshotId();
+          data.resourceName = snapshot.snapshotId();
+          data.resourceType = RESOURCE_TYPE;
+          data.tags = getConvertedTags(snapshot.tags(), mapper);
+
+          discoverSnapshotVolumes(client, data, snapshot);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverSnapshotVolumes(Ec2Client client, AWSResource data, Snapshot snapshot) {
+    final String keyname = "volumes";
+    var snapshotFilter = Filter.builder().name("snapshot-id").values(List.of(snapshot.snapshotId())).build();
+
+    getAwsResponse(
+      () -> client.describeVolumesPaginator(DescribeVolumesRequest.builder().filters(List.of(snapshotFilter)).build())
+        .stream()
+        .map(DescribeVolumesResponse::toBuilder)
+        .collect(Collectors.toList()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
   }
 
   private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
