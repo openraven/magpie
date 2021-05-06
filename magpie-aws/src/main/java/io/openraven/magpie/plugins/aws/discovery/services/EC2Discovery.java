@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class EC2Discovery implements AWSDiscovery {
@@ -167,23 +168,25 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    getAwsResponse(
-      () -> client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream(),
-      (resp) -> resp
+    final String RESOURCE_TYPE = "AWS::EC2::Snapshot";
+
+    try {
+      client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()
         .forEach(snapshot -> {
           var data = new AWSResource(snapshot.toBuilder(), region.toString(), account, mapper);
           data.arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
           data.resourceId = snapshot.snapshotId();
           data.resourceName = snapshot.snapshotId();
-          data.resourceType = "AWS::EC2::Snapshot";
+          data.resourceType = RESOURCE_TYPE;
           data.tags = getConvertedTags(snapshot.tags(), mapper);
 
           discoverSnapshotVolumes(client, data, snapshot);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode(mapper)));
-        }),
-      (noresp) -> logger.error("Failed to get snapshots in {}", region)
-    );
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverSnapshotVolumes(Ec2Client client, AWSResource data, Snapshot snapshot) {
