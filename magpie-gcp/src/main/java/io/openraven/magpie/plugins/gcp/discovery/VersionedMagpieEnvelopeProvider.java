@@ -21,7 +21,6 @@ import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.Session;
 
 import java.util.List;
-import java.util.Map;
 
 public class VersionedMagpieEnvelopeProvider {
 //  private static final VersionProvider versionProvider = new VersionProvider();

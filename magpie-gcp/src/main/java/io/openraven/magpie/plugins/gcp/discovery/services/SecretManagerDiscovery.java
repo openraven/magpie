@@ -16,37 +16,26 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.cloud.secretmanager.v1.*;
-import com.google.protobuf.MapField;
-import com.google.protobuf.Timestamp;
+import com.google.cloud.secretmanager.v1.ProjectName;
+import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static java.lang.String.format;
 
 public class SecretManagerDiscovery {
 
-  private static final String SERVICE = "secretManager";
-
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter) {
     final String RESOURCE_TYPE = "GCP::SecretManager::Secret";
 
+    final String PROJECT_ID = "oss-discovery-test";
+
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
-      ProjectName projectName = ProjectName.of("oss-discovery-test");
+      ProjectName projectName = ProjectName.of(PROJECT_ID);
       
       SecretManagerServiceClient.ListSecretsPagedResponse pagedResponse = client.listSecrets(projectName);
       
@@ -54,15 +43,12 @@ public class SecretManagerDiscovery {
         .iterateAll()
         .forEach(
           secret -> {
-            Secret s;
             var data = new GCPResource(mapper);
             data.resourceType = RESOURCE_TYPE;
-            data.arn = "oss-discovery-test" +  secret.getName();
+            data.arn = PROJECT_ID +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
-            data.awsAccountId = secret.toString();
-
-            System.out.printf("Secret %s\n", secret);
+            data.configuration = secret.toString();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(":secret"), data.toJsonNode(mapper)));
           });

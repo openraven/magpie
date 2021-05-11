@@ -16,7 +16,5 @@
 
 package io.openraven.magpie.plugins.gcp.discovery;
 
-import java.util.List;
-
 public class GCPDiscoveryConfig {
 }

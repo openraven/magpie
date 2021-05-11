@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.time.Instant;
-import java.util.Map;
 
 public class GCPResource {
   public String arn;
@@ -36,35 +35,23 @@ public class GCPResource {
   public Long maxSizeInBytes = null;
   public Long sizeInBytes = null;
 
-  public JsonNode configuration;
+  public String configuration;
   public JsonNode supplementaryConfiguration;
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
-//  private static final VersionProvider versionProvider = new VersionProvider();
-
-  public GCPResource(ObjectMapper mapper) {
-    this.configuration = mapper.valueToTree(configuration);
-    this.supplementaryConfiguration = mapper.createObjectNode();
-    this.tags = mapper.createObjectNode();
-    this.discoveryMeta = mapper.createObjectNode();
+  private GCPResource() {
   }
 
-  public GCPResource(Object configuration, String region, String account, ObjectMapper mapper) {
-    this.awsRegion = region;
-    this.awsAccountId = account;
-
-    this.configuration = mapper.valueToTree(configuration);
+  public GCPResource(ObjectMapper mapper) {
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
-
     this.discoveryMeta = mapper.createObjectNode();
   }
 
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
-//    data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(arn));
     data.put("arn", arn);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
@@ -77,7 +64,7 @@ public class GCPResource {
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);
 
-    data.set("configuration", configuration);
+    data.put("configuration", configuration);
     data.set("supplementaryConfiguration", supplementaryConfiguration);
     data.set("tags", tags);
     data.set("discoveryMeta", discoveryMeta);

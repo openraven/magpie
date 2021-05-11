@@ -21,13 +21,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.GCPDiscoveryConfig;
-import io.openraven.magpie.plugins.gcp.discovery.services.*;
+import io.openraven.magpie.plugins.gcp.discovery.services.SecretManagerDiscovery;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 
 public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
@@ -38,14 +34,10 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   public final static String ID = "magpie.gcp.discovery";
 
-
-  private Logger logger;
-  private GCPDiscoveryConfig config;
-
   @Override
   public void discover(Session session, Emitter emitter) {
     SecretManagerDiscovery secretManagerDiscovery = new SecretManagerDiscovery();
-    secretManagerDiscovery.discover(MAPPER, session, emitter, logger);
+    secretManagerDiscovery.discover(MAPPER, session, emitter);
   }
 
   @Override
@@ -55,9 +47,6 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   @Override
   public void init(GCPDiscoveryConfig config, Logger logger) {
-    this.logger = logger;
-    this.config = config;
-
     Sentry.init();
   }
 
