@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudtrail.CloudTrailClient;
 import software.amazon.awssdk.services.cloudtrail.model.*;
@@ -51,25 +54,27 @@ public class CloudTrailDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = CloudTrailClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::CloudTrail::Trail";
 
-    getAwsResponse(
-      () -> client.listTrailsPaginator(ListTrailsRequest.builder().build()).trails(),
-      (resp) -> resp.forEach(trail -> {
-        var data = new AWSResource(trail.toBuilder(), region.toString(), account, mapper);
-        data.arn = trail.trailARN();
-        data.resourceName = trail.name();
-        data.resourceType = "AWS::CloudTrail::Trail";
+    try {
+      client.listTrailsPaginator(ListTrailsRequest.builder().build()).trails()
+        .forEach(trail -> {
+          var data = new AWSResource(trail.toBuilder(), region.toString(), account, mapper);
+          data.arn = trail.trailARN();
+          data.resourceName = trail.name();
+          data.resourceType = RESOURCE_TYPE;
 
-        discoverEventSelectors(client, trail, data);
-        discoverInsightSelectors(client, trail, data);
-        discoverTrailDetails(client, trail, data);
-        discoverTrailStatus(client, trail, data);
-        discoverTags(client, trail, data, mapper);
+          discoverEventSelectors(client, trail, data);
+          discoverInsightSelectors(client, trail, data);
+          discoverTrailDetails(client, trail, data);
+          discoverTrailStatus(client, trail, data);
+          discoverTags(client, trail, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get trails in {}", region)
-    );
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverEventSelectors(CloudTrailClient client, TrailInfo resource, AWSResource data) {

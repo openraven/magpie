@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -53,46 +56,51 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = DynamoDbClient.builder().region(region).build();
 
-    discoverGlobalTables(mapper, session, region, emitter, logger, client, account);
-    discoverTables(mapper, session, region, emitter, logger, client, account);
+    discoverGlobalTables(mapper, session, region, emitter, client, account);
+    discoverTables(mapper, session, region, emitter, client, account);
   }
 
-  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client, String account) {
-    getAwsResponse(
-      () -> client.listGlobalTables().globalTables().stream()
+  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
+    final String RESOURCE_TYPE = "AWS::DynamoDB::GlobalTable";
+    try {
+      client.listGlobalTables().globalTables().stream()
         .map(globalTable -> client.describeGlobalTable(
-          DescribeGlobalTableRequest.builder().globalTableName(globalTable.globalTableName()).build()).globalTableDescription()),
-      (resp) -> resp.forEach(globalTable -> {
-        var data = new AWSResource(globalTable.toBuilder(), region.toString(), account, mapper);
-        data.arn = globalTable.globalTableArn();
-        data.resourceName = globalTable.globalTableName();
-        data.resourceType = "AWS::DynamoDB::GlobalTable";
+          DescribeGlobalTableRequest.builder().globalTableName(globalTable.globalTableName()).build()).globalTableDescription())
+        .forEach(globalTable -> {
+          var data = new AWSResource(globalTable.toBuilder(), region.toString(), account, mapper);
+          data.arn = globalTable.globalTableArn();
+          data.resourceName = globalTable.globalTableName();
+          data.resourceType = RESOURCE_TYPE;
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get globalTables in {}", region)
-    );
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
-  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, DynamoDbClient client, String account) {
-    getAwsResponse(
-      () -> client.listTablesPaginator().tableNames().stream()
-        .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table()),
-      (resp) -> resp.forEach(table -> {
-        var data = new AWSResource(table.toBuilder(), region.toString(), account, mapper);
-        data.resourceName = table.tableName();
-        data.resourceId = table.tableId();
-        data.arn = table.tableArn();
-        data.createdIso = table.creationDateTime().toString();
-        data.resourceType = "AWS::DynamoDB::Table";
+  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
+    final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
 
-        discoverContinuousBackups(client, table, data);
-        discoverTags(client, table, data, mapper);
+    try {
+      client.listTablesPaginator().tableNames().stream()
+        .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table())
+        .forEach(table -> {
+          var data = new AWSResource(table.toBuilder(), region.toString(), account, mapper);
+          data.resourceName = table.tableName();
+          data.resourceId = table.tableId();
+          data.arn = table.tableArn();
+          data.createdIso = table.creationDateTime();
+          data.resourceType = RESOURCE_TYPE;
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get tables in {}", region)
-    );
+          discoverContinuousBackups(client, table, data);
+          discoverTags(client, table, data, mapper);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode(mapper)));
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, AWSResource data) {

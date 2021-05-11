@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.time.Instant;
+import java.util.Map;
+
 public class AWSResource {
   public String arn;
   public String resourceName;
@@ -27,8 +30,8 @@ public class AWSResource {
   public String resourceType;
   public String awsRegion;
   public String awsAccountId;
-  public String createdIso;
-  public String updatedIso;
+  public Instant createdIso;
+  public Instant updatedIso;
   public String discoverySessionId;
   public Long maxSizeInBytes = null;
   public Long sizeInBytes = null;
@@ -38,29 +41,34 @@ public class AWSResource {
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
+  private static final VersionProvider versionProvider = new VersionProvider();
+
   private AWSResource() {}
 
   public AWSResource(Object configuration, String region, String account, ObjectMapper mapper) {
+    this.awsRegion = region;
+    this.awsAccountId = account;
+
     this.configuration = mapper.valueToTree(configuration);
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
-    this.discoveryMeta = mapper.createObjectNode();
 
-    this.awsRegion = region;
-    this.awsAccountId = account;
+    this.discoveryMeta = mapper.createObjectNode();
+    AWSUtils.update(this.discoveryMeta, Map.of("version",  getVersionNode(mapper)));
   }
 
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
+    data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(arn));
     data.put("arn", arn);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
     data.put("awsRegion", awsRegion);
     data.put("awsAccountId", awsAccountId);
-    data.put("createdIso", createdIso);
-    data.put("updatedIso", updatedIso);
+    data.put("createdIso", createdIso == null ? null : createdIso.toString());
+    data.put("updatedIso", updatedIso == null ? null : updatedIso.toString());
     data.put("discoverySessionId", discoverySessionId);
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);
@@ -71,6 +79,14 @@ public class AWSResource {
     data.set("discoveryMeta", discoveryMeta);
 
     return data;
+  }
+
+  private JsonNode getVersionNode(ObjectMapper mapper) {
+    ObjectNode versionNode = mapper.createObjectNode();
+    versionNode.put("magpie.aws.version", versionProvider.getProjectVersion());
+    versionNode.put("aws.sdk.version", versionProvider.getAwsSdkVersion());
+
+    return versionNode;
   }
 }
 

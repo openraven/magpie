@@ -21,8 +21,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupVaultListMember;
@@ -53,22 +56,26 @@ public class BackupDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = BackupClient.builder().region(region).build();
 
-    getAwsResponse(
-      () -> client.listBackupVaultsPaginator().stream(),
-      (resp) -> resp.forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList().forEach(backupVault -> {
-        var data = new AWSResource(backupVault.toBuilder(), region.toString(), account, mapper);
-        data.resourceType = "AWS::Backup::BackupVault";
-        data.arn = backupVault.backupVaultArn();
-        data.resourceName = backupVault.backupVaultName();
-        data.resourceId = backupVault.backupVaultName();
-        data.createdIso = backupVault.creationDate().toString();
+    final String RESOURCE_TYPE = "AWS::Backup::BackupVault";
 
-        discoverTags(client, backupVault, data);
+    try {
+      client.listBackupVaultsPaginator().stream()
+        .forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList()
+            .forEach(backupVault -> {
+          var data = new AWSResource(backupVault.toBuilder(), region.toString(), account, mapper);
+          data.resourceType = RESOURCE_TYPE;
+          data.arn = backupVault.backupVaultArn();
+          data.resourceName = backupVault.backupVaultName();
+          data.resourceId = backupVault.backupVaultName();
+          data.createdIso = backupVault.creationDate();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode(mapper)));
-      })),
-      (noresp) -> logger.error("Failed to get backupVaults in {}", region)
-    );
+          discoverTags(client, backupVault, data);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode(mapper)));
+        }));
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverTags(BackupClient client, BackupVaultListMember resource, AWSResource data) {

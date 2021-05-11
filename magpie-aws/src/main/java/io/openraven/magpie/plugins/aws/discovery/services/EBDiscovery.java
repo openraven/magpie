@@ -22,8 +22,11 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.elasticbeanstalk.ElasticBeanstalkClient;
 import software.amazon.awssdk.services.elasticbeanstalk.model.*;
@@ -52,14 +55,14 @@ public class EBDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElasticBeanstalkClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::ElasticBeanstalk";
 
-    getAwsResponse(
-      () -> client.describeEnvironments().environments(),
-      (resp) -> resp.forEach(environment -> {
+    try {
+      client.describeEnvironments().environments().forEach(environment -> {
         var data = new AWSResource(environment.toBuilder(), region.toString(), account, mapper);
         data.arn = environment.environmentArn();
         data.resourceName = environment.environmentName();
-        data.resourceType = "AWS::ElasticBeanstalk";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverApplication(client, environment, data);
         discoverConfigurationSettings(client, environment, data);
@@ -68,9 +71,10 @@ public class EBDiscovery implements AWSDiscovery {
         discoverTags(client, environment, data, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get environments in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {

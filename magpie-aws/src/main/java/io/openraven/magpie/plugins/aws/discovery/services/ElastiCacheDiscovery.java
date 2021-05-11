@@ -21,9 +21,12 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
@@ -53,22 +56,24 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ElastiCacheClient.builder().region(region).build();
+    final  String RESOURCE_TYPE = "AWS::ElastiCache::Cluster";
 
-    getAwsResponse(
-      () -> client.describeCacheClusters().cacheClusters(),
-      (resp) -> resp.forEach(cacheCluster -> {
+    try {
+      client.describeCacheClusters().cacheClusters().forEach(cacheCluster -> {
         var data = new AWSResource(cacheCluster.toBuilder(), region.toString(), account, mapper);
         data.arn = cacheCluster.arn();
         data.resourceId = cacheCluster.cacheClusterId();
         data.resourceName = cacheCluster.cacheClusterId();
-        data.resourceType = "AWS::ElastiCache::Cluster";
+        data.resourceType = RESOURCE_TYPE;
 
         discoverRedisSize(cacheCluster, data, region.id());
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get cacheClusters in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverRedisSize(CacheCluster resource, AWSResource data, String region) {

@@ -19,12 +19,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.Conversions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
@@ -35,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchMetricMinimum;
 
 public class FSXDiscovery implements AWSDiscovery {
@@ -55,23 +53,24 @@ public class FSXDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = FSxClient.builder().region(region).build();
+    final String RESOURCE_TYPE = "AWS::FSx::FileSystem";
 
-    getAwsResponse(
-      () -> client.describeFileSystems().fileSystems().stream(),
-      (resp) -> resp.forEach(fileSystem -> {
+    try {
+      client.describeFileSystems().fileSystems().forEach(fileSystem -> {
         var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
         data.arn = fileSystem.resourceARN();
         data.resourceId = fileSystem.fileSystemId();
         data.resourceName = fileSystem.fileSystemId();
-        data.resourceType = "AWS::FSx::FileSystem";
-        data.createdIso = fileSystem.creationTime().toString();
+        data.resourceType = RESOURCE_TYPE;
+        data.createdIso = fileSystem.creationTime();
 
         discoverSize(fileSystem, data, region);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode(mapper)));
-      }),
-      (noresp) -> logger.error("Failed to get fileSystem in {}", region)
-    );
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private void discoverSize(FileSystem resource, AWSResource data, Region region) {

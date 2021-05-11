@@ -21,10 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.Conversions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -33,12 +30,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
-import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
-import software.amazon.awssdk.services.rds.model.Tag;
+import software.amazon.awssdk.services.rds.model.*;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +57,33 @@ public class RDSDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = RdsClient.builder().region(region).build();
 
+    discoverDbSnapshot(mapper, session, region, emitter, logger, account, client);
+    discoverDbInstances(mapper, session, region, emitter, logger, account, client);
+  }
+
+  private void discoverDbSnapshot(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
+    final String RESOURCE_TYPE = "AWS::RDS::DBSnapshot";
+
+    try {
+      client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder().includeShared(true).includePublic(false).build()).dbSnapshots()
+        .forEach(snapshot -> {
+          var data = new AWSResource(snapshot.toBuilder(), region.toString(), account, mapper);
+          data.arn = snapshot.dbSnapshotArn();
+          data.resourceId = snapshot.dbSnapshotArn();
+          data.resourceName = snapshot.dbSnapshotIdentifier();
+          data.resourceType = RESOURCE_TYPE;
+          data.createdIso = snapshot.instanceCreateTime();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbSnapshot"), data.toJsonNode(mapper)));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
+    final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
+
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
@@ -71,22 +91,22 @@ public class RDSDiscovery implements AWSDiscovery {
           data.arn = db.dbInstanceArn();
           data.resourceId = db.dbInstanceArn();
           data.resourceName = db.dbInstanceIdentifier();
-          data.resourceType = "AWS::RDS::DBInstance";
-          final Instant createTime = db.instanceCreateTime();
-          data.createdIso = null == createTime ? null : createTime.toString();
+          data.resourceType = RESOURCE_TYPE;
+          data.createdIso = db.instanceCreateTime();
 
           if (db.instanceCreateTime() == null) {
             logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
           }
 
           discoverTags(client, db, data, mapper);
-          discoverDbClusters(client, db, data);
-          discoverSize(db, data, logger);
+          discoverInstanceDbClusters(client, db, data);
+          discoverInstanceDbSnapshots(client, db, data);
+          discoverInstanceSize(db, data, logger);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode(mapper)));
         });
     } catch (SdkServiceException | SdkClientException ex) {
-      logger.error("RDS discovery error in {}", region, ex);
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -102,8 +122,8 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
-    final String keyname = "DbClusters";
+  private void discoverInstanceDbClusters(RdsClient client, DBInstance resource, AWSResource data) {
+    final String keyname = "dbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -111,7 +131,20 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DBInstance resource, AWSResource data, Logger logger) {
+  private void discoverInstanceDbSnapshots(RdsClient client, DBInstance resource, AWSResource data) {
+    final String keyname = "dbSnapshot";
+    getAwsResponse(
+      () -> client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder()
+        .dbInstanceIdentifier(resource.dbInstanceIdentifier())
+        .includePublic(false)
+        .includeShared(true)
+        .build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverInstanceSize(DBInstance resource, AWSResource data, Logger logger) {
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
     if (engine != null) {
