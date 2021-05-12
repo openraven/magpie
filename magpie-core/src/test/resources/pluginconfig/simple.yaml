@@ -1,8 +1,0 @@
-plugins:
-  magpie.test:
-    enabled: true
-    config:
-      apiKey: deadbeef
-      apiSecret: cafebabe
-  magpie.test.2:
-    enabled: true
