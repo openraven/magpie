@@ -51,7 +51,6 @@ public class SecretManagerDiscovery {
             data.arn = PROJECT_ID +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
-            data.configurationString = secret.toString();
 
             try {
               String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);

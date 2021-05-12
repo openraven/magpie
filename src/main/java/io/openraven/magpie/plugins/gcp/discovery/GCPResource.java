@@ -35,7 +35,6 @@ public class GCPResource {
   public Long maxSizeInBytes = null;
   public Long sizeInBytes = null;
 
-  public String configurationString;
   public JsonNode configuration;
   public JsonNode supplementaryConfiguration;
   public JsonNode tags;
@@ -66,7 +65,6 @@ public class GCPResource {
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);
 
-    data.put("configurationString", configurationString);
     data.set("configuration", configuration);
     data.set("supplementaryConfiguration", supplementaryConfiguration);
     data.set("tags", tags);
