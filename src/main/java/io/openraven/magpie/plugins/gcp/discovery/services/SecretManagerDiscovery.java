@@ -19,20 +19,15 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.services.compute.model.Network;
-import com.google.appengine.repackaged.com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
-import com.google.cloud.secretmanager.v1beta1.Secret;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
-import org.apache.tinkerpop.gremlin.structure.io.Mapper;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.List;
 
 public class SecretManagerDiscovery {
@@ -46,18 +41,24 @@ public class SecretManagerDiscovery {
       ProjectName projectName = ProjectName.of(PROJECT_ID);
       
       SecretManagerServiceClient.ListSecretsPagedResponse pagedResponse = client.listSecrets(projectName);
-      
+
       pagedResponse
         .iterateAll()
         .forEach(
           secret -> {
-            Secret s;
             var data = new GCPResource(mapper);
             data.resourceType = RESOURCE_TYPE;
             data.arn = PROJECT_ID +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
-            data.configuration = secret.toString();
+            data.configurationString = secret.toString();
+
+            try {
+              String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);
+              data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
+            } catch (JsonProcessingException e) {
+              e.printStackTrace();
+            }
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(":secret"), data.toJsonNode(mapper)));
           });

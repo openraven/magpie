@@ -35,7 +35,8 @@ public class GCPResource {
   public Long maxSizeInBytes = null;
   public Long sizeInBytes = null;
 
-  public String configuration;
+  public String configurationString;
+  public JsonNode configuration;
   public JsonNode supplementaryConfiguration;
   public JsonNode tags;
   public JsonNode discoveryMeta;
@@ -44,6 +45,7 @@ public class GCPResource {
   }
 
   public GCPResource(ObjectMapper mapper) {
+    this.configuration = mapper.createObjectNode();
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
     this.discoveryMeta = mapper.createObjectNode();
@@ -64,7 +66,8 @@ public class GCPResource {
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);
 
-    data.put("configuration", configuration);
+    data.put("configurationString", configurationString);
+    data.set("configuration", configuration);
     data.set("supplementaryConfiguration", supplementaryConfiguration);
     data.set("tags", tags);
     data.set("discoveryMeta", discoveryMeta);
