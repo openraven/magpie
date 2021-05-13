@@ -26,15 +26,21 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
 
-public class SecretManagerDiscovery {
+public class SecretDiscovery implements  GCPDiscovery{
+  private static final String SERVICE = "secret";
 
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter) {
+  @Override
+  public String service() {
+    return SERVICE;
+  }
+
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::SecretManager::Secret";
-
     final String PROJECT_ID = "oss-discovery-test";
 
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
@@ -48,7 +54,7 @@ public class SecretManagerDiscovery {
           secret -> {
             var data = new GCPResource(mapper);
             data.resourceType = RESOURCE_TYPE;
-            data.arn = PROJECT_ID +  secret.getName();
+            data.arn = PROJECT_ID + ":" +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
 
@@ -59,10 +65,12 @@ public class SecretManagerDiscovery {
               e.printStackTrace();
             }
 
-            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(":secret"), data.toJsonNode(mapper)));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
           });
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
+
+
 }

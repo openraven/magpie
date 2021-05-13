@@ -21,9 +21,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.services.SecretManagerDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ClusterDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.GCPDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.SecretDiscovery;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
+
+import java.util.List;
 
 
 public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
@@ -32,12 +36,25 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
 
+  private Logger logger;
+
+  GCPDiscoveryConfig config;
+
   public final static String ID = "magpie.gcp.discovery";
+
+  private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
+    new ClusterDiscovery(),
+    new SecretDiscovery());
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    SecretManagerDiscovery secretManagerDiscovery = new SecretManagerDiscovery();
-    secretManagerDiscovery.discover(MAPPER, session, emitter);
+
+    System.out.println(config.getServices());
+    DISCOVERY_LIST
+      .stream()
+      .filter(service -> isEnabled(service.service()))
+      .forEach(gcpDiscovery ->
+      gcpDiscovery.discoverWrapper(MAPPER, session, emitter, logger));
   }
 
   @Override
@@ -48,6 +65,14 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
   @Override
   public void init(GCPDiscoveryConfig config, Logger logger) {
     Sentry.init();
+    this.logger = logger;
+    this.config = config;
+  }
+
+  private boolean isEnabled(String service) {
+    var enabled = config.getServices().isEmpty() || config.getServices().contains(service);
+    logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", service);
+    return enabled;
   }
 
   @Override
