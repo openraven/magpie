@@ -24,6 +24,7 @@ import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -58,19 +59,17 @@ public class SecretDiscovery implements  GCPDiscovery{
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
 
+            String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);
             try {
-              String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);
               data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
             } catch (JsonProcessingException e) {
-              e.printStackTrace();
+              logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
             }
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
           });
     } catch (IOException e) {
-      e.printStackTrace();
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }
   }
-
-
 }
