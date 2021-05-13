@@ -20,8 +20,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
-import com.google.cloud.container.v1.ClusterManagerClient;
-import com.google.container.v1.ListClustersResponse;
+import com.google.cloud.functions.v1.CloudFunctionsServiceClient;
+import com.google.cloud.functions.v1.ListFunctionsRequest;
+import com.google.cloud.functions.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
@@ -32,8 +33,8 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
-public class ClusterDiscovery implements GCPDiscovery {
-  private static final String SERVICE = "cluster";
+public class FunctionsDiscovery implements GCPDiscovery {
+  private static final String SERVICE = "functions";
 
   @Override
   public String service() {
@@ -41,28 +42,30 @@ public class ClusterDiscovery implements GCPDiscovery {
   }
 
   public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::ClusterManager::Cluster";
+    final String RESOURCE_TYPE = "GCP::Functions::Function";
 
-    try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create()) {
-      ListClustersResponse response = clusterManagerClient.listClusters(
-        String.format("projects/%s/locations/-", projectId));
+    try (CloudFunctionsServiceClient clusterManagerClient = CloudFunctionsServiceClient.create()) {
+      var response = clusterManagerClient.listFunctions(
+        ListFunctionsRequest.newBuilder().
+          setParent(LocationName.of(projectId, "-").toString())
+          .build());
 
-      response.getClustersList().forEach(cluster -> {
+      response.iterateAll().forEach(function -> {
         var data = new GCPResource(mapper);
         data.resourceType = RESOURCE_TYPE;
         data.projectId = projectId;
-        data.arn = projectId + ":" + cluster.getName();
-        data.resourceName = cluster.getName();
-        data.resourceId = cluster.getName();
+        data.arn = projectId + ":" + function.getName();
+        data.resourceName = function.getName();
+        data.resourceId = function.getName();
 
-        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(cluster);
+        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(function);
         try {
           data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
         } catch (JsonProcessingException e) {
           logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
         }
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster") , data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function") , data.toJsonNode(mapper)));
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

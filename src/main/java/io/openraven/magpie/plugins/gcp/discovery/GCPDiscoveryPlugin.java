@@ -24,6 +24,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.services.ClusterDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.FunctionsDiscovery;
 import io.openraven.magpie.plugins.gcp.discovery.services.GCPDiscovery;
 import io.openraven.magpie.plugins.gcp.discovery.services.SecretDiscovery;
 import io.sentry.Sentry;
@@ -46,7 +47,8 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
     new ClusterDiscovery(),
-    new SecretDiscovery());
+    new SecretDiscovery(),
+    new FunctionsDiscovery());
 
   @Override
   public void discover(Session session, Emitter emitter) {
@@ -70,6 +72,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
   @Override
   public void init(GCPDiscoveryConfig config, Logger logger) {
     Sentry.init();
+
     this.logger = logger;
     this.config = config;
   }
