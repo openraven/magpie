@@ -18,6 +18,8 @@ package io.openraven.magpie.plugins.gcp.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.cloud.resourcemanager.Project;
+import com.google.cloud.resourcemanager.ResourceManagerOptions;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
@@ -48,13 +50,16 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   @Override
   public void discover(Session session, Emitter emitter) {
-
-    System.out.println(config.getServices());
-    DISCOVERY_LIST
+    getProjectList().forEach( project -> DISCOVERY_LIST
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gcpDiscovery ->
-      gcpDiscovery.discoverWrapper(MAPPER, session, emitter, logger));
+        gcpDiscovery.discoverWrapper(project.getProjectId(), MAPPER, session, emitter, logger)));
+  }
+
+  Iterable<Project> getProjectList() {
+    var resourceManager = ResourceManagerOptions.getDefaultInstance().getService();
+    return resourceManager.list().iterateAll();
   }
 
   @Override

@@ -39,18 +39,18 @@ public class ClusterDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::ClusterManager::Cluster";
-    final String PROJECT_ID = "oss-discovery-test";
 
     try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create()) {
       ListClustersResponse response = clusterManagerClient.listClusters(
-        String.format("projects/%s/locations/-", PROJECT_ID));
+        String.format("projects/%s/locations/-", projectId));
 
       response.getClustersList().forEach(cluster -> {
         var data = new GCPResource(mapper);
         data.resourceType = RESOURCE_TYPE;
-        data.arn = PROJECT_ID + ":" + cluster.getName();
+        data.projectId = projectId;
+        data.arn = projectId + ":" + cluster.getName();
         data.resourceName = cluster.getName();
         data.resourceId = cluster.getName();
 

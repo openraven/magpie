@@ -21,20 +21,17 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import org.slf4j.Logger;
-import software.amazon.awssdk.regions.Region;
-
-import java.util.List;
 
 public interface GCPDiscovery {
   String service();
 
-  default void discoverWrapper(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  default void discoverWrapper(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     logger.debug("Starting {} discovery ", service());
-    discover(mapper, session, emitter, logger);
+    discover(projectId, mapper, session, emitter, logger);
     logger.debug("Completed {} discovery", service());
   }
 
-  void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger);
+  void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger);
 
   default String fullService() {
     return AWSDiscoveryPlugin.ID + ":" + service();

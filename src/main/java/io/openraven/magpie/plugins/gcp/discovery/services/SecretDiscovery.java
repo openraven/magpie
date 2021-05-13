@@ -39,12 +39,11 @@ public class SecretDiscovery implements  GCPDiscovery{
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::SecretManager::Secret";
-    final String PROJECT_ID = "oss-discovery-test";
 
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
-      ProjectName projectName = ProjectName.of(PROJECT_ID);
+      ProjectName projectName = ProjectName.of(projectId);
       
       SecretManagerServiceClient.ListSecretsPagedResponse pagedResponse = client.listSecrets(projectName);
 
@@ -54,7 +53,8 @@ public class SecretDiscovery implements  GCPDiscovery{
           secret -> {
             var data = new GCPResource(mapper);
             data.resourceType = RESOURCE_TYPE;
-            data.arn = PROJECT_ID + ":" +  secret.getName();
+            data.projectId = projectId;
+            data.arn = projectId + ":" +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
 

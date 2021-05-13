@@ -24,6 +24,7 @@ import java.time.Instant;
 
 public class GCPResource {
   public String arn;
+  public String projectId;
   public String resourceName;
   public String resourceId;
   public String resourceType;
@@ -54,6 +55,7 @@ public class GCPResource {
     var data = mapper.createObjectNode();
 
     data.put("arn", arn);
+    data.put("projectId", projectId);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
