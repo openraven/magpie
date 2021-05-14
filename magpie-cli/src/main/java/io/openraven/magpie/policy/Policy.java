@@ -35,6 +35,6 @@ public class Policy {
   public static void main(String[] args) {
     final var start = Instant.now();
 
-    LOGGER.info("Policy acquisition completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
+    LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
   }
 }
