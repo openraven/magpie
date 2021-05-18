@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.policy;
+package io.openraven.magpie.cli;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
