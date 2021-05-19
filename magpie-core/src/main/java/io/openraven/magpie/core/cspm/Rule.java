@@ -4,25 +4,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Rule {
+  private final String type = "asset";
+  private String id;
+  private String refId;
+  private String name;
+  private String description;
+  private Severity severity;
+  private boolean enabled = true;
+  private String sql;
+  private String eval;
+  private String remediation;
+  private List<String> remediationDocURLs = new ArrayList<>();
+  private String version;
+
   public Rule() {
   }
 
   public Rule(String id) {
     this.id = id;
   }
-
-  private String id;
-  private String refId;
-  private String name;
-  private final String type = "asset";
-  private String description;
-  private Severity severity;
-  private boolean enabled = true;
-  private String sql;
-  private String eval;
-  private String  remediation;
-  private List<String> remediationDocURLs = new ArrayList<>();
-  private String version;
 
   public void set(Rule yamlRule) {
     this.severity = yamlRule.getSeverity();
