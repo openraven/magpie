@@ -26,7 +26,7 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
 
-  private static final String ID = "magpie.persist";
+  public static final String ID = "magpie.persist";
 
   private Logger logger;
 
