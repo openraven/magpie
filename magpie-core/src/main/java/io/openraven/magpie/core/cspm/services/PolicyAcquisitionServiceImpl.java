@@ -17,6 +17,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,7 +47,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       return List.of();
     }
 
-    List<PolicyContext> policyContexts = List.of();
+    var policyContexts = new ArrayList<PolicyContext>() ;
 
     policyConfig.getRepositories()
       .stream()
@@ -72,6 +73,10 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
               LOGGER.error(yamlIOException.getMessage());
             }
           }
+
+          var policyMetadata = new PolicyMetadata(file.getPath(), "");
+          policyContexts.add(new PolicyContext(policyMetadata, policy));
+          policyContexts.add(new PolicyContext(policyMetadata, policy));
         } catch (IOException yamlIOException) {
           LOGGER.error(yamlIOException.getMessage());
         }
@@ -82,12 +87,12 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   }
 
   private void getGitRepository(String repository) {
-    Path path = Paths.get(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
+    Path targetPath = Paths.get(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
 
-    if (Files.exists(path)) {
-      executeShellCommand(String.format("git clone %s %s", repository, path));
+    if (Files.exists(targetPath)) {
+      executeShellCommand(String.format("git clone %s %s", repository, targetPath));
     } else {
-      executeShellCommand(String.format("git clone %s %s", repository, path));
+      executeShellCommand(String.format("git clone %s %s", repository, targetPath));
     }
   }
 
@@ -122,7 +127,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
       String line;
       while ((line = input.readLine()) != null) {
-        LOGGER.info("Line: " + line);
+        LOGGER.error(line);
       }
     } catch (IOException e) {
       LOGGER.error(e.getMessage());
