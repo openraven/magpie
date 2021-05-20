@@ -17,6 +17,7 @@ policies:
   root: ~/.magpie/policies
   repositories:
     - git@github.com:PrzemyslawTusinski/TestPolicies.git
+#    - ~/Desktop/test
 plugins:
   magpie.aws.discovery:
     enabled: true

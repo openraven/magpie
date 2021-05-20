@@ -7,17 +7,17 @@ import io.openraven.magpie.core.config.PolicyConfig;
 import io.openraven.magpie.core.cspm.Policy;
 import io.openraven.magpie.core.cspm.Rule;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,6 +31,8 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     policyConfig = config.getPolicies();
 
     policyConfig.getRepositories()
+      .stream()
+      .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
         if (repository.startsWith("github") || repository.startsWith("http") || repository.startsWith("git")) {
           getGitRepository(repository);
@@ -47,66 +49,106 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       return List.of();
     }
 
-    var policyContexts = new ArrayList<PolicyContext>() ;
+    var policyContexts = new ArrayList<PolicyContext>();
 
     policyConfig.getRepositories()
       .stream()
       .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
-      String repositoryPath = policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository);
+        String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
+        File directory = new File(repositoryPath + "/policies");
 
-      File directory = new File(repositoryPath + "/Policies");
+        if(directory.exists()) {
+          for (File file : Objects.requireNonNull(directory.listFiles())) {
+            var policy = readPolicy(file);
+            if(policy != null) {
+              readRulesForPolicy(repositoryPath, policy.getPolicy());
 
-      for (File file : Objects.requireNonNull(directory.listFiles())) {
-        try {
-          Policy policy = YAML_MAPPER.readValue(file, Policy.class);
-
-          LOGGER.info("Successfully loaded policy: {}", policy.getId());
-          for (Rule rule : policy.getRules()) {
-            File ruleFile = new File(repositoryPath + "/Rules/" + rule.getId() + ".yaml");
-
-            try {
-              Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
-              rule.set(yamlRule);
-              LOGGER.info("Successfully loaded rule {} for policy: {}", rule.getId(), policy.getName());
-            } catch (IOException yamlIOException) {
-              LOGGER.error(yamlIOException.getMessage());
+              policyContexts.add(policy);
             }
           }
-
-          var policyMetadata = new PolicyMetadata(file.getPath(), "");
-          policyContexts.add(new PolicyContext(policyMetadata, policy));
-        } catch (IOException yamlIOException) {
-          LOGGER.error(yamlIOException.getMessage());
+        } else {
+          LOGGER.error("Directory {} doesn't exists!", directory);
         }
-      }
-    });
+      });
 
     return policyContexts;
   }
 
-  private void getGitRepository(String repository) {
-    Path targetPath = Paths.get(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
+  private PolicyContext readPolicy(File file) {
+    try {
+      Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
-    if (Files.exists(targetPath)) {
-      executeShellCommand(String.format("git clone %s %s", repository, targetPath));
+      LOGGER.info("Successfully loaded policy: {}", policy.getId());
+
+      var policyMetadata = new PolicyMetadata(file.getPath(), "");
+
+      return new PolicyContext(policyMetadata, policy);
+    } catch (IOException yamlIOException) {
+      LOGGER.error(yamlIOException.getMessage());
+
+      return null;
+    }
+  }
+
+  private void readRulesForPolicy(String repositoryPath, Policy policy) {
+    for (Rule rule : policy.getRules()) {
+      File ruleFile = new File(repositoryPath + "/rules/" + rule.getId() + ".yaml");
+
+      try {
+        Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
+        rule.set(yamlRule);
+        LOGGER.info("Successfully loaded rule {} for policy: {}", rule.getId(), policy.getName());
+      } catch (IOException yamlIOException) {
+        LOGGER.error(yamlIOException.getMessage());
+      }
+    }
+  }
+
+  private void getGitRepository(String repository) {
+    String targetPath = getTargetProjectDirectoryPath(repository).toString();
+
+    if (Files.exists(Path.of(targetPath))) {
+      executeShellCommand(Arrays.asList("git", "pull"), targetPath);
     } else {
-      executeShellCommand(String.format("git clone %s %s", repository, targetPath));
+      executeShellCommand(Arrays.asList("git", "clone", repository, targetPath), null);
     }
   }
 
   private void copyLocalRepository(String repository) {
     Path scrPath = Path.of(repository);
-    Path targetProjectDirectoryPath = Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
+    Path targetProjectDirectoryPath = getTargetProjectDirectoryPath(repository);
 
     try {
       File sourceDirectory = scrPath.toFile();
       File destinationDirectory = targetProjectDirectoryPath.toFile();
+
+      FileUtils.deleteDirectory(destinationDirectory);
       FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
 
       LOGGER.info("Successfully copied {} to {}", scrPath, targetProjectDirectoryPath);
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage());
+    }
+  }
+
+  private void executeShellCommand(List<String> command, String directory) {
+    try {
+      ProcessBuilder processBuilder = new ProcessBuilder();
+      processBuilder.command(command);
+      if (directory != null) {
+        processBuilder.directory(new File(directory));
+      }
+
+      Process process = processBuilder.start();
+
+      String stdout = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
+      String stderr = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
+
+      LOGGER.info(stdout);
+      LOGGER.info(stderr);
+    } catch (IOException e) {
+      LOGGER.error(e.getMessage());
     }
   }
 
@@ -116,20 +158,9 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .replace(".git", "");
   }
 
-  private void executeShellCommand(String command) {
-    LOGGER.info(command);
-
-    try {
-      Process process = Runtime.getRuntime().exec(command);
-
-      BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-      String line;
-      while ((line = input.readLine()) != null) {
-        LOGGER.error(line);
-      }
-    } catch (IOException e) {
-      LOGGER.error(e.getMessage());
-    }
+  private Path getTargetProjectDirectoryPath(String repository) {
+    return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home"))
+      + "/"
+      + getProjectNameFromRepository(repository));
   }
 }

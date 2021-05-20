@@ -67,6 +67,9 @@ public class Policy {
       PolicyAcquisitionService policyAcquisitionService = new PolicyAcquisitionServiceImpl();
       policyAcquisitionService.init(config);
       var policies = policyAcquisitionService.loadPolicies();
+
+      LOGGER.info(policies.get(0).getPolicy().getName());
+      LOGGER.info(policies.get(0).getPolicy().getRules().get(0).getName());
     }
 
     LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
