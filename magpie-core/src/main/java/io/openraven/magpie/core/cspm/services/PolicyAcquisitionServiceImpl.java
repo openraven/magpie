@@ -52,7 +52,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .stream()
       .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
-      String repositoryPath = policyConfig.getRoot() + "/" + getProjectNameFromRepository(repository);
+      String repositoryPath = policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository);
 
       File directory = new File(repositoryPath + "/Policies");
 
@@ -60,14 +60,14 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         try {
           Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
-          LOGGER.info("Successfully loaded policy: {}", policy.getName());
+          LOGGER.info("Successfully loaded policy: {}", policy.getId());
           for (Rule rule : policy.getRules()) {
             File ruleFile = new File(repositoryPath + "/Rules/" + rule.getId() + ".yaml");
 
             try {
               Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
-
               rule.set(yamlRule);
+              LOGGER.info("Successfully loaded rule {} for policy: {}", rule.getId(), policy.getName());
             } catch (IOException yamlIOException) {
               LOGGER.error(yamlIOException.getMessage());
             }
