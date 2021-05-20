@@ -76,7 +76,6 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
           var policyMetadata = new PolicyMetadata(file.getPath(), "");
           policyContexts.add(new PolicyContext(policyMetadata, policy));
-          policyContexts.add(new PolicyContext(policyMetadata, policy));
         } catch (IOException yamlIOException) {
           LOGGER.error(yamlIOException.getMessage());
         }
