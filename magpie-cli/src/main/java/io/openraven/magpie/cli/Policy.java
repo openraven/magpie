@@ -16,14 +16,28 @@
 
 package io.openraven.magpie.cli;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.openraven.magpie.core.config.ConfigUtils;
+import io.openraven.magpie.core.config.MagpieConfig;
+import io.openraven.magpie.core.cspm.services.PolicyAcquisitionService;
+import io.openraven.magpie.core.cspm.services.PolicyAcquisitionServiceImpl;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 
 public class Policy {
   private static final Logger LOGGER = LoggerFactory.getLogger(Policy.class);
+  private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+  private static final String DEFAULT_CONFIG_FILE = "config.yaml";
 
   public static String humanReadableFormat(Duration duration) {
     return duration.toString()
@@ -32,8 +46,28 @@ public class Policy {
       .toLowerCase();
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException, ParseException {
     final var start = Instant.now();
+
+    final var options = new Options();
+    options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
+
+    final var parser = new DefaultParser();
+    final var cmd = parser.parse( options, args);
+
+    var configFile = cmd.getOptionValue("f");
+    if (configFile == null) {
+      configFile = DEFAULT_CONFIG_FILE;
+    }
+
+    try(var is = new FileInputStream((configFile))) {
+      final var config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
+      LOGGER.info("Policy. Classpath={}", System.getProperties().get("java.class.path"));
+
+      PolicyAcquisitionService policyAcquisitionService = new PolicyAcquisitionServiceImpl();
+      policyAcquisitionService.init(config);
+//      var policies = policyAcquisitionService.loadPolicies();
+    }
 
     LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
   }

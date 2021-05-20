@@ -13,6 +13,10 @@ layers:
 fifos:
   default:
     type: local
+policies:
+  root: /home/tusin/.magpie/policies
+  repositories:
+    - git@github.com:PrzemyslawTusinski/TestPolicies.git
 plugins:
   magpie.aws.discovery:
     enabled: true

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Policy {
-
   private String id;
   private String refId;
   private String name;

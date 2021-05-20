@@ -4,6 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Rule {
+  public Rule() {
+  }
+
+  public Rule(String id) {
+    this.id = id;
+  }
+
   private String id;
   private String refId;
   private String name;
@@ -14,8 +21,22 @@ public class Rule {
   private String sql;
   private String eval;
   private String  remediation;
-  private List<String> getRemediationDocUrls = new ArrayList<>();
+  private List<String> remediationDocURLs = new ArrayList<>();
   private String version;
+
+  public void set(Rule yamlRule) {
+    this.severity = yamlRule.getSeverity();
+    this.name = yamlRule.getName();
+    this.remediationDocURLs = yamlRule.getRemediationDocURLs();
+    this.description = yamlRule.getDescription();
+    this.enabled = yamlRule.isEnabled();
+    this.eval = yamlRule.getEval();
+    this.enabled = yamlRule.isEnabled();
+    this.id = yamlRule.getId();
+    this.refId = yamlRule.getRefId();
+    this.sql = yamlRule.getSql();
+    this.version = yamlRule.getVersion();
+  }
 
   public String getVersion() {
     return version;
@@ -93,12 +114,12 @@ public class Rule {
     this.remediation = remediation;
   }
 
-  public List<String> getGetRemediationDocUrls() {
-    return getRemediationDocUrls;
+  public List<String> getRemediationDocURLs() {
+    return remediationDocURLs;
   }
 
-  public void setGetRemediationDocUrls(List<String> getRemediationDocUrls) {
-    this.getRemediationDocUrls = getRemediationDocUrls;
+  public void setRemediationDocURLs(List<String> remediationDocURLs) {
+    this.remediationDocURLs = remediationDocURLs;
   }
 
   public String getEval() {
