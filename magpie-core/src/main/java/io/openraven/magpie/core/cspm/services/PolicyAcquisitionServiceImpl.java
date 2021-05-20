@@ -48,7 +48,10 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
     List<PolicyContext> policyContexts = List.of();
 
-    policyConfig.getRepositories().forEach(repository -> {
+    policyConfig.getRepositories()
+      .stream()
+      .map(repository -> repository.replace("~", System.getProperty("user.home")))
+      .forEach(repository -> {
       String repositoryPath = policyConfig.getRoot() + "/" + getProjectNameFromRepository(repository);
 
       File directory = new File(repositoryPath + "/Policies");
@@ -79,7 +82,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   }
 
   private void getGitRepository(String repository) {
-    Path path = Paths.get(policyConfig.getRoot() + "/" + getProjectNameFromRepository(repository));
+    Path path = Paths.get(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
 
     if (Files.exists(path)) {
       executeShellCommand(String.format("git clone %s %s", repository, path));
@@ -90,7 +93,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
   private void copyLocalRepository(String repository) {
     Path scrPath = Path.of(repository);
-    Path targetProjectDirectoryPath = Path.of(policyConfig.getRoot() + "/" + getProjectNameFromRepository(repository));
+    Path targetProjectDirectoryPath = Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) + "/" + getProjectNameFromRepository(repository));
 
     try {
       File sourceDirectory = scrPath.toFile();
