@@ -16,10 +16,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAcquisitionServiceImpl.class);
@@ -56,23 +53,60 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
         String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
-        File directory = new File(repositoryPath + "/policies");
+        File policiesDirectory = new File(repositoryPath + "/policies");
+        File rulesDirectory = new File(repositoryPath + "/rules");
 
-        if(directory.exists()) {
-          for (File file : Objects.requireNonNull(directory.listFiles())) {
-            var policy = readPolicy(file);
-            if(policy != null) {
-              readRulesForPolicy(repositoryPath, policy.getPolicy());
+        HashMap<String, Rule> repositoryRulesMap = loadRulesFromDirectory(rulesDirectory);
 
-              policyContexts.add(policy);
-            }
-          }
-        } else {
-          LOGGER.error("Directory {} doesn't exists!", directory);
-        }
+        var repositoryPolicies = loadPoliciesFromDirectory(policiesDirectory, repositoryRulesMap);
+        policyContexts.addAll(repositoryPolicies);
       });
 
     return policyContexts;
+  }
+
+  private HashMap<String, Rule>  loadRulesFromDirectory(File rulesDirectory ) {
+    var rules = new HashMap<String, Rule>();
+
+    if(rulesDirectory.exists()) {
+      for (File ruleFile : Objects.requireNonNull(rulesDirectory.listFiles())) {
+        try {
+          Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
+          rules.put(yamlRule.getId(), yamlRule);
+          LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
+        } catch (IOException yamlIOException) {
+          LOGGER.error(yamlIOException.getMessage());
+        }
+      }
+    } else {
+      LOGGER.error("Rules directory {} doesn't exists!", rulesDirectory);
+    }
+
+    return rules;
+  }
+
+  private ArrayList<PolicyContext> loadPoliciesFromDirectory(File policiesDirectory, HashMap<String, Rule> repositoryRulesMap) {
+    var policiesContexts = new ArrayList<PolicyContext> ();
+
+    if(policiesDirectory.exists()) {
+      for (File policyRule : Objects.requireNonNull(policiesDirectory.listFiles())) {
+        var policy = readPolicy(policyRule);
+        if(policy != null) {
+          for ( Rule rule : policy.getPolicy().getRules()) {
+            if(repositoryRulesMap.containsKey(rule.getId())) {
+              rule.set(repositoryRulesMap.get(rule.getId()));
+            } else {
+              LOGGER.error("Rule not found {}", rule.getId());
+            }
+          }
+          policiesContexts.add(policy);
+        }
+      }
+    } else {
+      LOGGER.error("Policies directory {} doesn't exists!", policiesDirectory);
+    }
+
+    return policiesContexts;
   }
 
   private PolicyContext readPolicy(File file) {
@@ -88,20 +122,6 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       LOGGER.error(yamlIOException.getMessage());
 
       return null;
-    }
-  }
-
-  private void readRulesForPolicy(String repositoryPath, Policy policy) {
-    for (Rule rule : policy.getRules()) {
-      File ruleFile = new File(repositoryPath + "/rules/" + rule.getId() + ".yaml");
-
-      try {
-        Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
-        rule.set(yamlRule);
-        LOGGER.info("Successfully loaded rule {} for policy: {}", rule.getId(), policy.getName());
-      } catch (IOException yamlIOException) {
-        LOGGER.error(yamlIOException.getMessage());
-      }
     }
   }
 
