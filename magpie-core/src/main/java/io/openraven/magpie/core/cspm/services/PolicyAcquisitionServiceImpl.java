@@ -90,7 +90,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
     if(policiesDirectory.exists()) {
       for (File policyRule : Objects.requireNonNull(policiesDirectory.listFiles())) {
-        var policy = readPolicy(policyRule);
+        var policy = loadPolicy(policyRule);
         if(policy != null) {
           policy.getPolicy().getRules().forEach(rule -> {
             if (repositoryRulesMap.containsKey(rule.getId())) {
@@ -109,13 +109,19 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policiesContexts;
   }
 
-  private PolicyContext readPolicy(File file) {
+  private PolicyContext loadPolicy(File file) {
     try {
       Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
       LOGGER.info("Successfully loaded policy: {}", policy.getId());
 
-      var policyMetadata = new PolicyMetadata(file.getPath(), "");
+      String repoHash;
+      if(new File(file.getParentFile().getParentFile().toString() + "/.git").exists()) {
+        repoHash = getRepositoryHash(file.getParentFile().getParentFile());
+      } else {
+        repoHash = "Local repository";
+      }
+      var policyMetadata = new PolicyMetadata(file.getPath(), repoHash);
 
       return new PolicyContext(policyMetadata, policy);
     } catch (IOException yamlIOException) {
@@ -123,6 +129,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
       return null;
     }
+  }
+
+  private String getRepositoryHash(File directory) {
+    return executeShellCommand(Arrays.asList("git", "rev-parse", "HEAD"), directory.toString())
+      .replace(System.lineSeparator(), "");
   }
 
   private void getGitRepository(String repository) {
@@ -152,7 +163,8 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     }
   }
 
-  private void executeShellCommand(List<String> command, String directory) {
+  private String executeShellCommand(List<String> command, String directory) {
+    LOGGER.info("Running {}", String.join(" ", command));
     try {
       ProcessBuilder processBuilder = new ProcessBuilder();
       processBuilder.command(command);
@@ -165,11 +177,15 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       String stdout = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
       String stderr = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
 
-      LOGGER.info(stdout);
-      LOGGER.info(stderr);
+      LOGGER.info("Standard output: {}", stdout);
+      LOGGER.info("Error output: {}", stderr);
+
+      return stderr;
     } catch (IOException e) {
       LOGGER.error(e.getMessage());
     }
+
+    return "";
   }
 
   private String getProjectNameFromRepository(String repository) {
