@@ -92,13 +92,13 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       for (File policyRule : Objects.requireNonNull(policiesDirectory.listFiles())) {
         var policy = readPolicy(policyRule);
         if(policy != null) {
-          for ( Rule rule : policy.getPolicy().getRules()) {
-            if(repositoryRulesMap.containsKey(rule.getId())) {
+          policy.getPolicy().getRules().forEach(rule -> {
+            if (repositoryRulesMap.containsKey(rule.getId())) {
               rule.set(repositoryRulesMap.get(rule.getId()));
             } else {
               LOGGER.error("Rule not found {}", rule.getId());
             }
-          }
+          });
           policiesContexts.add(policy);
         }
       }
