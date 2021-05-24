@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAcquisitionServiceImpl.class);
@@ -90,12 +91,17 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     var policiesContexts = new ArrayList<PolicyContext> ();
 
     if(policiesDirectory.exists()) {
-      for (File policyRule : Objects.requireNonNull(policiesDirectory.listFiles())) {
-        var policy = loadPolicy(policyRule);
+      for (File policyFile : Objects.requireNonNull(policiesDirectory.listFiles())) {
+        var policy = loadPolicy(policyFile);
 
         if(policy != null) {
-          loadPolicyRulesFromRulesMap(repositoryRulesMap, policy);
-          var policyMetadata = new PolicyMetadata(policyRule.getPath(), getRepoHashOrLocalRepositoryString(repositoryPath));
+          var policyRulesIds = policy.getRules()
+            .stream()
+            .map(Rule::getId)
+            .collect(Collectors.toList());
+          policy.setRules(getRulesFromRulesMap(repositoryRulesMap, policyRulesIds));
+
+          var policyMetadata = new PolicyMetadata(policyFile.getPath(), getRepoHashOrLocalRepositoryString(repositoryPath));
           policiesContexts.add(new PolicyContext(policyMetadata, policy));
         }
       }
@@ -106,14 +112,18 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policiesContexts;
   }
 
-  private void loadPolicyRulesFromRulesMap(HashMap<String, Rule> repositoryRulesMap, Policy policy) {
-    policy.getRules().forEach(rule -> {
-      if (repositoryRulesMap.containsKey(rule.getId())) {
-        rule.set(repositoryRulesMap.get(rule.getId()));
+  private ArrayList<Rule> getRulesFromRulesMap(HashMap<String, Rule> repositoryRulesMap, List<String> rulesIds) {
+    var rules = new ArrayList<Rule>();
+
+    rulesIds.forEach(rule -> {
+      if (repositoryRulesMap.containsKey(rule)) {
+        rules.add(repositoryRulesMap.get(rule));
       } else {
-        LOGGER.error("Rule not found {}", rule.getId());
+        LOGGER.error("Rule not found {}", rule);
       }
     });
+
+    return rules;
   }
 
   private Policy loadPolicy(File file) {
@@ -183,13 +193,13 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
       Process process = processBuilder.start();
 
-      String stdout = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
-      String stderr = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
+      String stdout = IOUtils.toString(process.getInputStream(), Charset.defaultCharset());
+      String stderr = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
 
       LOGGER.info("Standard output: {}", stdout);
       LOGGER.info("Error output: {}", stderr);
 
-      return stderr;
+      return stdout;
     } catch (IOException e) {
       LOGGER.error(e.getMessage());
     }
