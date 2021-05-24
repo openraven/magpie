@@ -16,7 +16,7 @@ fifos:
 policies:
   root: ~/.magpie/policies
   repositories:
-    - git@github.com:PrzemyslawTusinski/TestPolicies.git
+    - git@github.com:openraven/aws-cis-1.2.git
 #    - ~/Desktop/test
 plugins:
   magpie.aws.discovery:
