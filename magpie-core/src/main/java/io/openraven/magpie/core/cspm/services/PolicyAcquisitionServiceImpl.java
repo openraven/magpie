@@ -91,15 +91,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     if(policiesDirectory.exists()) {
       for (File policyRule : Objects.requireNonNull(policiesDirectory.listFiles())) {
         var policy = loadPolicy(policyRule);
+
         if(policy != null) {
-          policy.getPolicy().getRules().forEach(rule -> {
-            if (repositoryRulesMap.containsKey(rule.getId())) {
-              rule.set(repositoryRulesMap.get(rule.getId()));
-            } else {
-              LOGGER.error("Rule not found {}", rule.getId());
-            }
-          });
-          policiesContexts.add(policy);
+          loadPolicyRulesFromRulesMap(repositoryRulesMap, policy);
+          var policyMetadata = new PolicyMetadata(policyRule.getPath(), getRepoHashOrLocalRepositoryString(policyRule));
+          policiesContexts.add(new PolicyContext(policyMetadata, policy));
         }
       }
     } else {
@@ -109,21 +105,23 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policiesContexts;
   }
 
-  private PolicyContext loadPolicy(File file) {
+  private void loadPolicyRulesFromRulesMap(HashMap<String, Rule> repositoryRulesMap, Policy policy) {
+    policy.getRules().forEach(rule -> {
+      if (repositoryRulesMap.containsKey(rule.getId())) {
+        rule.set(repositoryRulesMap.get(rule.getId()));
+      } else {
+        LOGGER.error("Rule not found {}", rule.getId());
+      }
+    });
+  }
+
+  private Policy loadPolicy(File file) {
     try {
       Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
       LOGGER.info("Successfully loaded policy: {}", policy.getId());
 
-      String repoHash;
-      if(new File(file.getParentFile().getParentFile().toString() + "/.git").exists()) {
-        repoHash = getRepositoryHash(file.getParentFile().getParentFile());
-      } else {
-        repoHash = "Local repository";
-      }
-      var policyMetadata = new PolicyMetadata(file.getPath(), repoHash);
-
-      return new PolicyContext(policyMetadata, policy);
+      return policy;
     } catch (IOException yamlIOException) {
       LOGGER.error(yamlIOException.getMessage());
 
@@ -131,7 +129,17 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     }
   }
 
-  private String getRepositoryHash(File directory) {
+  private String getRepoHashOrLocalRepositoryString(File policyRule) {
+    String repoHash;
+    if(new File(policyRule.getParentFile().getParentFile().toString() + "/.git").exists()) {
+      repoHash = getRepoHash(policyRule.getParentFile().getParentFile());
+    } else {
+      repoHash = "Local repository";
+    }
+    return repoHash;
+  }
+
+  private String getRepoHash(File directory) {
     return executeShellCommand(Arrays.asList("git", "rev-parse", "HEAD"), directory.toString())
       .replace(System.lineSeparator(), "");
   }
