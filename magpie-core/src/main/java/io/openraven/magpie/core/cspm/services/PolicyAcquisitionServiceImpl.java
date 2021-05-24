@@ -53,19 +53,18 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
         String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
-        File policiesDirectory = new File(repositoryPath + "/policies");
-        File rulesDirectory = new File(repositoryPath + "/rules");
 
-        HashMap<String, Rule> repositoryRulesMap = loadRulesFromDirectory(rulesDirectory);
+        HashMap<String, Rule> repositoryRulesMap = loadRulesFromRepository(repositoryPath);
 
-        var repositoryPolicies = loadPoliciesFromDirectory(policiesDirectory, repositoryRulesMap);
+        var repositoryPolicies = loadPoliciesFromRepository(repositoryPath, repositoryRulesMap);
         policyContexts.addAll(repositoryPolicies);
       });
 
     return policyContexts;
   }
 
-  private HashMap<String, Rule>  loadRulesFromDirectory(File rulesDirectory ) {
+  private HashMap<String, Rule> loadRulesFromRepository(String repositoryPath ) {
+    File rulesDirectory = new File(repositoryPath + "/rules");
     var rules = new HashMap<String, Rule>();
 
     if(rulesDirectory.exists()) {
@@ -85,7 +84,9 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return rules;
   }
 
-  private ArrayList<PolicyContext> loadPoliciesFromDirectory(File policiesDirectory, HashMap<String, Rule> repositoryRulesMap) {
+  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath, HashMap<String, Rule> repositoryRulesMap) {
+    File policiesDirectory = new File(repositoryPath + "/policies");
+
     var policiesContexts = new ArrayList<PolicyContext> ();
 
     if(policiesDirectory.exists()) {
@@ -94,7 +95,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
         if(policy != null) {
           loadPolicyRulesFromRulesMap(repositoryRulesMap, policy);
-          var policyMetadata = new PolicyMetadata(policyRule.getPath(), getRepoHashOrLocalRepositoryString(policyRule));
+          var policyMetadata = new PolicyMetadata(policyRule.getPath(), getRepoHashOrLocalRepositoryString(repositoryPath));
           policiesContexts.add(new PolicyContext(policyMetadata, policy));
         }
       }
@@ -129,10 +130,10 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     }
   }
 
-  private String getRepoHashOrLocalRepositoryString(File policyRule) {
+  private String getRepoHashOrLocalRepositoryString(String repository) {
     String repoHash;
-    if(new File(policyRule.getParentFile().getParentFile().toString() + "/.git").exists()) {
-      repoHash = getRepoHash(policyRule.getParentFile().getParentFile());
+    if(new File(repository + "/.git").exists()) {
+      repoHash = getRepoHash(new File(repository));
     } else {
       repoHash = "Local repository";
     }
