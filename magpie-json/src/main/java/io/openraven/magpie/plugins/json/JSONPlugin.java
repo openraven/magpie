@@ -45,7 +45,7 @@ public class JSONPlugin implements TerminalPlugin<Void> {
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
       try {
-        generator.writeObject(env);
+        generator.writeObject(env.getContents());
       } catch (IOException ex) {
         logger.warn("Couldn't process envelope contents", ex);
       }
