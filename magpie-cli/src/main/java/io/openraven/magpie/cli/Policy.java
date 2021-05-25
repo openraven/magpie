@@ -20,8 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.services.PolicyAcquisitionService;
-import io.openraven.magpie.core.cspm.services.PolicyAcquisitionServiceImpl;
+import io.openraven.magpie.core.cspm.Violation;
+import io.openraven.magpie.core.cspm.services.*;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 public class Policy {
   private static final Logger LOGGER = LoggerFactory.getLogger(Policy.class);
@@ -41,9 +42,9 @@ public class Policy {
 
   public static String humanReadableFormat(Duration duration) {
     return duration.toString()
-      .substring(2)
-      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-      .toLowerCase();
+            .substring(2)
+            .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+            .toLowerCase();
   }
 
   public static void main(String[] args) throws IOException, ParseException {
@@ -53,20 +54,29 @@ public class Policy {
     options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
 
     final var parser = new DefaultParser();
-    final var cmd = parser.parse( options, args);
+    final var cmd = parser.parse(options, args);
 
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
       configFile = DEFAULT_CONFIG_FILE;
     }
 
-    try(var is = new FileInputStream((configFile))) {
+    try (var is = new FileInputStream((configFile))) {
       final var config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
       LOGGER.info("Policy. Classpath={}", System.getProperties().get("java.class.path"));
 
       PolicyAcquisitionService policyAcquisitionService = new PolicyAcquisitionServiceImpl();
       policyAcquisitionService.init(config);
       var policies = policyAcquisitionService.loadPolicies();
+      PolicyAnalyzerService analyzerService = new PolicyAnalyzerServiceImpl();
+      analyzerService.init(config);
+      try {
+        List<Violation> violations = analyzerService.analyze(policies);
+        ReportService reportService = new ReportServiceImpl();
+        reportService.generateReport(policies, violations);
+      } catch (Exception e) {
+        LOGGER.error("Analyze error: {}", e.getMessage());
+      }
     }
 
     LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));

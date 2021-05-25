@@ -24,20 +24,6 @@ public class Rule {
     this.id = id;
   }
 
-  public void set(Rule yamlRule) {
-    this.severity = yamlRule.getSeverity();
-    this.name = yamlRule.getName();
-    this.remediationDocURLs = yamlRule.getRemediationDocURLs();
-    this.description = yamlRule.getDescription();
-    this.enabled = yamlRule.isEnabled();
-    this.eval = yamlRule.getEval();
-    this.enabled = yamlRule.isEnabled();
-    this.id = yamlRule.getId();
-    this.refId = yamlRule.getRefId();
-    this.sql = yamlRule.getSql();
-    this.version = yamlRule.getVersion();
-  }
-
   public String getVersion() {
     return version;
   }
