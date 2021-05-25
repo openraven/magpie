@@ -312,7 +312,7 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::CredentialsReport";
+    final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
       var data = new AWSResource(null, region.toString(), account, mapper);
