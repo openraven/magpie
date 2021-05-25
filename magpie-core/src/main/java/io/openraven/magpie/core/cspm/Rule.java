@@ -4,38 +4,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Rule {
-  public Rule() {
-  }
-
-  public Rule(String id) {
-    this.id = id;
-  }
-
+  private final String type = "asset";
   private String id;
   private String refId;
   private String name;
-  private final String type = "asset";
   private String description;
   private Severity severity;
   private boolean enabled = true;
   private String sql;
   private String eval;
-  private String  remediation;
+  private String remediation;
   private List<String> remediationDocURLs = new ArrayList<>();
   private String version;
 
-  public void set(Rule yamlRule) {
-    this.severity = yamlRule.getSeverity();
-    this.name = yamlRule.getName();
-    this.remediationDocURLs = yamlRule.getRemediationDocURLs();
-    this.description = yamlRule.getDescription();
-    this.enabled = yamlRule.isEnabled();
-    this.eval = yamlRule.getEval();
-    this.enabled = yamlRule.isEnabled();
-    this.id = yamlRule.getId();
-    this.refId = yamlRule.getRefId();
-    this.sql = yamlRule.getSql();
-    this.version = yamlRule.getVersion();
+  public Rule() {
+  }
+
+  public Rule(String id) {
+    this.id = id;
   }
 
   public String getVersion() {
