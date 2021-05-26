@@ -58,12 +58,12 @@ public class IAMDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = IamClient.builder().region(region).build();
 
-    discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
+//    discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
     discoverAccounts(client, mapper, session, region, emitter, account);
-    discoverGroups(client, mapper, session, region, emitter, account);
-    discoverUsers(client, mapper, session, region, emitter, account);
-    discoverRoles(client, mapper, session, region, emitter, account);
-    discoverPolicies(client, mapper, session, region, emitter, account);
+//    discoverGroups(client, mapper, session, region, emitter, account);
+//    discoverUsers(client, mapper, session, region, emitter, account);
+//    discoverRoles(client, mapper, session, region, emitter, account);
+//    discoverPolicies(client, mapper, session, region, emitter, account);
   }
 
   private void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
@@ -315,13 +315,13 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
-      var data = new AWSResource(null, region.toString(), account, mapper);
+      var accountSummary = client.getAccountSummary();
+      var data = new AWSResource(accountSummary.summaryMapAsStrings(), region.toString(), account, mapper);
       data.resourceType = RESOURCE_TYPE;
-      data.arn = RESOURCE_TYPE;
+      data.arn = RESOURCE_TYPE + ":" + region + ":" + account;
 
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
-      discoverAccountSummary(client, data);
       discoverVirtualMFADevices(client, data);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode(mapper)));
@@ -344,16 +344,6 @@ public class IAMDiscovery implements AWSDiscovery {
 
     getAwsResponse(
       () -> client.getAccountPasswordPolicy().passwordPolicy(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
-  }
-
-  private void discoverAccountSummary(IamClient client, AWSResource data) {
-    final String keyname = "summaryMap";
-
-    getAwsResponse(
-      () -> client.getAccountSummary().summaryMapAsStrings(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
