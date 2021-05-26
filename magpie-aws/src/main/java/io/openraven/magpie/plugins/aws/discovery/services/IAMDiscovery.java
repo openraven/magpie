@@ -58,12 +58,12 @@ public class IAMDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = IamClient.builder().region(region).build();
 
-//    discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
-    discoverAccounts(client, mapper, session, region, emitter, account);
-//    discoverGroups(client, mapper, session, region, emitter, account);
-//    discoverUsers(client, mapper, session, region, emitter, account);
-//    discoverRoles(client, mapper, session, region, emitter, account);
-//    discoverPolicies(client, mapper, session, region, emitter, account);
+    discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
+    discoverAccount(client, mapper, session, region, emitter, account);
+    discoverGroups(client, mapper, session, region, emitter, account);
+    discoverUsers(client, mapper, session, region, emitter, account);
+    discoverRoles(client, mapper, session, region, emitter, account);
+    discoverPolicies(client, mapper, session, region, emitter, account);
   }
 
   private void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
@@ -311,7 +311,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverAccount(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
