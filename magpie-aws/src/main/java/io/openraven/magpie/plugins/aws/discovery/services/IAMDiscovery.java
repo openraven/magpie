@@ -312,9 +312,12 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
       var data = new AWSResource(null, region.toString(), account, mapper);
+      data.resourceType = RESOURCE_TYPE;
+      data.arn = RESOURCE_TYPE;
 
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
@@ -400,6 +403,8 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = "AWS::IAM::CredentialsReport";
+
     var report = client.getCredentialReport();
     String reportContent = report.content().asUtf8String();
 
@@ -411,6 +416,7 @@ public class IAMDiscovery implements AWSDiscovery {
       data.arn = credential.arn;
       data.resourceId = credential.arn;
       data.resourceName = credential.user;
+      data.resourceType = RESOURCE_TYPE;
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":credentialsReport"), data.toJsonNode(mapper)));
     }
