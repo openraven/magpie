@@ -340,7 +340,7 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccountPasswordPolicy(IamClient client, AWSResource data) {
-    final String keyname = "PasswordPolicy";
+    final String keyname = "passwordPolicy";
 
     getAwsResponse(
       () -> client.getAccountPasswordPolicy().passwordPolicy(),
