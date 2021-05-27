@@ -32,7 +32,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .stream()
       .map(repository -> repository.replace("~", System.getProperty("user.home")))
       .forEach(repository -> {
-        if (repository.startsWith("github") || repository.startsWith("http") || repository.startsWith("git")) {
+        if (isGitRepository(repository)) {
           getGitRepository(repository);
         } else {
           copyLocalRepository(repository);
@@ -64,11 +64,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policyContexts;
   }
 
-  private HashMap<String, Rule> loadRulesFromRepository(String repositoryPath ) {
+  private HashMap<String, Rule> loadRulesFromRepository(String repositoryPath) {
     File rulesDirectory = new File(repositoryPath + "/rules");
     var rules = new HashMap<String, Rule>();
 
-    if(rulesDirectory.exists()) {
+    if (rulesDirectory.exists()) {
       for (File ruleFile : Objects.requireNonNull(rulesDirectory.listFiles())) {
         try {
           Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
@@ -88,13 +88,13 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath, HashMap<String, Rule> repositoryRulesMap) {
     File policiesDirectory = new File(repositoryPath + "/policies");
 
-    var policiesContexts = new ArrayList<PolicyContext> ();
+    var policiesContexts = new ArrayList<PolicyContext>();
 
-    if(policiesDirectory.exists()) {
+    if (policiesDirectory.exists()) {
       for (File policyFile : Objects.requireNonNull(policiesDirectory.listFiles())) {
         var policy = loadPolicy(policyFile);
 
-        if(policy != null) {
+        if (policy != null) {
           var policyRulesIds = policy.getRules()
             .stream()
             .map(Rule::getId)
@@ -142,7 +142,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
   private String getRepoHashOrLocalRepositoryString(String repository) {
     String repoHash;
-    if(new File(repository + "/.git").exists()) {
+    if (new File(repository + "/.git").exists()) {
       repoHash = getRepoHash(new File(repository));
     } else {
       repoHash = "Local repository";
@@ -214,8 +214,27 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   }
 
   private Path getTargetProjectDirectoryPath(String repository) {
-    return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home"))
-      + "/"
-      + getProjectNameFromRepository(repository));
+    if (isGitRepository(repository)) {
+      String[] tokens = repository
+        .replace("git@", "")
+        .replace("https://", "")
+        .replace(":", "/")
+        .split("/");
+      return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) +
+        "/" +
+        tokens[0] +
+        "/" +
+        tokens[1] +
+        "/" +
+        getProjectNameFromRepository(repository));
+    } else {
+      return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) +
+        "/" +
+        getProjectNameFromRepository(repository));
+    }
+  }
+
+  private boolean isGitRepository(String repository) {
+    return repository.startsWith("git@") || repository.startsWith("https://");
   }
 }
