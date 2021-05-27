@@ -156,27 +156,24 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   }
 
   private void getGitRepository(String repository) {
-    String targetPath = getTargetProjectDirectoryPath(repository).toString();
+    Path targetPath = getTargetProjectDirectoryPath(repository);
 
-    if (Files.exists(Path.of(targetPath))) {
-      executeShellCommand(Arrays.asList("git", "pull"), targetPath);
+    if (Files.exists(targetPath)) {
+      executeShellCommand(Arrays.asList("git", "pull"), targetPath.toString());
     } else {
-      executeShellCommand(Arrays.asList("git", "clone", repository, targetPath), null);
+      executeShellCommand(Arrays.asList("git", "clone", repository, targetPath.toString()), null);
     }
   }
 
   private void copyLocalRepository(String repository) {
-    Path scrPath = Path.of(repository);
-    Path targetProjectDirectoryPath = getTargetProjectDirectoryPath(repository);
-
     try {
-      File sourceDirectory = scrPath.toFile();
-      File destinationDirectory = targetProjectDirectoryPath.toFile();
+      File sourceDirectory = new File(repository);
+      File destinationDirectory = getTargetProjectDirectoryPath(repository).toFile();
 
       FileUtils.deleteDirectory(destinationDirectory);
       FileUtils.copyDirectory(sourceDirectory, destinationDirectory);
 
-      LOGGER.info("Successfully copied {} to {}", scrPath, targetProjectDirectoryPath);
+      LOGGER.info("Successfully copied {} to {}", sourceDirectory, destinationDirectory);
     } catch (IOException e) {
       LOGGER.error(e.getMessage());
     }
@@ -220,17 +217,18 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         .replace("https://", "")
         .replace(":", "/")
         .split("/");
-      return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) +
-        "/" +
-        tokens[0] +
-        "/" +
-        tokens[1] +
-        "/" +
-        getProjectNameFromRepository(repository));
+      return
+        Path.of(String.format(
+            "%s/%s/%s/%s",
+            policyConfig.getRoot().replace("~", System.getProperty("user.home")),
+            tokens[0],
+            tokens[1],
+            getProjectNameFromRepository(repository)));
     } else {
-      return Path.of(policyConfig.getRoot().replace("~", System.getProperty("user.home")) +
-        "/" +
-        getProjectNameFromRepository(repository));
+      return Path.of(String.format(
+        "%s/%s",
+        policyConfig.getRoot().replace("~", System.getProperty("user.home")),
+        getProjectNameFromRepository(repository)));
     }
   }
 
