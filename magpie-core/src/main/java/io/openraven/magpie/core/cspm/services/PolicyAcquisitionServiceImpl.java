@@ -55,7 +55,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .forEach(repository -> {
         String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
 
-        HashMap<String, Rule> repositoryRulesMap = loadRulesFromRepository(repositoryPath);
+        var repositoryRulesMap = loadRulesFromRepository(repositoryPath);
 
         var repositoryPolicies = loadPoliciesFromRepository(repositoryPath, repositoryRulesMap);
         policyContexts.addAll(repositoryPolicies);
@@ -64,7 +64,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policyContexts;
   }
 
-  private HashMap<String, Rule> loadRulesFromRepository(String repositoryPath) {
+  private Map<String, Rule> loadRulesFromRepository(String repositoryPath) {
     File rulesDirectory = new File(repositoryPath + "/rules");
     var rules = new HashMap<String, Rule>();
 
@@ -85,7 +85,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return rules;
   }
 
-  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath, HashMap<String, Rule> repositoryRulesMap) {
+  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath, Map<String, Rule> repositoryRulesMap) {
     File policiesDirectory = new File(repositoryPath + "/policies");
 
     var policiesContexts = new ArrayList<PolicyContext>();
@@ -112,7 +112,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policiesContexts;
   }
 
-  private ArrayList<Rule> getRulesFromRulesMap(HashMap<String, Rule> repositoryRulesMap, List<String> rulesIds) {
+  private ArrayList<Rule> getRulesFromRulesMap(Map<String, Rule> repositoryRulesMap, List<String> rulesIds) {
     var rules = new ArrayList<Rule>();
 
     rulesIds.forEach(rule -> {
