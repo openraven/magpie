@@ -28,18 +28,21 @@ public class ReportServiceImpl implements ReportService {
 
   @Override
   public void generateReport(List<PolicyContext> policies, List<Violation> violations) {
-    System.out.println("Scan Summary:");
+    final String BOLD = "\033[1m";
+    final String BOLD_RESET = "\033[0m";
+
+    System.out.println(BOLD + "Scan Summary:" + BOLD_RESET);
     System.out.printf("%-30s%-40s\n", "Scan start time", this.scanMetadata.getStartDateTime().toString());
     System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(this.scanMetadata.getDuration()));
     System.out.printf("%-30s%-40d\n\n", "Total violations found", violations.size());
 
-    System.out.println("Scan Per-policy Details:");
+    System.out.println(BOLD + "Scan Per-policy Details:" + BOLD_RESET);
     policies.forEach(policy -> {
       System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getName());
       var policyViolations = violations.stream().filter(violation -> violation.getPolicyId().equals(policy.getPolicy().getId())).collect(Collectors.toList());
       System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations.size());
       System.out.printf("%-30s\n", "Violations");
-      System.out.printf("%-2s%-50s%-50s%-50s\n", "", "Resource ID", "Rule GUID", "Rule name");
+      System.out.printf(BOLD + "%-2s%-50s%-50s%-50s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
       policyViolations.forEach(policyViolation -> {
         Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
         System.out.printf("%-2s%-50s%-50s%-50s\n", "", policyViolation.getAssetId(), violatedRule.getId(), violatedRule.getName().replace(System.lineSeparator(), ""));
