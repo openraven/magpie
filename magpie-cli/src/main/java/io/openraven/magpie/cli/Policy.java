@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
+import io.openraven.magpie.core.cspm.ScanMetadata;
 import io.openraven.magpie.core.cspm.Violation;
 import io.openraven.magpie.core.cspm.services.*;
 import org.apache.commons.cli.DefaultParser;
@@ -33,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
 public class Policy {
@@ -70,9 +72,11 @@ public class Policy {
       var policies = policyAcquisitionService.loadPolicies();
       PolicyAnalyzerService analyzerService = new PolicyAnalyzerServiceImpl();
       analyzerService.init(config);
+      Duration scanDuration;
       try {
         List<Violation> violations = analyzerService.analyze(policies);
-        ReportService reportService = new ReportServiceImpl();
+        scanDuration = Duration.between(start, Instant.now());
+        ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
         reportService.generateReport(policies, violations);
       } catch (Exception e) {
         LOGGER.error("Analyze error: {}", e.getMessage());
