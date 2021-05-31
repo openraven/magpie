@@ -128,7 +128,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Policy";
 
     try {
-      client.listPoliciesPaginator(builder -> builder.scope(PolicyScopeType.LOCAL)).policies().forEach(policy -> {
+      client.listPoliciesPaginator().policies().forEach(policy -> {
         var data = new AWSResource(policy.toBuilder(), region.toString(), account, mapper);
         data.arn = policy.arn();
         data.resourceId = policy.policyId();
