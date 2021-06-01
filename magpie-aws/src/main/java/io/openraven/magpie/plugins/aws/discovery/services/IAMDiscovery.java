@@ -32,6 +32,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
 import software.amazon.awssdk.services.iam.model.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +157,7 @@ public class IAMDiscovery implements AWSDiscovery {
           .findFirst();
         currentPolicy.ifPresent(policyVersion -> getAwsResponse(
           () -> client.getPolicyVersion(GetPolicyVersionRequest.builder().policyArn(policy.arn()).versionId(policyVersion.versionId()).build()),
-          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", innerResp.policyVersion().document()))),
+          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", URLDecoder.decode(innerResp.policyVersion().document(), StandardCharsets.UTF_8)))),
           (innerNoresp) -> {
           }
         ));
