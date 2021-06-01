@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Test template for creating a stack with a DynamoDB table.
+Resources:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: entities
+      AttributeDefinitions:
+        -
+          AttributeName: "pk"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "pk"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5

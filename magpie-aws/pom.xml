@@ -21,6 +21,8 @@
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
     <magpie.api.version>0.1.2</magpie.api.version>
     <sentry.version>1.7.28</sentry.version>
+    <mockito.version>3.10.0</mockito.version>
+    <testcontainer.version>1.15.3</testcontainer.version>
   </properties>
 
   <dependencies>
@@ -207,6 +209,31 @@
       <artifactId>cloudwatch</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
+    <dependency>
+      <groupId>software.aws.mcs</groupId>
+      <artifactId>aws-sigv4-auth-cassandra-java-driver-plugin</artifactId>
+      <version>${aws-sigv4-auth-cassandra-java-driver-plugin.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy-json</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>2.7.0</version>
+      <scope>compile</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
@@ -242,31 +269,35 @@
       <version>1.2.3</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
-      <groupId>software.aws.mcs</groupId>
-      <artifactId>aws-sigv4-auth-cassandra-java-driver-plugin</artifactId>
-      <version>${aws-sigv4-auth-cassandra-java-driver-plugin.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy-json</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.codehaus.jackson</groupId>
-          <artifactId>jackson-core-asl</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>2.7.0</version>
-      <scope>compile</scope>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainer.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
+      <version>${testcontainer.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>cloudformation</artifactId>
+      <version>${aws.sdk.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
