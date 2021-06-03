@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.gcp.discovery.GCPDiscoveryPlugin;
 import org.slf4j.Logger;
 
 public interface GCPDiscovery {
@@ -34,7 +34,7 @@ public interface GCPDiscovery {
   void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger);
 
   default String fullService() {
-    return AWSDiscoveryPlugin.ID + ":" + service();
+    return GCPDiscoveryPlugin.ID + ":" + service();
   }
 }
 
