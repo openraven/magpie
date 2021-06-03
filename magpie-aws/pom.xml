@@ -154,6 +154,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>location</artifactId>
+      <version>2.16.76</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>lightsail</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
