@@ -64,6 +64,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new LakeFormationDiscovery(),
     new LambdaDiscovery(),
     new LightsailDiscovery(),
+    new LocationDiscovery(),
     new QLDBDiscovery(),
     new S3Discovery(),
     new SecretsManagerDiscovery(),
