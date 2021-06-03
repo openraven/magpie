@@ -47,26 +47,17 @@ public class LocationDiscovery implements AWSDiscovery {
 
   @Override
   public List<Region> getSupportedRegions() {
+    // https://docs.aws.amazon.com/general/latest/gr/location.html
     return List.of(
-      Region.US_EAST_1,
-      Region.US_EAST_2,
-      Region.US_WEST_1,
-      Region.US_WEST_2,
-      Region.AP_EAST_1,
-      Region.AP_SOUTH_1,
       Region.AP_NORTHEAST_1,
-      Region.AP_NORTHEAST_2,
       Region.AP_SOUTHEAST_1,
       Region.AP_SOUTHEAST_2,
-      Region.CA_CENTRAL_1,
-      Region.CN_NORTH_1,
-      Region.CN_NORTHWEST_1,
       Region.EU_CENTRAL_1,
       Region.EU_WEST_1,
-      Region.EU_WEST_2,
-      Region.EU_WEST_3,
       Region.EU_NORTH_1,
-      Region.SA_EAST_1);
+      Region.US_EAST_1,
+      Region.US_EAST_2,
+      Region.US_WEST_2);
   }
 
   @Override
