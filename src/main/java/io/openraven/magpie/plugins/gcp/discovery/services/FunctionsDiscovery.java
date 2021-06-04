@@ -54,7 +54,6 @@ public class FunctionsDiscovery implements GCPDiscovery {
         var data = new GCPResource(mapper);
         data.resourceType = RESOURCE_TYPE;
         data.projectId = projectId;
-        data.arn = projectId + ":" + function.getName();
         data.resourceName = function.getName();
         data.resourceId = function.getName();
 

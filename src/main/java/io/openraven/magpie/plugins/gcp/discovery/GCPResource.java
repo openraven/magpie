@@ -23,13 +23,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 
 public class GCPResource {
-  public String arn;
   public String projectId;
   public String resourceName;
   public String resourceId;
   public String resourceType;
-  public String awsRegion;
-  public String awsAccountId;
+  public String region;
+  public String accountId;
   public Instant createdIso;
   public Instant updatedIso;
   public String discoverySessionId;
@@ -54,13 +53,12 @@ public class GCPResource {
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
-    data.put("arn", arn);
     data.put("projectId", projectId);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
-    data.put("awsRegion", awsRegion);
-    data.put("awsAccountId", awsAccountId);
+    data.put("region", region);
+    data.put("accountId", accountId);
     data.put("createdIso", createdIso == null ? null : createdIso.toString());
     data.put("updatedIso", updatedIso == null ? null : updatedIso.toString());
     data.put("discoverySessionId", discoverySessionId);

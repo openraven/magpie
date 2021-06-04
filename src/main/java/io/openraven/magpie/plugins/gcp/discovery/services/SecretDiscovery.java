@@ -55,7 +55,6 @@ public class SecretDiscovery implements  GCPDiscovery{
             var data = new GCPResource(mapper);
             data.resourceType = RESOURCE_TYPE;
             data.projectId = projectId;
-            data.arn = projectId + ":" +  secret.getName();
             data.resourceName = secret.getName();
             data.resourceId = secret.getName();
 
