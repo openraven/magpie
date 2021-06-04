@@ -3,18 +3,18 @@ layers:
     type: origin
     queue: default
     plugins:
-      - magpie.aws.discovery
+      - magpie.sh.aws.discovery
   output:
     type: terminal
     dequeue: default
     plugins:
-      - magpie.json
-      - magpie.persist
+      - magpie.sh.json
+      - magpie.sh.persist
 fifos:
   default:
     type: local
 policies:
-  root: ~/.magpie/policies
+  root: ~/.magpie.sh/policies
   repositories:
     - git@github.com:openraven/aws-cis-1.2.git
 #    - ~/Desktop/test
