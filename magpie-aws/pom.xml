@@ -88,7 +88,7 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-     <groupId>software.amazon.awssdk</groupId>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticache</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -166,7 +166,7 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>qldb</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>  
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
@@ -206,10 +206,15 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>route53</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>  
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>cloudwatch</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>cloudwatchlogs</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
 

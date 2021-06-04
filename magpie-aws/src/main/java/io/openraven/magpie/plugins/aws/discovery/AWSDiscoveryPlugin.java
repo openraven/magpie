@@ -32,12 +32,10 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsAccountId
 
 public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
+  public final static String ID = "magpie.aws.discovery";
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
-
-  public final static String ID = "magpie.aws.discovery";
-
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new AthenaDiscovery(),
     new BatchDiscovery(),
@@ -47,6 +45,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new CloudSearchDiscovery(),
     new CloudTrailDiscovery(),
     new CloudWatchDiscovery(),
+    new CloudWatchLogsDiscovery(),
     new DynamoDbDiscovery(),
     new EBDiscovery(),
     new EC2Discovery(),
@@ -89,13 +88,13 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         .stream()
         .filter(region -> isDiscoveryEnabledIn(region.toString()))
         .forEach(region -> {
-        try {
-          plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
-        } catch (Exception ex) {
-          logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
-          logger.debug("Details", ex);
-        }
-      }));
+          try {
+            plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
+          } catch (Exception ex) {
+            logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+            logger.debug("Details", ex);
+          }
+        }));
   }
 
   private boolean isEnabled(String svc) {
