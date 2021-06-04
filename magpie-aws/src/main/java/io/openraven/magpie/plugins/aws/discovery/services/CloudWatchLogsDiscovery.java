@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 
 import java.time.Instant;
@@ -43,7 +42,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
 
   @Override
   public List<Region> getSupportedRegions() {
-    return CloudWatchClient.serviceMetadata().regions();
+    return CloudWatchLogsClient.serviceMetadata().regions();
   }
 
   @Override
