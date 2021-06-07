@@ -47,6 +47,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new CloudSearchDiscovery(),
     new CloudTrailDiscovery(),
     new CloudWatchDiscovery(),
+    new ConfigDiscovery(),
     new DynamoDbDiscovery(),
     new EBDiscovery(),
     new EC2Discovery(),
