@@ -52,11 +52,7 @@ public class SecretDiscovery implements  GCPDiscovery{
         .iterateAll()
         .forEach(
           secret -> {
-            var data = new GCPResource(mapper);
-            data.resourceType = RESOURCE_TYPE;
-            data.projectId = projectId;
-            data.resourceName = secret.getName();
-            data.resourceId = secret.getName();
+            var data = new GCPResource(secret.getName(), projectId, RESOURCE_TYPE, mapper);
 
             String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);
             try {

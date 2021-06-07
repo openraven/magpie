@@ -51,11 +51,7 @@ public class FunctionsDiscovery implements GCPDiscovery {
           .build());
 
       response.iterateAll().forEach(function -> {
-        var data = new GCPResource(mapper);
-        data.resourceType = RESOURCE_TYPE;
-        data.projectId = projectId;
-        data.resourceName = function.getName();
-        data.resourceId = function.getName();
+        var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE, mapper);
 
         String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(function);
         try {

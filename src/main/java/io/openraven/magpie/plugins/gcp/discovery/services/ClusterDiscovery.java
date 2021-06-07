@@ -48,11 +48,9 @@ public class ClusterDiscovery implements GCPDiscovery {
         String.format("projects/%s/locations/-", projectId));
 
       response.getClustersList().forEach(cluster -> {
-        var data = new GCPResource(mapper);
-        data.resourceType = RESOURCE_TYPE;
-        data.projectId = projectId;
-        data.resourceName = cluster.getName();
-        data.resourceId = cluster.getName();
+        var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE,mapper);
+
+
 
         String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(cluster);
         try {

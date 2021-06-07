@@ -43,7 +43,11 @@ public class GCPResource {
   private GCPResource() {
   }
 
-  public GCPResource(ObjectMapper mapper) {
+  public GCPResource(String name, String projectId, String resourceType, ObjectMapper mapper) {
+    this.resourceName = name;
+    this.projectId = projectId;
+    this.resourceType = resourceType;
+
     this.configuration = mapper.createObjectNode();
     this.supplementaryConfiguration = mapper.createObjectNode();
     this.tags = mapper.createObjectNode();
@@ -53,9 +57,10 @@ public class GCPResource {
   public ObjectNode toJsonNode(ObjectMapper mapper) {
     var data = mapper.createObjectNode();
 
+    data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(resourceName));
+
     data.put("projectId", projectId);
     data.put("resourceName", resourceName);
-    data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
     data.put("region", region);
     data.put("accountId", accountId);
