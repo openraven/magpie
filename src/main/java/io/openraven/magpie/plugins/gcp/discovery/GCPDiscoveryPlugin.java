@@ -23,10 +23,7 @@ import com.google.cloud.resourcemanager.ResourceManagerOptions;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.services.ClusterDiscovery;
-import io.openraven.magpie.plugins.gcp.discovery.services.FunctionsDiscovery;
-import io.openraven.magpie.plugins.gcp.discovery.services.GCPDiscovery;
-import io.openraven.magpie.plugins.gcp.discovery.services.SecretDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.*;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
 
@@ -46,6 +43,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
   public final static String ID = "magpie.gcp.discovery";
 
   private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
+    new BigQueryDiscovery(),
     new ClusterDiscovery(),
     new SecretDiscovery(),
     new FunctionsDiscovery());

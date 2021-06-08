@@ -20,20 +20,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
-import com.google.cloud.container.v1.ClusterManagerClient;
-import com.google.container.v1.ListClustersResponse;
+import com.google.cloud.bigquery.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.util.List;
 
-public class ClusterDiscovery implements GCPDiscovery {
-  private static final String SERVICE = "cluster";
+public class BigQueryDiscovery implements GCPDiscovery {
+  private static final String SERVICE = "bigQuery";
 
   @Override
   public String service() {
@@ -41,26 +38,22 @@ public class ClusterDiscovery implements GCPDiscovery {
   }
 
   public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::ClusterManager::Cluster";
+    BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
 
-    try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create()) {
-      ListClustersResponse response = clusterManagerClient.listClusters(
-        String.format("projects/%s/locations/-", projectId));
+    final String RESOURCE_TYPE = "GCP::BigQuery::Dataset";
+    bigQuery.listDatasets(projectId)
+      .iterateAll()
+      .forEach(dataset -> {
+        var data = new GCPResource(dataset.getGeneratedId(), projectId, RESOURCE_TYPE, mapper);
 
-      response.getClustersList().forEach(cluster -> {
-        var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE, mapper);
-
-        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(cluster);
+        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(dataset);
         try {
           data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
         } catch (JsonProcessingException e) {
           logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
         }
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataset"), data.toJsonNode(mapper)));
       });
-    } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
-    }
   }
 }
