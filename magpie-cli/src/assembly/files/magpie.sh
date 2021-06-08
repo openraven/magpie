@@ -5,14 +5,14 @@
 
 if [[ ${MAGPIE_DISCOVERY} == true ]] || [[ ${MAGPIE_POLICY:=false} == false ]] ;
 then
-  echo "Executing Magpie Discovery"
-#  ./magpie-discovery
+  echo "Executing Magpie Discovery" >&2
+  ./magpie-discovery "$@"
 fi
 
 if [[ ${MAGPIE_POLICY} == true ]] || [[ ${MAGPIE_DISCOVERY:=false} == false ]] ;
 then
-  echo "Executing Magpie Policy"
-#  ./magpie-policy
+  echo "Executing Magpie Policy" >&2
+  ./magpie-policy "$@"
 fi
 
 
