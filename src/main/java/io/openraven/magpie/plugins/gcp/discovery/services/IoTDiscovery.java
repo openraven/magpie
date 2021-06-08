@@ -16,17 +16,14 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import com.google.cloud.iot.v1.DeviceManagerClient;
-import com.google.cloud.iot.v1.DeviceRegistry;
 import com.google.cloud.iot.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
+import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
@@ -49,18 +46,15 @@ public class IoTDiscovery implements GCPDiscovery {
     try (DeviceManagerClient deviceManagerClient = DeviceManagerClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();
-        for (DeviceRegistry deviceRegistry : deviceManagerClient.listDeviceRegistries(parent).iterateAll()) {
-          var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE, mapper);
 
-          String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(deviceRegistry);
-          try {
-            data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
-          } catch (JsonProcessingException e) {
-            logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
-          }
+        deviceManagerClient.listDeviceRegistries(parent)
+          .iterateAll()
+          .forEach(deviceRegistry -> {
+            var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE, mapper);
+            data.configuration = GCPUtils.asJsonNode(deviceRegistry, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":deviceRegistry"), data.toJsonNode(mapper)));
-        }
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":deviceRegistry"), data.toJsonNode(mapper)));
+          });
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

@@ -16,16 +16,14 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import com.google.cloud.container.v1.ClusterManagerClient;
 import com.google.container.v1.ListClustersResponse;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
+import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
@@ -49,13 +47,7 @@ public class ClusterDiscovery implements GCPDiscovery {
 
       response.getClustersList().forEach(cluster -> {
         var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE, mapper);
-
-        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(cluster);
-        try {
-          data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
-        } catch (JsonProcessingException e) {
-          logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
-        }
+        data.configuration = GCPUtils.asJsonNode(cluster, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
       });

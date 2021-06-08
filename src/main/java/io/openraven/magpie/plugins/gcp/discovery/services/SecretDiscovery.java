@@ -16,23 +16,21 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
+import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
 
-public class SecretDiscovery implements  GCPDiscovery{
+public class SecretDiscovery implements GCPDiscovery {
   private static final String SERVICE = "secret";
 
   @Override
@@ -45,24 +43,15 @@ public class SecretDiscovery implements  GCPDiscovery{
 
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
       ProjectName projectName = ProjectName.of(projectId);
-      
-      SecretManagerServiceClient.ListSecretsPagedResponse pagedResponse = client.listSecrets(projectName);
 
-      pagedResponse
+      client.listSecrets(projectName)
         .iterateAll()
-        .forEach(
-          secret -> {
-            var data = new GCPResource(secret.getName(), projectId, RESOURCE_TYPE, mapper);
+        .forEach(secret -> {
+          var data = new GCPResource(secret.getName(), projectId, RESOURCE_TYPE, mapper);
+          data.configuration = GCPUtils.asJsonNode(secret, mapper);
 
-            String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(secret);
-            try {
-              data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
-            } catch (JsonProcessingException e) {
-              logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
-            }
-
-            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
-          });
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
+        });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }

@@ -25,7 +25,6 @@ import java.time.Instant;
 public class GCPResource {
   public String projectId;
   public String resourceName;
-  public String resourceId;
   public String resourceType;
   public String region;
   public String accountId;

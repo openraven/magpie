@@ -16,10 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import com.google.cloud.functions.v1.CloudFunctionsServiceClient;
 import com.google.cloud.functions.v1.ListFunctionsRequest;
 import com.google.cloud.functions.v1.LocationName;
@@ -27,6 +24,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
+import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
@@ -52,15 +50,9 @@ public class FunctionsDiscovery implements GCPDiscovery {
 
       response.iterateAll().forEach(function -> {
         var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE, mapper);
+        data.configuration = GCPUtils.asJsonNode(function, mapper);
 
-        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(function);
-        try {
-          data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
-        } catch (JsonProcessingException e) {
-          logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
-        }
-
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function") , data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

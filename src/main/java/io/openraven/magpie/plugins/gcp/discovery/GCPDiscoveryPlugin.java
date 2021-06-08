@@ -32,26 +32,28 @@ import java.util.List;
 
 public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
+  public final static String ID = "magpie.gcp.discovery";
+
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
-
-  private Logger logger;
-
-  GCPDiscoveryConfig config;
-
-  public final static String ID = "magpie.gcp.discovery";
 
   private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
     new BigQueryDiscovery(),
     new ClusterDiscovery(),
     new SecretDiscovery(),
     new RedisDiscovery(),
+    new MemcacheDiscovery(),
+    new IoTDiscovery(),
     new FunctionsDiscovery());
+
+  GCPDiscoveryConfig config;
+
+  private Logger logger;
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    getProjectList().forEach( project -> DISCOVERY_LIST
+    getProjectList().forEach(project -> DISCOVERY_LIST
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gcpDiscovery ->

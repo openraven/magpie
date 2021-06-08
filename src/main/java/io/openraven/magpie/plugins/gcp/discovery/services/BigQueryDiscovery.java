@@ -16,14 +16,13 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
+import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
@@ -45,13 +44,7 @@ public class BigQueryDiscovery implements GCPDiscovery {
       .iterateAll()
       .forEach(dataset -> {
         var data = new GCPResource(dataset.getGeneratedId(), projectId, RESOURCE_TYPE, mapper);
-
-        String secretJsonString = new GsonBuilder().setPrettyPrinting().create().toJson(dataset);
-        try {
-          data.configuration = mapper.readValue(secretJsonString, JsonNode.class);
-        } catch (JsonProcessingException e) {
-          logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
-        }
+        data.configuration = GCPUtils.asJsonNode(dataset, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataset"), data.toJsonNode(mapper)));
       });
