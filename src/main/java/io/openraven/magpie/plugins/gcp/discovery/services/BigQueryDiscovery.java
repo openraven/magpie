@@ -40,8 +40,7 @@ public class BigQueryDiscovery implements GCPDiscovery {
     BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
 
     final String RESOURCE_TYPE = "GCP::BigQuery::Dataset";
-    bigQuery.listDatasets(projectId)
-      .iterateAll()
+    bigQuery.listDatasets(projectId).iterateAll()
       .forEach(dataset -> {
         var data = new GCPResource(dataset.getGeneratedId(), projectId, RESOURCE_TYPE, mapper);
         data.configuration = GCPUtils.asJsonNode(dataset, mapper);

@@ -45,12 +45,13 @@ public class ClusterDiscovery implements GCPDiscovery {
       ListClustersResponse response = clusterManagerClient.listClusters(
         String.format("projects/%s/locations/-", projectId));
 
-      response.getClustersList().forEach(cluster -> {
-        var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE, mapper);
-        data.configuration = GCPUtils.asJsonNode(cluster, mapper);
+      response.getClustersList()
+        .forEach(cluster -> {
+          var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE, mapper);
+          data.configuration = GCPUtils.asJsonNode(cluster, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
-      });
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+        });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }

@@ -43,8 +43,7 @@ public class MemcacheDiscovery implements GCPDiscovery {
 
     try (CloudMemcacheClient cloudMemcacheClient = CloudMemcacheClient.create()) {
       String parent = LocationName.of(projectId, "-").toString();
-      cloudMemcacheClient.listInstances(parent)
-        .iterateAll()
+      cloudMemcacheClient.listInstances(parent).iterateAll()
         .forEach(element -> {
           var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE, mapper);
           data.configuration = GCPUtils.asJsonNode(element, mapper);

@@ -48,12 +48,13 @@ public class FunctionsDiscovery implements GCPDiscovery {
           setParent(LocationName.of(projectId, "-").toString())
           .build());
 
-      response.iterateAll().forEach(function -> {
-        var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE, mapper);
-        data.configuration = GCPUtils.asJsonNode(function, mapper);
+      response.iterateAll()
+        .forEach(function -> {
+          var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE, mapper);
+          data.configuration = GCPUtils.asJsonNode(function, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
-      });
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
+        });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }

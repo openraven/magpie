@@ -44,8 +44,7 @@ public class SecretDiscovery implements GCPDiscovery {
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
       ProjectName projectName = ProjectName.of(projectId);
 
-      client.listSecrets(projectName)
-        .iterateAll()
+      client.listSecrets(projectName).iterateAll()
         .forEach(secret -> {
           var data = new GCPResource(secret.getName(), projectId, RESOURCE_TYPE, mapper);
           data.configuration = GCPUtils.asJsonNode(secret, mapper);

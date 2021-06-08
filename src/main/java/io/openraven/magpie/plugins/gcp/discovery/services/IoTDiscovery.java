@@ -47,8 +47,7 @@ public class IoTDiscovery implements GCPDiscovery {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();
 
-        deviceManagerClient.listDeviceRegistries(parent)
-          .iterateAll()
+        deviceManagerClient.listDeviceRegistries(parent).iterateAll()
           .forEach(deviceRegistry -> {
             var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE, mapper);
             data.configuration = GCPUtils.asJsonNode(deviceRegistry, mapper);
