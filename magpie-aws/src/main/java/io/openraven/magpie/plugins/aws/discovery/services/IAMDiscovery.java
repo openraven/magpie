@@ -45,6 +45,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 public class IAMDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "iam";
+  private static final String AWS_LINE_SEPARATOR = "/n";
 
   @Override
   public String service() {
@@ -400,7 +401,7 @@ public class IAMDiscovery implements AWSDiscovery {
     var report = client.getCredentialReport();
     String reportContent = report.content().asUtf8String();
 
-    String[] reportLines = reportContent.split(System.getProperty("line.separator"));
+    String[] reportLines = reportContent.split(AWS_LINE_SEPARATOR);
 
     for (int i = 1; i < reportLines.length; i++) {
       var credential = new IAMCredential(reportLines[i]);
