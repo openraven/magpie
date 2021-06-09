@@ -58,6 +58,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
     try {
       client.describeMetricFiltersPaginator().metricFilters().forEach(metricFilter -> {
         var data = new AWSResource(metricFilter.toBuilder(), region.toString(), account, mapper);
+        // Fabricated arn - metric filters don't have arn
         data.arn = String.format("arn:aws:cloudwatchlogs:%s:%s:metric-filter/%s", region, account, metricFilter.filterName());
         data.resourceName = metricFilter.filterName();
         data.resourceType = RESOURCE_TYPE;
