@@ -32,6 +32,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
 import software.amazon.awssdk.services.iam.model.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +62,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final var client = IamClient.builder().region(region).build();
 
     discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
-    discoverAccounts(client, mapper, session, region, emitter, account);
+    discoverAccount(client, mapper, session, region, emitter, account);
     discoverGroups(client, mapper, session, region, emitter, account);
     discoverUsers(client, mapper, session, region, emitter, account);
     discoverRoles(client, mapper, session, region, emitter, account);
@@ -129,7 +131,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Policy";
 
     try {
-      client.listPoliciesPaginator(builder -> builder.scope(PolicyScopeType.LOCAL)).policies().forEach(policy -> {
+      client.listPoliciesPaginator().policies().forEach(policy -> {
         var data = new AWSResource(policy.toBuilder(), region.toString(), account, mapper);
         data.arn = policy.arn();
         data.resourceId = policy.policyId();
@@ -156,7 +158,7 @@ public class IAMDiscovery implements AWSDiscovery {
           .findFirst();
         currentPolicy.ifPresent(policyVersion -> getAwsResponse(
           () -> client.getPolicyVersion(GetPolicyVersionRequest.builder().policyArn(policy.arn()).versionId(policyVersion.versionId()).build()),
-          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", innerResp.policyVersion().document()))),
+          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", URLDecoder.decode(innerResp.policyVersion().document(), StandardCharsets.UTF_8)))),
           (innerNoresp) -> {
           }
         ));
@@ -312,17 +314,17 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverAccount(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
-      var data = new AWSResource(null, region.toString(), account, mapper);
+      var accountSummary = client.getAccountSummary();
+      var data = new AWSResource(accountSummary.summaryMapAsStrings(), region.toString(), account, mapper);
       data.resourceType = RESOURCE_TYPE;
-      data.arn = RESOURCE_TYPE;
+      data.arn = RESOURCE_TYPE + ":" + region + ":" + account;
 
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
-      discoverAccountSummary(client, data);
       discoverVirtualMFADevices(client, data);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode(mapper)));
@@ -341,20 +343,10 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccountPasswordPolicy(IamClient client, AWSResource data) {
-    final String keyname = "PasswordPolicy";
+    final String keyname = "passwordPolicy";
 
     getAwsResponse(
       () -> client.getAccountPasswordPolicy().passwordPolicy(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
-  }
-
-  private void discoverAccountSummary(IamClient client, AWSResource data) {
-    final String keyname = "summaryMap";
-
-    getAwsResponse(
-      () -> client.getAccountSummary().summaryMapAsStrings(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
