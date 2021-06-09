@@ -17,8 +17,8 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.iot.v1.DeviceManagerClient;
-import com.google.cloud.iot.v1.LocationName;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.cloud.iot.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
@@ -28,6 +28,7 @@ import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class IoTDiscovery implements GCPDiscovery {
@@ -52,11 +53,31 @@ public class IoTDiscovery implements GCPDiscovery {
             var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE, mapper);
             data.configuration = GCPUtils.asJsonNode(deviceRegistry, mapper);
 
+            discoverDevices(projectId, mapper, deviceManagerClient, location, deviceRegistry, data);
+
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":deviceRegistry"), data.toJsonNode(mapper)));
           });
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }
+  }
+
+  private void discoverDevices(String projectId,
+                               ObjectMapper mapper,
+                               DeviceManagerClient deviceManagerClient,
+                               String location,
+                               DeviceRegistry deviceRegistry,
+                               GCPResource data) {
+    final String fieldName = "devices";
+
+    ArrayList<Device.Builder> list = new ArrayList<>();
+
+    String devicesParent = RegistryName.of(projectId, location, deviceRegistry.getId()).toString();
+    deviceManagerClient.listDevices(devicesParent).iterateAll()
+      .forEach(device -> list.add(device.toBuilder()));
+
+    ObjectNode o = (ObjectNode) data.supplementaryConfiguration;
+    o.set(fieldName, GCPUtils.asJsonNode(list, mapper));
   }
 }
