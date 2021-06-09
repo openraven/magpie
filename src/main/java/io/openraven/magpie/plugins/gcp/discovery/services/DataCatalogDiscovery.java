@@ -17,11 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.datacatalog.v1.DataCatalogClient;
-import com.google.cloud.datacatalog.v1.EntryGroup;
-import com.google.cloud.datacatalog.v1.EntryGroupName;
-import com.google.cloud.secretmanager.v1.ProjectName;
-import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
+import com.google.cloud.datacatalog.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
@@ -36,6 +34,41 @@ import java.util.List;
 public class DataCatalogDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dataCatalog";
 
+  // For some reason we can't just use "-" for all location, so we iterate over them all
+  private static final List<String> AVAILABLE_LOCATIONS = List.of(
+    "asia",
+    "asia-east1",
+    "asia-east2",
+    "asia-northeast1",
+    "asia-northeast2",
+    "asia-northeast3",
+    "asia-south1",
+    "asia-south2",
+    "asia-southeast1",
+    "asia-southeast2",
+    "australia-southeast1",
+    "australia-southeast2",
+    "eu",
+    "europe-central2",
+    "europe-north1",
+    "europe-west1",
+    "europe-west2",
+    "europe-west3",
+    "europe-west4",
+    "europe-west5",
+    "europe-west6",
+    "northamerica-northeast1",
+    "northamerica-northeast2",
+    "southamerica-east1",
+    "us-central1",
+    "us-central2",
+    "us-east1",
+    "us-east4",
+    "us-west1",
+    "us-west2",
+    "us-west3",
+    "us-west4");
+
   @Override
   public String service() {
     return SERVICE;
@@ -44,15 +77,18 @@ public class DataCatalogDiscovery implements GCPDiscovery {
   public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::DataCatalog::Entry";
 
-    // for some reason this doesn't work
-    // <p>The requested URL <code>/google.cloud.datacatalog.v1.DataCatalog/ListEntryGroups</code> was not found on this server.  <ins>That’s all we know.</ins>
     try (DataCatalogClient dataCatalogClient = DataCatalogClient.create()) {
-      String parent = EntryGroupName.of(projectId, "-", "-").toString();
-      dataCatalogClient.listEntryGroups(parent).iterateAll().forEach(entryGroup -> {
-        var data = new GCPResource(entryGroup.getName(), projectId, RESOURCE_TYPE, mapper);
-        data.configuration = GCPUtils.asJsonNode(entryGroup, mapper);
+      AVAILABLE_LOCATIONS.forEach(location -> {
+        try {
+          String parent = LocationName.of(projectId, location).toString();
+          dataCatalogClient.listEntryGroups(parent).iterateAll().forEach(entryGroup -> {
+            var data = new GCPResource(entryGroup.getName(), projectId, RESOURCE_TYPE, mapper);
+            data.configuration = GCPUtils.asJsonNode(entryGroup, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":entry"), data.toJsonNode(mapper)));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":entry"), data.toJsonNode(mapper)));
+          });
+        } catch (NotFoundException ignored) {
+        }
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
