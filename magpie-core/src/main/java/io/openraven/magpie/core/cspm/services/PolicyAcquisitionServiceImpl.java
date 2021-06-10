@@ -194,7 +194,9 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       String stderr = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
 
       LOGGER.info("Standard output: {}", stdout);
-      LOGGER.info("Error output: {}", stderr);
+      if (!stderr.isEmpty()) {
+        LOGGER.info("Error output: {}", stderr);
+      }
 
       return stdout;
     } catch (IOException e) {
