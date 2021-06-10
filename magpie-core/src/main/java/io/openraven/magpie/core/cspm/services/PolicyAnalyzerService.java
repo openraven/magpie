@@ -21,7 +21,7 @@ public interface PolicyAnalyzerService {
    * @return A list of violations, or an empty list of none are found.
    * @throws IOException
    */
-  List<Violation> analyze(List<PolicyContext> policies) throws Exception;
+  List<Violation> analyze(List<PolicyContext> policies);
 
   String evaluate(Rule rule, Object resultSet) throws Exception;
 }

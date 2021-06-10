@@ -73,14 +73,10 @@ public class Policy {
       PolicyAnalyzerService analyzerService = new PolicyAnalyzerServiceImpl();
       analyzerService.init(config);
       Duration scanDuration;
-      try {
-        List<Violation> violations = analyzerService.analyze(policies);
-        scanDuration = Duration.between(start, Instant.now());
-        ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
-        reportService.generateReport(policies, violations);
-      } catch (Exception e) {
-        LOGGER.error("Analyze error: {}", e.getMessage());
-      }
+      List<Violation> violations = analyzerService.analyze(policies);
+      scanDuration = Duration.between(start, Instant.now());
+      ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
+      reportService.generateReport(policies, violations);
     }
 
     LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
