@@ -219,11 +219,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         .split("/");
       return
         Path.of(String.format(
-            "%s/%s/%s/%s",
-            policyConfig.getRoot().replace("~", System.getProperty("user.home")),
-            tokens[0],
-            tokens[1],
-            getProjectNameFromRepository(repository)));
+          "%s/%s/%s/%s",
+          policyConfig.getRoot().replace("~", System.getProperty("user.home")),
+          tokens[0],
+          tokens[1],
+          getProjectNameFromRepository(repository)));
     } else {
       return Path.of(String.format(
         "%s/%s",
