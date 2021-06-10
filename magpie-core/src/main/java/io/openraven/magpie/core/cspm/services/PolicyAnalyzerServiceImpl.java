@@ -9,6 +9,7 @@ import io.openraven.magpie.core.cspm.Violation;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
 import org.jdbi.v3.postgres.PostgresPlugin;
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
@@ -19,10 +20,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAnalyzerServiceImpl.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Pattern MISSING_TABLE_PATTERN = Pattern.compile("\"(\\S+?)\" does not exist");
   private Jdbi jdbi;
 
   @Override
@@ -57,30 +61,41 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
           LOGGER.info("Analyzing rule - {}", rule.getName());
           LocalDateTime evaluatedAt = LocalDateTime.now();
 
-          var results = jdbi.withHandle(handle -> {
-            return handle.createQuery(rule.getSql()).mapToMap().list();
-          });
+          try {
+            var results = jdbi.withHandle(handle -> {
+              return handle.createQuery(rule.getSql()).mapToMap().list();
+            });
 
-          StringWriter evalOut = new StringWriter();
-          StringWriter evalErr = new StringWriter();
-          if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
-            try {
-              evalOut.append(evaluate(rule, results));
-            } catch (Exception e) {
-              evalErr.append(e.getMessage());
+            StringWriter evalOut = new StringWriter();
+            StringWriter evalErr = new StringWriter();
+            if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
+              try {
+                evalOut.append(evaluate(rule, results));
+              } catch (Exception e) {
+                evalErr.append(e.getMessage());
+              }
+            }
+
+            results.forEach(result -> {
+              Violation violation = new Violation();
+              violation.setPolicyId(policy.getPolicy().getId());
+              violation.setRuleId(rule.getId());
+              violation.setAssetId(result.get("arn").toString());
+              violation.setInfo(policy.getPolicy().getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut.toString()));
+              violation.setError(evalErr.toString());
+              violation.setEvaluatedAt(evaluatedAt);
+              violations.add(violation);
+            });
+          } catch (UnableToExecuteStatementException ex) {
+            var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
+            if (!missingTables.isEmpty()) {
+              final var tableName = missingTables.get(0).group(1);
+              LOGGER.info("No asset table found for rule, ignoring. [table={}, rule={}]", tableName, rule.getName());
+              LOGGER.trace("Could not evaluate rule", ex);
+            } else {
+              throw ex;
             }
           }
-
-          results.forEach(result -> {
-            Violation violation = new Violation();
-            violation.setPolicyId(policy.getPolicy().getId());
-            violation.setRuleId(rule.getId());
-            violation.setAssetId(result.get("arn").toString());
-            violation.setInfo(policy.getPolicy().getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut.toString()));
-            violation.setError(evalErr.toString());
-            violation.setEvaluatedAt(evaluatedAt);
-            violations.add(violation);
-          });
         }
       });
     });
