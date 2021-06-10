@@ -11,6 +11,7 @@ public class Rule {
   private String description;
   private Severity severity;
   private boolean enabled = true;
+  private boolean manualControl = false;
   private String sql;
   private String eval;
   private String remediation;
@@ -22,6 +23,14 @@ public class Rule {
 
   public Rule(String id) {
     this.id = id;
+  }
+
+  public boolean isManualControl() {
+    return manualControl;
+  }
+
+  public void setManualControl(boolean manualControl) {
+    this.manualControl = manualControl;
   }
 
   public String getVersion() {
