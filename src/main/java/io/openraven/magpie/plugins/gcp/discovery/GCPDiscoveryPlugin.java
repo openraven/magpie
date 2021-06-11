@@ -16,8 +16,6 @@
 
 package io.openraven.magpie.plugins.gcp.discovery;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.cloud.resourcemanager.Project;
 import com.google.cloud.resourcemanager.ResourceManagerOptions;
 import io.openraven.magpie.api.Emitter;
@@ -34,10 +32,6 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   public final static String ID = "magpie.gcp.discovery";
 
-  protected static final ObjectMapper MAPPER = new ObjectMapper()
-    .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-    .findAndRegisterModules();
-
   private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
     new BigQueryDiscovery(),
     new ClusterDiscovery(),
@@ -46,6 +40,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new MemcacheDiscovery(),
     new IoTDiscovery(),
     new DataCatalogDiscovery(),
+    new TasksDiscovery(),
     new FunctionsDiscovery());
 
   GCPDiscoveryConfig config;
@@ -58,7 +53,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gcpDiscovery ->
-        gcpDiscovery.discoverWrapper(project.getProjectId(), MAPPER, session, emitter, logger)));
+        gcpDiscovery.discoverWrapper(project.getProjectId(), session, emitter, logger)));
   }
 
   Iterable<Project> getProjectList() {

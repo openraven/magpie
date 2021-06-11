@@ -16,8 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.iot.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
@@ -41,7 +40,7 @@ public class IoTDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::IoT::deviceRegistry";
 
     try (DeviceManagerClient deviceManagerClient = DeviceManagerClient.create()) {
@@ -50,12 +49,12 @@ public class IoTDiscovery implements GCPDiscovery {
 
         deviceManagerClient.listDeviceRegistries(parent).iterateAll()
           .forEach(deviceRegistry -> {
-            var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE, mapper);
-            data.configuration = GCPUtils.asJsonNode(deviceRegistry, mapper);
+            var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE);
+            data.configuration = GCPUtils.asJsonNode(deviceRegistry);
 
-            discoverDevices(projectId, mapper, deviceManagerClient, location, deviceRegistry, data);
+            discoverDevices(deviceManagerClient, deviceRegistry, data);
 
-            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":deviceRegistry"), data.toJsonNode(mapper)));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":deviceRegistry"), data.toJsonNode()));
           });
       });
     } catch (IOException e) {
@@ -63,21 +62,15 @@ public class IoTDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverDevices(String projectId,
-                               ObjectMapper mapper,
-                               DeviceManagerClient deviceManagerClient,
-                               String location,
+  private void discoverDevices(DeviceManagerClient deviceManagerClient,
                                DeviceRegistry deviceRegistry,
                                GCPResource data) {
     final String fieldName = "devices";
 
     ArrayList<Device.Builder> list = new ArrayList<>();
-
-    String devicesParent = RegistryName.of(projectId, location, deviceRegistry.getId()).toString();
-    deviceManagerClient.listDevices(devicesParent).iterateAll()
+    deviceManagerClient.listDevices(deviceRegistry.getName()).iterateAll()
       .forEach(device -> list.add(device.toBuilder()));
 
-    ObjectNode o = (ObjectNode) data.supplementaryConfiguration;
-    o.set(fieldName, GCPUtils.asJsonNode(list, mapper));
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 }

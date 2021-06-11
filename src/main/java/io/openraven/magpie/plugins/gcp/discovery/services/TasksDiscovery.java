@@ -16,11 +16,12 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.google.api.gax.rpc.NotFoundException;
+import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
-import com.google.cloud.datacatalog.v1.DataCatalogClient;
-import com.google.cloud.datacatalog.v1.Entry;
-import com.google.cloud.datacatalog.v1.LocationName;
+import com.google.cloud.iot.v1.LocationName;
+import com.google.cloud.tasks.v2.CloudTasksClient;
+import com.google.cloud.tasks.v2.Queue;
+import com.google.cloud.tasks.v2.Task;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
@@ -33,12 +34,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DataCatalogDiscovery implements GCPDiscovery {
-  private static final String SERVICE = "dataCatalog";
+public class TasksDiscovery implements GCPDiscovery {
+  private static final String SERVICE = "tasks";
 
-  // For some reason we can't just use "-" for all location, so we iterate over them all
   private static final List<String> AVAILABLE_LOCATIONS = List.of(
-    "asia",
     "asia-east1",
     "asia-east2",
     "asia-northeast1",
@@ -50,7 +49,6 @@ public class DataCatalogDiscovery implements GCPDiscovery {
     "asia-southeast2",
     "australia-southeast1",
     "australia-southeast2",
-    "eu",
     "europe-central2",
     "europe-north1",
     "europe-west1",
@@ -77,21 +75,21 @@ public class DataCatalogDiscovery implements GCPDiscovery {
   }
 
   public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::DataCatalog::EntryGroup";
+    final String RESOURCE_TYPE = "GCP::Tasks::Queue";
 
-    try (DataCatalogClient dataCatalogClient = DataCatalogClient.create()) {
+    try (CloudTasksClient cloudTasksClient = CloudTasksClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
-          String parent = LocationName.of(projectId, location).toString();
-          dataCatalogClient.listEntryGroups(parent).iterateAll().forEach(entryGroup -> {
-            var data = new GCPResource(entryGroup.getName(), projectId, RESOURCE_TYPE);
-            data.configuration = GCPUtils.asJsonNode(entryGroup);
+          LocationName parent = LocationName.of(projectId, location);
+          for (Queue element : cloudTasksClient.listQueues(parent.toString()).iterateAll()) {
+            var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
+            data.configuration = GCPUtils.asJsonNode(element);
 
-            discoverEntries(dataCatalogClient, entryGroup, data);
+            discoverTasks(cloudTasksClient, element, data);
 
-            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":entryGroup"), data.toJsonNode()));
-          });
-        } catch (NotFoundException ignored) {
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":queue"), data.toJsonNode()));
+          }
+        } catch (InvalidArgumentException ignored) {
         }
       });
     } catch (IOException e) {
@@ -99,13 +97,14 @@ public class DataCatalogDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverEntries(DataCatalogClient dataCatalogClient, com.google.cloud.datacatalog.v1.EntryGroup entryGroup, GCPResource data) {
-    final String fieldName = "entries";
+  private void discoverTasks(CloudTasksClient client,
+                             Queue queue,
+                             GCPResource data) {
+    final String fieldName = "tasks";
 
-    ArrayList<Entry.Builder> list = new ArrayList<>();
-
-    dataCatalogClient.listEntries(entryGroup.getName()).iterateAll()
-      .forEach(device -> list.add(device.toBuilder()));
+    ArrayList<Task.Builder> list = new ArrayList<>();
+    client.listTasks(queue.getName()).iterateAll()
+      .forEach(task -> list.add(task.toBuilder()));
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }

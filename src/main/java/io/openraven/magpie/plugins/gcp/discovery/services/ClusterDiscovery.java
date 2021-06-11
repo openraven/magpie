@@ -16,7 +16,6 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.container.v1.ClusterManagerClient;
 import com.google.container.v1.ListClustersResponse;
 import io.openraven.magpie.api.Emitter;
@@ -38,7 +37,7 @@ public class ClusterDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::ClusterManager::Cluster";
 
     try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create()) {
@@ -47,10 +46,10 @@ public class ClusterDiscovery implements GCPDiscovery {
 
       response.getClustersList()
         .forEach(cluster -> {
-          var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE, mapper);
-          data.configuration = GCPUtils.asJsonNode(cluster, mapper);
+          var data = new GCPResource(cluster.getName(), projectId, RESOURCE_TYPE);
+          data.configuration = GCPUtils.asJsonNode(cluster);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
         });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

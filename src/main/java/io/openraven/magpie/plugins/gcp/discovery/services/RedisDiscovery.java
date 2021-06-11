@@ -16,7 +16,6 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.redis.v1.CloudRedisClient;
 import com.google.cloud.redis.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
@@ -38,17 +37,17 @@ public class RedisDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::Redis::instance";
 
     try (CloudRedisClient cloudRedisClient = CloudRedisClient.create()) {
       String parent = LocationName.of(projectId, "-").toString();
       cloudRedisClient.listInstances(parent).iterateAll()
         .forEach(element -> {
-          var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE, mapper);
-          data.configuration = GCPUtils.asJsonNode(element, mapper);
+          var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
+          data.configuration = GCPUtils.asJsonNode(element);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
         });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

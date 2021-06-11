@@ -16,7 +16,6 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.functions.v1.CloudFunctionsServiceClient;
 import com.google.cloud.functions.v1.ListFunctionsRequest;
 import com.google.cloud.functions.v1.LocationName;
@@ -39,7 +38,7 @@ public class FunctionsDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::Functions::Function";
 
     try (CloudFunctionsServiceClient clusterManagerClient = CloudFunctionsServiceClient.create()) {
@@ -50,10 +49,10 @@ public class FunctionsDiscovery implements GCPDiscovery {
 
       response.iterateAll()
         .forEach(function -> {
-          var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE, mapper);
-          data.configuration = GCPUtils.asJsonNode(function, mapper);
+          var data = new GCPResource(function.getName(), projectId, RESOURCE_TYPE);
+          data.configuration = GCPUtils.asJsonNode(function);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode()));
         });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

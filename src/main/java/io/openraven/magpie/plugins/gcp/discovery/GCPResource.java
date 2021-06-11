@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 
 public class GCPResource {
+  private final ObjectMapper mapper = GCPUtils.createObjectMapper();
+
   public String projectId;
   public String resourceName;
   public String resourceType;
@@ -39,10 +41,7 @@ public class GCPResource {
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
-  private GCPResource() {
-  }
-
-  public GCPResource(String name, String projectId, String resourceType, ObjectMapper mapper) {
+  public GCPResource(String name, String projectId, String resourceType) {
     this.resourceName = name;
     this.projectId = projectId;
     this.resourceType = resourceType;
@@ -53,7 +52,7 @@ public class GCPResource {
     this.discoveryMeta = mapper.createObjectNode();
   }
 
-  public ObjectNode toJsonNode(ObjectMapper mapper) {
+  public ObjectNode toJsonNode() {
     var data = mapper.createObjectNode();
 
     data.put("documentId", EncodedNamedUUIDGenerator.getEncodedNamedUUID(resourceName));

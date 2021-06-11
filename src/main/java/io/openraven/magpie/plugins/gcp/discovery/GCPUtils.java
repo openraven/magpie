@@ -19,6 +19,9 @@ package io.openraven.magpie.plugins.gcp.discovery;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import org.slf4j.Logger;
@@ -26,8 +29,15 @@ import org.slf4j.LoggerFactory;
 
 public class GCPUtils {
   private static final Logger logger = LoggerFactory.getLogger(AWSUtils.class);
+  private static final ObjectMapper mapper = createObjectMapper();
 
-  public static JsonNode asJsonNode(Object object, ObjectMapper mapper) {
+  public  static ObjectMapper createObjectMapper() {
+    return  new ObjectMapper()
+      .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+      .findAndRegisterModules();
+  }
+
+  public static JsonNode asJsonNode(Object object) {
     String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(object);
 
     try {
@@ -37,5 +47,10 @@ public class GCPUtils {
     }
 
     return mapper.createObjectNode();
+  }
+
+  public static void update(JsonNode payload, Pair<String, Object> objectPair) {
+    ObjectNode o = (ObjectNode) payload;
+    o.set(objectPair.first, GCPUtils.asJsonNode(objectPair.second));
   }
 }
