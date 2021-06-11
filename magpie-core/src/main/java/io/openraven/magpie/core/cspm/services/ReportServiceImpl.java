@@ -21,31 +21,36 @@ public class ReportServiceImpl implements ReportService {
 
   private String humanReadableFormat(Duration duration) {
     return duration.toString()
-            .substring(2)
-            .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-            .toLowerCase();
+      .substring(2)
+      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+      .toLowerCase();
   }
 
   @Override
   public void generateReport(List<PolicyContext> policies, List<Violation> violations) {
-    final String BOLD = "\033[1m";
+    final String BOLD_SET = "\033[1m";
     final String BOLD_RESET = "\033[0m";
+    final int COLUMN_WIDTH = 60;
+    final int GUID_COLUMN_WIDTH = 50;
 
-    System.out.println(BOLD + "Scan Summary:" + BOLD_RESET);
+    System.out.println(BOLD_SET + "Scan Summary:" + BOLD_RESET);
     System.out.printf("%-30s%-40s\n", "Scan start time", this.scanMetadata.getStartDateTime().toString());
     System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(this.scanMetadata.getDuration()));
     System.out.printf("%-30s%-40d\n\n", "Total violations found", violations.size());
 
-    System.out.println(BOLD + "Scan Per-policy Details:" + BOLD_RESET);
+    System.out.println(BOLD_SET + "Scan Per-policy Details:" + BOLD_RESET);
     policies.forEach(policy -> {
       System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getName());
       var policyViolations = violations.stream().filter(violation -> violation.getPolicyId().equals(policy.getPolicy().getId())).collect(Collectors.toList());
       System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations.size());
       System.out.printf("%-30s\n", "Violations");
-      System.out.printf(BOLD + "%-2s%-50s%-50s%-50s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
+      System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
       policyViolations.forEach(policyViolation -> {
         Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
-        System.out.printf("%-2s%-50s%-50s%-50s\n", "", policyViolation.getAssetId(), violatedRule.getId(), violatedRule.getName().replace(System.lineSeparator(), ""));
+        String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ? policyViolation.getAssetId().substring(0, COLUMN_WIDTH - 4) + "..." : policyViolation.getAssetId();
+        String ruleName = violatedRule.getName().replace(System.lineSeparator(), "");
+        ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - 4) + "..." : ruleName;
+        System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), ruleName);
       });
       System.out.printf("\n");
     });
