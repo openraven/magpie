@@ -20,20 +20,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeFlowLogsRequest;
+import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ec2.model.Vpc;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class VPCDiscovery implements AWSDiscovery {
@@ -69,11 +71,24 @@ public class VPCDiscovery implements AWSDiscovery {
         data.resourceType = RESOURCE_TYPE;
         data.tags = getConvertedTags(vpc.tags(), mapper);
 
+        discoverFlowLogs(client, data, vpc);
+
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private void discoverFlowLogs(Ec2Client client, AWSResource data, Vpc vpc) {
+    final String keyname = "flowLogs";
+    var flowLogsFilter = Filter.builder().name("resource-id").values(List.of(vpc.vpcId())).build();
+
+    getAwsResponse(
+      () -> client.describeFlowLogs(DescribeFlowLogsRequest.builder().filter(flowLogsFilter).build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
   }
 
   private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
