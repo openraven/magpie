@@ -194,7 +194,9 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       String stderr = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
 
       LOGGER.info("Standard output: {}", stdout);
-      LOGGER.info("Error output: {}", stderr);
+      if (!stderr.isEmpty()) {
+        LOGGER.info("Error output: {}", stderr);
+      }
 
       return stdout;
     } catch (IOException e) {
@@ -219,11 +221,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         .split("/");
       return
         Path.of(String.format(
-            "%s/%s/%s/%s",
-            policyConfig.getRoot().replace("~", System.getProperty("user.home")),
-            tokens[0],
-            tokens[1],
-            getProjectNameFromRepository(repository)));
+          "%s/%s/%s/%s",
+          policyConfig.getRoot().replace("~", System.getProperty("user.home")),
+          tokens[0],
+          tokens[1],
+          getProjectNameFromRepository(repository)));
     } else {
       return Path.of(String.format(
         "%s/%s",

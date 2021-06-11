@@ -12,7 +12,7 @@
   <artifactId>magpie-aws</artifactId>
 
   <properties>
-    <project.version>${version}</project.version>
+    <project.version>${project.version}</project.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <aws.sdk.version>2.15.69</aws.sdk.version>
@@ -93,7 +93,7 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
-     <groupId>software.amazon.awssdk</groupId>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>elasticache</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -159,6 +159,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>location</artifactId>
+      <version>2.16.76</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>lightsail</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -166,7 +171,7 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>qldb</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>  
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
@@ -206,10 +211,15 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>route53</artifactId>
       <version>${aws.sdk.version}</version>
-    </dependency>  
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>cloudwatch</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>cloudwatchlogs</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
 
