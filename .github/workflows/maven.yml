@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main, cspm ]
+    branches: [ main, cspm, cspm_docker ]
 
 jobs:
   build:
