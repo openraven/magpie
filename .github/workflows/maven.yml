@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, cspm ]
 
 jobs:
   build:
@@ -60,5 +60,5 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: quay.io/openraven/magpie:latest
+          tags: quay.io/openraven/magpie-cspm:latest
 
