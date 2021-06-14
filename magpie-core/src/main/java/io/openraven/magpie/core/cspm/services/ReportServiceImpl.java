@@ -47,9 +47,10 @@ public class ReportServiceImpl implements ReportService {
       System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
       policyViolations.forEach(policyViolation -> {
         Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
-        String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ? policyViolation.getAssetId().substring(0, COLUMN_WIDTH - 4) + "..." : policyViolation.getAssetId();
+        String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
+          "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
         String ruleName = violatedRule.getName().replace(System.lineSeparator(), "");
-        ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - 4) + "..." : ruleName;
+        ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : ruleName;
         System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), ruleName);
       });
       System.out.printf("\n");
