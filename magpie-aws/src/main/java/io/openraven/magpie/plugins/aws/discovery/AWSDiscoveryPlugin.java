@@ -84,18 +84,25 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
     String account = getAwsAccountId();
 
-    enabledPlugins.forEach(plugin ->
-      plugin.getSupportedRegions()
+    enabledPlugins.forEach(plugin -> {
+      final var regions = plugin.getSupportedRegions()
         .stream()
         .filter(region -> isDiscoveryEnabledIn(region.toString()))
-        .forEach(region -> {
-          try {
-            plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
-          } catch (Exception ex) {
-            logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
-            logger.debug("Details", ex);
-          }
-        }));
+        .collect(Collectors.toList());
+
+      if (regions.isEmpty()) {
+        logger.warn("{} is enabled but no supported regions are configured.", plugin.fullService());
+      }
+
+      regions.forEach(region -> {
+        try {
+          plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
+        } catch (Exception ex) {
+          logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+          logger.debug("Details", ex);
+        }
+      });
+    });
   }
 
   private boolean isEnabled(String svc) {
