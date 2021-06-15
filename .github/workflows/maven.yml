@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, cspm ]
   pull_request:
-    branches: [ main, cspm, cspm_docker ]
+    branches: [ main, cspm ]
 
 jobs:
   build:
