@@ -61,6 +61,8 @@ public class Policy {
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
       configFile = DEFAULT_CONFIG_FILE;
+    } else {
+      LOGGER.info("Using config file {}", configFile);
     }
 
     try (var is = new FileInputStream((configFile))) {
