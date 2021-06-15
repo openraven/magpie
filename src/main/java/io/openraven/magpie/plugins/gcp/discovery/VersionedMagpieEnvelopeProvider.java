@@ -30,7 +30,7 @@ public class VersionedMagpieEnvelopeProvider {
     var envelope = new MagpieEnvelope(session, pluginPath, contents);
 
     Map<String, String> metadata = envelope.getMetadata();
-    metadata.put("magpie.aws.version", versionProvider.getProjectVersion());
+    metadata.put("magpie.gcp.version", versionProvider.getProjectVersion());
     envelope.setMetadata(metadata);
 
     return envelope;
