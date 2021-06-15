@@ -53,52 +53,61 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
     List<Violation> violations = new ArrayList<>();
 
     policies.forEach(policy -> {
-      LOGGER.info("Analyzing policy - {}", policy.getPolicy().getName());
-      policy.getPolicy().getRules().forEach(rule -> {
-        if (rule.isManualControl()) {
-          LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
-        } else {
-          LOGGER.info("Analyzing rule - {}", rule.getName());
-          LocalDateTime evaluatedAt = LocalDateTime.now();
+        if (policy.getPolicy().isEnabled()) {
+          LOGGER.info("Analyzing policy - {}", policy.getPolicy().getName());
+          policy.getPolicy().getRules().forEach(rule -> {
+            if (rule.isEnabled()) {
+              if (rule.isManualControl()) {
+                LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
+              } else {
+                LOGGER.info("Analyzing rule - {}", rule.getName());
+                LocalDateTime evaluatedAt = LocalDateTime.now();
 
-          try {
-            var results = jdbi.withHandle(handle -> {
-              return handle.createQuery(rule.getSql()).mapToMap().list();
-            });
+                try {
+                  var results = jdbi.withHandle(handle -> {
+                    return handle.createQuery(rule.getSql()).mapToMap().list();
+                  });
 
-            StringWriter evalOut = new StringWriter();
-            StringWriter evalErr = new StringWriter();
-            if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
-              try {
-                evalOut.append(evaluate(rule, results));
-              } catch (Exception e) {
-                evalErr.append(e.getMessage());
+                  StringWriter evalOut = new StringWriter();
+                  StringWriter evalErr = new StringWriter();
+                  if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
+                    try {
+                      evalOut.append(evaluate(rule, results));
+                    } catch (Exception e) {
+                      evalErr.append(e.getMessage());
+                    }
+                  }
+
+                  results.forEach(result -> {
+                    Violation violation = new Violation();
+                    violation.setPolicyId(policy.getPolicy().getId());
+                    violation.setRuleId(rule.getId());
+                    violation.setAssetId(result.get("arn").toString());
+                    violation.setInfo(policy.getPolicy().getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
+                    violation.setError(evalErr.toString());
+                    violation.setEvaluatedAt(evaluatedAt);
+                    violations.add(violation);
+                  });
+                } catch (UnableToExecuteStatementException ex) {
+                  var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
+                  if (!missingTables.isEmpty()) {
+                    final var tableName = missingTables.get(0).group(1);
+                    LOGGER.info("No asset table found for rule, ignoring. [table={}, rule={}]", tableName, rule.getName());
+                    LOGGER.trace("Could not evaluate rule", ex);
+                  } else {
+                    throw ex;
+                  }
+                }
               }
-            }
-
-            results.forEach(result -> {
-              Violation violation = new Violation();
-              violation.setPolicyId(policy.getPolicy().getId());
-              violation.setRuleId(rule.getId());
-              violation.setAssetId(result.get("arn").toString());
-              violation.setInfo(policy.getPolicy().getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut.toString()));
-              violation.setError(evalErr.toString());
-              violation.setEvaluatedAt(evaluatedAt);
-              violations.add(violation);
-            });
-          } catch (UnableToExecuteStatementException ex) {
-            var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
-            if (!missingTables.isEmpty()) {
-              final var tableName = missingTables.get(0).group(1);
-              LOGGER.info("No asset table found for rule, ignoring. [table={}, rule={}]", tableName, rule.getName());
-              LOGGER.trace("Could not evaluate rule", ex);
             } else {
-              throw ex;
+              LOGGER.info("Rule '{}' disabled", rule.getName());
             }
-          }
+          });
+        } else {
+          LOGGER.info("Policy '{}' disabled", policy.getPolicy().getName());
         }
-      });
-    });
+      }
+    );
     return violations;
   }
 
