@@ -107,7 +107,7 @@ public class KMSDiscovery implements GCPDiscovery {
 
     ArrayList<CryptoKey.Builder> list = new ArrayList<>();
     keyManagementServiceClient.listCryptoKeys(keyRing.getName()).iterateAll()
-      .forEach(device -> list.add(device.toBuilder()));
+      .forEach(key -> list.add(key.toBuilder()));
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
