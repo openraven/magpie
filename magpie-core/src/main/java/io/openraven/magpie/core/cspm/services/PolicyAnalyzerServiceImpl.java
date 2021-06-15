@@ -53,9 +53,10 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
     List<Violation> violations = new ArrayList<>();
 
     policies.forEach(policy -> {
-        if (policy.getPolicy().isEnabled()) {
-          LOGGER.info("Analyzing policy - {}", policy.getPolicy().getName());
-          policy.getPolicy().getRules().forEach(rule -> {
+        final var p = policy.getPolicy();
+        if (p.isEnabled()) {
+          LOGGER.info("Analyzing policy - {}", p.getName());
+          p.getRules().forEach(rule -> {
             if (rule.isEnabled()) {
               if (rule.isManualControl()) {
                 LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
@@ -80,10 +81,10 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
                   results.forEach(result -> {
                     Violation violation = new Violation();
-                    violation.setPolicyId(policy.getPolicy().getId());
+                    violation.setPolicyId(p.getId());
                     violation.setRuleId(rule.getId());
                     violation.setAssetId(result.get("arn").toString());
-                    violation.setInfo(policy.getPolicy().getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
+                    violation.setInfo(p.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
                     violation.setError(evalErr.toString());
                     violation.setEvaluatedAt(evaluatedAt);
                     violations.add(violation);
@@ -104,7 +105,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
             }
           });
         } else {
-          LOGGER.info("Policy '{}' disabled", policy.getPolicy().getName());
+          LOGGER.info("Policy '{}' disabled", p.getName());
         }
       }
     );
