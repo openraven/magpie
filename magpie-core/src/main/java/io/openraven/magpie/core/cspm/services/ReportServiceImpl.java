@@ -2,6 +2,7 @@ package io.openraven.magpie.core.cspm.services;
 
 import io.openraven.magpie.core.cspm.Rule;
 import io.openraven.magpie.core.cspm.ScanMetadata;
+import io.openraven.magpie.core.cspm.ScanResults;
 import io.openraven.magpie.core.cspm.Violation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class ReportServiceImpl implements ReportService {
   }
 
   @Override
-  public void generateReport(List<PolicyContext> policies, List<Violation> violations) {
+  public void generateReport(ScanResults results) {
     final String BOLD_SET = "\033[1m";
     final String BOLD_RESET = "\033[0m";
     final int COLUMN_WIDTH = 60;
