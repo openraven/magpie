@@ -127,6 +127,10 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-recaptchaenterprise</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-websecurityscanner</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>
