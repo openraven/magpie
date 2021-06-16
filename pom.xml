@@ -111,6 +111,10 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-tasks</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-websecurityscanner</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>

@@ -41,7 +41,8 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new IoTDiscovery(),
     new DataCatalogDiscovery(),
     new TasksDiscovery(),
-    new FunctionsDiscovery());
+    new FunctionsDiscovery(),
+    new WebSecurityScanner());
 
   GCPDiscoveryConfig config;
 
