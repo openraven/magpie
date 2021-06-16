@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class ReportServiceImpl implements ReportService {
   private static final Logger LOGGER = LoggerFactory.getLogger(ReportServiceImpl.class);
 
-  private ScanMetadata scanMetadata;
+  private final ScanMetadata scanMetadata;
 
   public ReportServiceImpl(ScanMetadata scanMetadata) {
     this.scanMetadata = scanMetadata;
@@ -41,19 +41,23 @@ public class ReportServiceImpl implements ReportService {
     System.out.println(BOLD_SET + "Scan Per-policy Details:" + BOLD_RESET);
     policies.forEach(policy -> {
       System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getName());
+      System.out.printf("%-30s%-40s\n", "Policy status", policy.getPolicy().isEnabled() ? "Enabled" : "Disabled");
       var policyViolations = violations.stream().filter(violation -> violation.getPolicyId().equals(policy.getPolicy().getId())).collect(Collectors.toList());
       System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations.size());
-      System.out.printf("%-30s\n", "Violations");
-      System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
-      policyViolations.forEach(policyViolation -> {
-        Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
-        String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
-          "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
-        String ruleName = violatedRule.getName().replace(System.lineSeparator(), "");
-        ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : ruleName;
-        System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), ruleName);
-      });
-      System.out.printf("\n");
+
+      if (!policyViolations.isEmpty()) {
+        System.out.printf("%-30s\n", "Violations");
+        System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
+        policyViolations.forEach(policyViolation -> {
+          Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
+          String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
+            "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
+          String ruleName = violatedRule.getName().replace(System.lineSeparator(), "");
+          ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : ruleName;
+          System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), ruleName);
+        });
+        System.out.printf("\n");
+      }
     });
   }
 }
