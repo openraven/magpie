@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WebSecurityScanner implements GCPDiscovery {
+public class WebSecurityScannerDiscovery implements GCPDiscovery {
   private static final String SERVICE = "webSecurityScanner";
 
   @Override
