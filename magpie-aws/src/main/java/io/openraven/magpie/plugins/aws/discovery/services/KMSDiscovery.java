@@ -54,7 +54,7 @@ public class KMSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = KmsClient.builder().region(region).build();
+    final var client = AWSUtils.configure(KmsClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::Kms::Key";
 
     try {

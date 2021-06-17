@@ -57,7 +57,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = IamClient.builder().region(region).build();
+    final var client = AWSUtils.configure(IamClient.builder(), region);
 
     discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
     discoverAccounts(client, mapper, session, region, emitter, account);
