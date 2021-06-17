@@ -10,8 +10,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [ ]  Access Approval
 - [x]  AutoML
 - [x]  BigQuery
-- [ ]  BigQuery Connection API
-- [ ]  BigQuery Data Transfer Service
+- [x]  BigQuery Data Transfer Service
 - [ ]  BigQuery Reservation API
 - [ ]  BigQuery Storage
 - [ ]  Cloud Asset Inventory
