@@ -13,7 +13,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  BigQuery Data Transfer Service
 - [ ]  BigQuery Reservation API
 - [ ]  BigQuery Storage
-- [ ]  Cloud Asset Inventory
+- [x]  Cloud Asset Inventory
 - [x]  Cloud Bigtable
 - [ ]  Cloud Bigtable
 - [ ]  Cloud Billing
