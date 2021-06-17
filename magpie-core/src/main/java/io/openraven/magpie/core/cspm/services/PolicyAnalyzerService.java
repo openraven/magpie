@@ -2,7 +2,7 @@ package io.openraven.magpie.core.cspm.services;
 
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.Violation;
+import io.openraven.magpie.core.cspm.ScanResults;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,7 +21,7 @@ public interface PolicyAnalyzerService {
    * @return A list of violations, or an empty list of none are found.
    * @throws IOException
    */
-  List<Violation> analyze(List<PolicyContext> policies) throws Exception;
+  ScanResults analyze(List<PolicyContext> policies) throws Exception;
 
   String evaluate(Rule rule, Object resultSet) throws Exception;
 }
