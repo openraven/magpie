@@ -51,7 +51,6 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   @Override
   public ScanResults analyze(List<PolicyContext> policies) throws Exception {
     Map<PolicyContext, List<Violation>> violations = new HashMap<>();
-    Map<PolicyContext, ScanResults.IgnoredReason> ignoredPolicies = new HashMap<>();
     Map<PolicyContext, Map<Rule, ScanResults.IgnoredReason>> ignoredRules = new HashMap<>();
     AtomicInteger numOfViolations = new AtomicInteger();
 
@@ -114,16 +113,17 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
             }
           });
         } else {
-          ignoredPolicies.put(policy, ScanResults.IgnoredReason.DISABLED);
           LOGGER.info("Policy '{}' disabled", p.getName());
         }
         if (!policyViolations.isEmpty()) {
           violations.put(policy, policyViolations);
         }
-        ignoredRules.put(policy, policyIgnoredRules);
+        if (!policyIgnoredRules.isEmpty()) {
+          ignoredRules.put(policy, policyIgnoredRules);
+        }
       }
     );
-    return new ScanResults(violations, ignoredPolicies, ignoredRules, numOfViolations.get());
+    return new ScanResults(policies, violations, ignoredRules, numOfViolations.get());
   }
 
   @Override
