@@ -1,9 +1,11 @@
-package io.openraven.magpie.plugins.aws.discovery.services;
+package io.openraven.magpie.plugins.aws.discovery.services.disabled;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.services.RedshiftDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,15 +13,15 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.junit.jupiter.api.Assertions.*;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@Disabled // Disabled for current latest version of localstack 0.12.12. Not implemented yet
 @ExtendWith(MockitoExtension.class)
-class S3DiscoveryIT extends BaseAWSServiceIT {
+public class RedshiftDiscoveryIT extends BaseAWSServiceIT {
 
-  private static final String BUCKET_NAME = "testbucket";
-  private static final String CF_S3_TEMPLATE_PATH = "/template/s3-template.yml";
-
-  private final S3Discovery s3Discovery = new S3Discovery();
+  private final static String CF_REDSHIFT_TEMPLATE_PATH = "/template/redshift-template.yml";
+  private final RedshiftDiscovery redshiftDiscovery = new RedshiftDiscovery();
 
   @Mock
   private Emitter emitter;
@@ -29,14 +31,13 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
 
   @BeforeAll
   public static void setup() {
-    // given
-    updateStackWithResources(CF_S3_TEMPLATE_PATH);
+    updateStackWithResources(CF_REDSHIFT_TEMPLATE_PATH);
   }
 
-  @Test
-  public void testS3Discovery() {
+  @Test // NotImplementedError: The describe_storage action has not been implemented
+  public void testRedshiftDiscovery() {
     // when
-    s3Discovery.discover(
+    redshiftDiscovery.discover(
       MAPPER,
       SESSION,
       BASE_REGION,
@@ -50,13 +51,6 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertEquals("arn:aws:s3:::testbucket", contents.get("arn").asText());
-    assertEquals(BUCKET_NAME, contents.get("resourceName").asText());
-    assertEquals("AWS::S3::Bucket", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
+
 }
-
-
-

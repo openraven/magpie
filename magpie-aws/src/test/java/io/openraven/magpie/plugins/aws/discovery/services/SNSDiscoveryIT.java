@@ -3,7 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +12,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.times;

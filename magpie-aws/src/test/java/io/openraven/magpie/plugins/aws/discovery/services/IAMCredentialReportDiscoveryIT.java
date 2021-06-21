@@ -2,6 +2,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -9,15 +11,12 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.iam.IamClient;
-
-import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
-class IAMCredentialReportDiscoveryIT extends BaseAWSServiceIT {
+class IAMCredentialReportDiscoveryIT extends BaseIAMServiceIT {
 
   private static final String TEST_USER = "testusername";
   private static final IAMDiscovery iamDiscovery = new IAMDiscovery();
@@ -30,16 +29,12 @@ class IAMCredentialReportDiscoveryIT extends BaseAWSServiceIT {
 
   @Test
   public void testCredentialReportDiscovery() {
-    //
-    IamClient iamClient = IamClient.builder()
-      .endpointOverride(URI.create(System.getProperty("MAGPIE_AWS_ENDPOINT")))
-      .region(BASE_REGION)
-      .build();
     // given
-    createIAMUser(iamClient, TEST_USER);
+    createIAMUser(TEST_USER);
+
     // when
     iamDiscovery.discoverCredentialsReport(
-      iamClient,
+      IAMCLIENT,
       MAPPER,
       SESSION,
       BASE_REGION,
@@ -61,7 +56,7 @@ class IAMCredentialReportDiscoveryIT extends BaseAWSServiceIT {
   }
 
 
-  private void createIAMUser(IamClient iamClient, String username ) {
-    iamClient.createUser(req -> req.userName(username));
+  private void createIAMUser(String username ) {
+    IAMCLIENT.createUser(req -> req.userName(username));
   }
 }

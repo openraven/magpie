@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

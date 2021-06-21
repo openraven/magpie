@@ -4,7 +4,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,19 +14,13 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.core.waiters.WaiterResponse;
-import software.amazon.awssdk.services.iam.IamClient;
-import software.amazon.awssdk.services.iam.model.GetPolicyResponse;
-import software.amazon.awssdk.services.iam.waiters.IamWaiter;
-
-import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
-public class IAMRoleDiscoveryIT extends BaseAWSServiceIT {
+public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
   private static final String CF_IAM_ROLE_TEMPLATE_PATH = "/template/iam-role-template.yml";
   private static final String ROLE_NAME = "RootRole";
 
@@ -42,23 +37,22 @@ public class IAMRoleDiscoveryIT extends BaseAWSServiceIT {
     updateStackWithResources(CF_IAM_ROLE_TEMPLATE_PATH);
   }
 
+  @AfterAll
+  public static void cleanup() {
+    removeRoles();
+  }
+
   @Test
   public void testRoleDiscovery() {
-    IamClient iamClient = IamClient.builder()
-      .endpointOverride(URI.create(System.getProperty("MAGPIE_AWS_ENDPOINT")))
-      .region(BASE_REGION)
-      .build();
-
     // when
     iamDiscovery.discoverRoles(
-      iamClient,
+      IAMCLIENT,
       MAPPER,
       SESSION,
       BASE_REGION,
       emitter,
       ACCOUNT
     );
-
     // then
     Mockito.verify(emitter, atLeast(1)).emit(envelopeCapture.capture());
     assertEquals(1, envelopeCapture.getAllValues().size());
@@ -68,7 +62,6 @@ public class IAMRoleDiscoveryIT extends BaseAWSServiceIT {
     assertRole(envelope);
     assertConfiguration(envelope);
     assertInlinePolicy(envelope);
-
   }
 
   private void assertRole(MagpieEnvelope envelope) {
@@ -93,11 +86,11 @@ public class IAMRoleDiscoveryIT extends BaseAWSServiceIT {
 
   private void assertInlinePolicy(MagpieEnvelope envelope) {
     var inlinePolicies = envelope.getContents().get("supplementaryConfiguration").get("inlinePolicies");
-    assertEquals(1, inlinePolicies.size());
+    assertEquals(2, inlinePolicies.size());
 
     var inlinePolicy = inlinePolicies.get(0);
     assertEquals("inlinePolicy", inlinePolicy.get("name").asText());
-    assertEquals("{'Version': '2012-10-17', 'Statement': [{'Effect': 'Allow', 'Action': '*', 'Resource': '*'}]}",
+    assertEquals("{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"*\", \"Resource\": \"*\"}]}",
       inlinePolicy.get("policyDocument").asText()
       );
   }

@@ -1,4 +1,4 @@
-package io.openraven.magpie.plugins.aws.discovery.services;
+package io.openraven.magpie.plugins.aws.discovery.services.base;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,10 +11,7 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
-import software.amazon.awssdk.services.cloudformation.model.CreateStackRequest;
-import software.amazon.awssdk.services.cloudformation.model.CreateStackResponse;
-import software.amazon.awssdk.services.cloudformation.model.UpdateStackRequest;
-import software.amazon.awssdk.services.cloudformation.model.UpdateStackResponse;
+import software.amazon.awssdk.services.cloudformation.model.*;
 
 import java.util.Objects;
 import java.util.Scanner;
@@ -32,17 +29,21 @@ public abstract class BaseAWSServiceIT {
   protected static final String ACCOUNT = "account";
   protected static final Session SESSION = new Session();
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseAWSServiceIT.class);
+  protected static final long STACK_UPDATE_MILLS = 1000L;
+
 
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
 
   protected static LocalStackContainer localStackContainer =
-    new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.11.3"))
+    new LocalStackContainer(DockerImageName.parse("localstack/localstack:latest"))
       .withExposedPorts(EXPOSED_EDGE_PORT)
       .withEnv("DEFAULT_REGION", BASE_REGION.id())
       .withEnv("DEBUG", "1")
-      .withServices(DYNAMODB, CLOUDWATCH, S3, CLOUDFORMATION, IAM, SNS, SECRETSMANAGER); // At the moment cannot launch services dynamically
+      .withServices(
+        DYNAMODB, S3, CLOUDFORMATION, IAM, SNS, SECRETSMANAGER, ROUTE53, LAMBDA, EC2, KMS
+      ); // At the moment cannot launch services dynamically
 
   private static CloudFormationClient cfClient;
 
@@ -60,6 +61,9 @@ public abstract class BaseAWSServiceIT {
       String.format("http://%s:%d",
         localStackContainer.getHost(),
         localStackContainer.getMappedPort(EXPOSED_EDGE_PORT)));
+
+    // Use local docker container. Comment localstack.start() as well
+    // System.getProperties().setProperty("MAGPIE_AWS_ENDPOINT", "http://localhost:4566/");
   }
 
   protected static void initiateCloudFormationClient() {
@@ -85,11 +89,31 @@ public abstract class BaseAWSServiceIT {
 
     UpdateStackResponse updateStackResponse = cfClient.updateStack(updateStackRequest);
     assertNotNull(updateStackResponse.stackId());
+
+    LOGGER.info(cfClient.describeStacks(req -> req.stackName(STACK_NAME)).toString());
+
+    cfClient.listStackResources(req -> req.stackName(STACK_NAME))
+      .stackResourceSummaries()
+      .forEach(stackResourceSummary -> LOGGER.info(stackResourceSummary.toString()));
+
+    waitUpdateComplete(STACK_UPDATE_MILLS); // Drastically improve execution time. Below statement only for confirmation used
+    cfClient.waiter().waitUntilStackUpdateComplete(req -> req.stackName(STACK_NAME));
+
+    LOGGER.info(cfClient.describeStacks(req -> req.stackName(STACK_NAME)).toString());
+
     LOGGER.info("Stack has been updated with template: {}", templatePath);
   }
 
   protected static String getResourceAsString(String resourcePath) {
     return new Scanner(Objects.requireNonNull(BaseAWSServiceIT.class.getResourceAsStream(resourcePath)), "UTF-8")
       .useDelimiter("\\A").next();
+  }
+
+  private static void waitUpdateComplete(Long mills) {
+    try {
+      Thread.sleep(mills);
+    } catch (InterruptedException e) {
+      LOGGER.info("Wait stack update filed");
+    }
   }
 }

@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Test template for creating a stack with a DynamoDB table.
 Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table

@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+              console.log(JSON.stringify(event, null, 2));
+              const response = {
+                  statusCode: 200,
+                  body: JSON.stringify('Hello from Lambda!'),
+              };
+              return response;
+          };
+      Runtime: nodejs12.x
+      TracingConfig:
+        Mode: Active
+  s3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt function.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref 'AWS::AccountId'
+      SourceArn: !GetAtt bucket.Arn

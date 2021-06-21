@@ -2,7 +2,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -10,10 +11,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.iam.IamClient;
 import software.amazon.awssdk.services.iam.model.CreatePolicyResponse;
-
-import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,7 +21,7 @@ import static org.mockito.Mockito.atLeast;
  * Covered IAM Groups. ResourceGroups not covered
  */
 @ExtendWith(MockitoExtension.class)
-public class IAMGroupDiscoveryIT extends BaseAWSServiceIT {
+public class IAMGroupDiscoveryIT extends BaseIAMServiceIT {
 
   private final String POLICY_DOCUMENT_PATH = "/document/policy-dynamodb-access.json";
   private final String INLINE_POLICY_DOCUMENT_PATH = "/document/policy-dynamodb-inline.json";
@@ -39,20 +37,20 @@ public class IAMGroupDiscoveryIT extends BaseAWSServiceIT {
   @Captor
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
 
+  @AfterAll
+  public static void clenup() {
+    removeRoles();
+  }
+
   @Test
   public void testGroupDiscovery() {
-    IamClient iamClient = IamClient.builder()
-      .endpointOverride(URI.create(System.getProperty("MAGPIE_AWS_ENDPOINT")))
-      .region(BASE_REGION)
-      .build();
-
     // Group creation failing with CF template. Fallback to SDK manual approach
-    createGroupWithInlinePolicy(iamClient);
-    String attachedPolicyArn = createPolicyAndAttach(iamClient);
+    createGroupWithInlinePolicy();
+    createPolicyAndAttach();
 
     // when
     iamDiscovery.discoverGroups(
-      iamClient,
+      IAMCLIENT,
       MAPPER,
       SESSION,
       BASE_REGION,
@@ -68,10 +66,6 @@ public class IAMGroupDiscoveryIT extends BaseAWSServiceIT {
     assertGroup(envelope);
     assertInlinePolicies(envelope);
     assertAttachedPolicies(envelope);
-
-    //clenup
-    iamClient.deletePolicy(req -> req.policyArn(attachedPolicyArn));
-    iamClient.deleteGroup(req -> req.groupName(GROUP_NAME));
   }
 
   private void assertGroup(MagpieEnvelope envelope) {
@@ -104,25 +98,25 @@ public class IAMGroupDiscoveryIT extends BaseAWSServiceIT {
 
   }
 
-  private void createGroupWithInlinePolicy(IamClient iamClient) {
-    iamClient.createGroup(request -> {
+  private void createGroupWithInlinePolicy() {
+    IAMCLIENT.createGroup(request -> {
       request.groupName(GROUP_NAME);
     });
-    iamClient.putGroupPolicy(p -> p
+    IAMCLIENT.putGroupPolicy(p -> p
       .groupName(GROUP_NAME)
       .policyName(INLINE_POLICY_NAME)
       .policyDocument(getResourceAsString(INLINE_POLICY_DOCUMENT_PATH))
     );
   }
 
-  private String createPolicyAndAttach(IamClient iamClient) {
-    CreatePolicyResponse policyResp = iamClient.createPolicy(policyRequest -> policyRequest
+  private String createPolicyAndAttach() {
+    CreatePolicyResponse policyResp = IAMCLIENT.createPolicy(policyRequest -> policyRequest
       .policyName(MANAGED_POLICY_NAME)
       .description("Tax data access")
       .policyDocument(getResourceAsString(POLICY_DOCUMENT_PATH))
     );
 
-    iamClient.attachGroupPolicy(attach -> attach.groupName(GROUP_NAME).policyArn(policyResp.policy().arn()));
+    IAMCLIENT.attachGroupPolicy(attach -> attach.groupName(GROUP_NAME).policyArn(policyResp.policy().arn()));
     return policyResp.policy().arn();
   }
 }

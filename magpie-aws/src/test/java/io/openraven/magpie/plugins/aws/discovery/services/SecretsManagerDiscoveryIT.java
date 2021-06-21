@@ -2,7 +2,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,11 +11,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 public class SecretsManagerDiscoveryIT extends BaseAWSServiceIT {
@@ -55,16 +52,10 @@ public class SecretsManagerDiscoveryIT extends BaseAWSServiceIT {
     assertTrue(contents.get("arn").asText().contains("secret:TestSecret"));
     assertEquals(secretName, contents.get("resourceName").asText());
     assertEquals("AWS::SecretsManager", contents.get("resourceType").asText());
-    assertEquals("account", contents.get("awsAccountId").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
 
     assertEquals("[{\"key\":\"AppName\",\"value\":\"OpenRavenIT\"}]",
       contents.get("configuration").get("tags").toString());
-  }
-
-  private void createSecret(SecretsManagerClient client) {
-    client.createSecret(req -> req
-      .name("TestSecret")
-      .secretString("{\"username\":\"TestUser\",\"password\":\"secret-password\"}"));
   }
 }

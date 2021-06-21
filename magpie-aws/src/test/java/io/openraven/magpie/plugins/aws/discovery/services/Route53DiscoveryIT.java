@@ -11,15 +11,14 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-class S3DiscoveryIT extends BaseAWSServiceIT {
+public class Route53DiscoveryIT extends BaseAWSServiceIT {
 
-  private static final String BUCKET_NAME = "testbucket";
-  private static final String CF_S3_TEMPLATE_PATH = "/template/s3-template.yml";
-
-  private final S3Discovery s3Discovery = new S3Discovery();
+  private static final String CF_ROUTE53_TEMPLATE_PATH = "/template/route53-template.yml";
+  private final Route53Discovery route53Discovery = new Route53Discovery();
 
   @Mock
   private Emitter emitter;
@@ -30,13 +29,13 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
   @BeforeAll
   public static void setup() {
     // given
-    updateStackWithResources(CF_S3_TEMPLATE_PATH);
+    updateStackWithResources(CF_ROUTE53_TEMPLATE_PATH);
   }
 
   @Test
-  public void testS3Discovery() {
+  public void testRoute53Discovery() {
     // when
-    s3Discovery.discover(
+    route53Discovery.discover(
       MAPPER,
       SESSION,
       BASE_REGION,
@@ -50,13 +49,10 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertEquals("arn:aws:s3:::testbucket", contents.get("arn").asText());
-    assertEquals(BUCKET_NAME, contents.get("resourceName").asText());
-    assertEquals("AWS::S3::Bucket", contents.get("resourceType").asText());
+    assertTrue(contents.get("arn").asText().contains("arn:aws:route53:::hostedZone"));
+    assertEquals("example.com", contents.get("resourceName").asText());
+    assertEquals("AWS::Route53::HostedZone", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 }
-
-
-

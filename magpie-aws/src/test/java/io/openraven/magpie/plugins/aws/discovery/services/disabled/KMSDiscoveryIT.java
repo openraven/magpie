@@ -1,9 +1,11 @@
-package io.openraven.magpie.plugins.aws.discovery.services;
+package io.openraven.magpie.plugins.aws.discovery.services.disabled;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.services.KMSDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,15 +13,15 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.junit.jupiter.api.Assertions.*;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@Disabled // listKeyPolicies are failing on current version of localstack 0.12.12 (code 501)
 @ExtendWith(MockitoExtension.class)
-class S3DiscoveryIT extends BaseAWSServiceIT {
+public class KMSDiscoveryIT extends BaseAWSServiceIT {
 
-  private static final String BUCKET_NAME = "testbucket";
-  private static final String CF_S3_TEMPLATE_PATH = "/template/s3-template.yml";
-
-  private final S3Discovery s3Discovery = new S3Discovery();
+  private static final String CF_KMS_TEMPLATE_PATH = "/template/kms-template.yml";
+  private KMSDiscovery kmsDiscovery = new KMSDiscovery();
 
   @Mock
   private Emitter emitter;
@@ -29,14 +31,12 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
 
   @BeforeAll
   public static void setup() {
-    // given
-    updateStackWithResources(CF_S3_TEMPLATE_PATH);
+    updateStackWithResources(CF_KMS_TEMPLATE_PATH);
   }
 
   @Test
-  public void testS3Discovery() {
-    // when
-    s3Discovery.discover(
+  public void testKMSDiscovery() {
+    kmsDiscovery.discover(
       MAPPER,
       SESSION,
       BASE_REGION,
@@ -50,13 +50,6 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertEquals("arn:aws:s3:::testbucket", contents.get("arn").asText());
-    assertEquals(BUCKET_NAME, contents.get("resourceName").asText());
-    assertEquals("AWS::S3::Bucket", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
+
 }
-
-
-
