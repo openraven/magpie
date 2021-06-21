@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -30,7 +30,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,12 +56,14 @@ public class LambdaDiscovery implements AWSDiscovery {
     
     try {
       client.listFunctionsPaginator().functions().forEach(function -> {
-        var data = new AWSResource(function.toBuilder(), region.toString(), account, mapper);
-        data.arn = function.functionArn();
-        data.resourceId = function.revisionId();
-        data.resourceName = function.functionName();
-        data.resourceType = RESOURCE_TYPE;
-//        data.updatedIso = Instant.parse(function.lastModified());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, function.functionArn())
+          .withResourceName(function.functionName())
+          .withResourceId(function.revisionId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(function))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverFunctionEventInvokeConfigs(client, function, data);
         discoverEventSourceMapping(client, function, data);
@@ -70,14 +71,14 @@ public class LambdaDiscovery implements AWSDiscovery {
         discoverFunctionInvokeConfig(client, function, data);
         discoverAccessPolicy(client, function, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":function"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
+  private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, MagpieResource data) {
     final String keyname = "functionEventInvokeConfigs";
     getAwsResponse(
       () -> client.listFunctionEventInvokeConfigsPaginator(ListFunctionEventInvokeConfigsRequest.builder().functionName(resource.functionName()).build()).functionEventInvokeConfigs()
@@ -89,7 +90,7 @@ public class LambdaDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverEventSourceMapping(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
+  private void discoverEventSourceMapping(LambdaClient client, FunctionConfiguration resource, MagpieResource data) {
     final String keyname = "eventSourceMapping";
     getAwsResponse(
       () -> client.listEventSourceMappingsPaginator(ListEventSourceMappingsRequest.builder().functionName(resource.functionName()).build()).eventSourceMappings()
@@ -101,7 +102,7 @@ public class LambdaDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverFunctionInvokeConfig(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
+  private void discoverFunctionInvokeConfig(LambdaClient client, FunctionConfiguration resource, MagpieResource data) {
     final String keyname = "functionInvokeConfig";
     getAwsResponse(
       () -> client.getFunctionEventInvokeConfig(GetFunctionEventInvokeConfigRequest.builder().functionName(resource.functionName()).build()),
@@ -110,7 +111,7 @@ public class LambdaDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverFunction(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
+  private void discoverFunction(LambdaClient client, FunctionConfiguration resource, MagpieResource data) {
     final String keyname = "function";
     getAwsResponse(
       () -> client.getFunction(GetFunctionRequest.builder().functionName(resource.functionName()).build()),
@@ -119,7 +120,7 @@ public class LambdaDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAccessPolicy(LambdaClient client, FunctionConfiguration resource, AWSResource data) {
+  private void discoverAccessPolicy(LambdaClient client, FunctionConfiguration resource, MagpieResource data) {
     final String keyname = "accessPolicy";
     getAwsResponse(
       () -> client.getPolicy(GetPolicyRequest.builder().functionName(resource.functionName()).build()),

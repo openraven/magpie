@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -59,10 +59,13 @@ public class EBDiscovery implements AWSDiscovery {
 
     try {
       client.describeEnvironments().environments().forEach(environment -> {
-        var data = new AWSResource(environment.toBuilder(), region.toString(), account, mapper);
-        data.arn = environment.environmentArn();
-        data.resourceName = environment.environmentName();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, environment.environmentArn())
+          .withResourceName(environment.environmentName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(environment.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverApplication(client, environment, data);
         discoverConfigurationSettings(client, environment, data);
@@ -70,14 +73,14 @@ public class EBDiscovery implements AWSDiscovery {
         discoverEnvironmentManagedActions(client, environment, data);
         discoverTags(client, environment, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
+  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
     final String keyname = "application";
 
     getAwsResponse(
@@ -88,7 +91,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
+  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
     final String keyname = "configurationSettings";
 
     getAwsResponse(
@@ -102,7 +105,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
+  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
     final String keyname = "environmentResources";
 
     getAwsResponse(
@@ -113,7 +116,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data) {
+  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
     final String keyname = "environmentManagedActions";
 
     getAwsResponse(
@@ -124,7 +127,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.environmentArn()).build()),
       (resp) -> {

@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -64,23 +64,25 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeAlarmsPaginator().metricAlarms().stream().forEach(alarm -> {
-        var data = new AWSResource(alarm.toBuilder(), region.toString(), account, mapper);
-        data.arn = alarm.alarmArn();
-        data.resourceName = alarm.alarmName();
-        data.resourceType = RESOURCE_TYPE;
-        data.updatedIso = alarm.stateUpdatedTimestamp();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, alarm.alarmArn())
+          .withResourceName(alarm.alarmName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(alarm.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverAlarmHistory(client, alarm, data);
         discoverAlarmTags(client, alarm, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alarm"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alarm"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, AWSResource data) {
+  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, MagpieResource data) {
     final String keyname = "alarmHistory";
 
     getAwsResponse(
@@ -93,7 +95,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceARN(resource.alarmArn()).build()),
       (resp) -> {
@@ -109,13 +111,17 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   private void discoverDashboards(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchClient client, String account) {
     final String RESOURCE_TYPE = "AWS::CloudWatch::Dashboard";
     try {
-      client.listDashboardsPaginator(ListDashboardsRequest.builder().build()).dashboardEntries().stream().forEach(dashboard -> {
-        var data = new AWSResource(dashboard.toBuilder(), region.toString(), account, mapper);
-        data.arn = dashboard.dashboardArn();
-        data.resourceName = dashboard.dashboardName();
-        data.resourceType = RESOURCE_TYPE;
+      client.listDashboardsPaginator(ListDashboardsRequest.builder().build()).dashboardEntries().stream()
+        .forEach(dashboard -> {
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, dashboard.dashboardArn())
+          .withResourceName(dashboard.dashboardName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(dashboard.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dashboard"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dashboard"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);

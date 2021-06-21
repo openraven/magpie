@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -66,21 +66,24 @@ public class LightsailDiscovery implements AWSDiscovery {
     try {
       client.getRelationalDatabases(GetRelationalDatabasesRequest.builder().build()).relationalDatabases()
         .forEach(relationalDatabase -> {
-          var data = new AWSResource(relationalDatabase.toBuilder(), region.toString(), account, mapper);
-          data.arn = relationalDatabase.arn();
-          data.resourceName = relationalDatabase.name();
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, relationalDatabase.arn())
+            .withResourceName(relationalDatabase.name())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(relationalDatabase))
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverSize(client, relationalDatabase, data);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data.toJsonNode()));
         });
     }  catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverSize(LightsailClient client, RelationalDatabase resource, AWSResource data) {
+  private void discoverSize(LightsailClient client, RelationalDatabase resource, MagpieResource data) {
     var request = GetRelationalDatabaseMetricDataRequest.builder().
       relationalDatabaseName(resource.name()).
       metricName("FreeStorageSpace").
@@ -109,12 +112,15 @@ public class LightsailDiscovery implements AWSDiscovery {
 
     try {
       client.getInstances(GetInstancesRequest.builder().build()).instances().forEach(instance -> {
-        var data = new AWSResource(instance.toBuilder(), region.toString(), account, mapper);
-        data.arn = instance.arn();
-        data.resourceName = instance.name();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.arn())
+          .withResourceName(instance.name())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(instance))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -126,12 +132,15 @@ public class LightsailDiscovery implements AWSDiscovery {
 
     try {
       client.getLoadBalancers().loadBalancers().forEach(loadBalancer -> {
-        var data = new AWSResource(loadBalancer.toBuilder(), region.toString(), account, mapper);
-        data.arn = loadBalancer.arn();
-        data.resourceName = loadBalancer.name();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancer.arn())
+          .withResourceName(loadBalancer.name())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(loadBalancer))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);

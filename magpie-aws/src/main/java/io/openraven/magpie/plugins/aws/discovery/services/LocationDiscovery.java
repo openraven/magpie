@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -80,25 +80,27 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeTracker(DescribeTrackerRequest.builder().trackerName(responseEntry.trackerName()).build()))
         .forEach(tracker -> {
-          var data = new AWSResource(tracker.toBuilder(), region.toString(), account, mapper);
-          data.arn = tracker.trackerArn();
-          data.resourceName = tracker.trackerName();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = tracker.createTime();
-          data.updatedIso = tracker.updateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, tracker.trackerArn())
+            .withResourceName(tracker.trackerName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(tracker))
+            .withCreatedIso(tracker.createTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverDevicePositions(client, tracker, data);
           discoverTrackerConsumers(client, tracker, data);
           discoverTags(client, tracker.trackerArn(), data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":tracker"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":tracker"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverDevicePositions(LocationClient client, DescribeTrackerResponse tracker, AWSResource data) {
+  private void discoverDevicePositions(LocationClient client, DescribeTrackerResponse tracker, MagpieResource data) {
     final String keyname = "devicePositions";
 
     getAwsResponse(
@@ -111,7 +113,7 @@ public class LocationDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTrackerConsumers(LocationClient client, DescribeTrackerResponse tracker, AWSResource data) {
+  private void discoverTrackerConsumers(LocationClient client, DescribeTrackerResponse tracker, MagpieResource data) {
     final String keyname = "trackerConsumers";
 
     getAwsResponse(
@@ -132,16 +134,18 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeMap(DescribeMapRequest.builder().mapName(responseEntry.mapName()).build()))
         .forEach(map -> {
-          var data = new AWSResource(map.toBuilder(), region.toString(), account, mapper);
-          data.arn = map.mapArn();
-          data.resourceName = map.mapName();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = map.createTime();
-          data.updatedIso = map.updateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, map.mapArn())
+            .withResourceName(map.mapName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(map))
+            .withCreatedIso(map.createTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverTags(client, map.mapArn(), data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":map"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":map"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -157,24 +161,26 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeGeofenceCollection(DescribeGeofenceCollectionRequest.builder().collectionName(responseEntry.collectionName()).build()))
         .forEach(geofenceCollection -> {
-          var data = new AWSResource(geofenceCollection.toBuilder(), region.toString(), account, mapper);
-          data.arn = geofenceCollection.collectionArn();
-          data.resourceName = geofenceCollection.collectionName();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = geofenceCollection.createTime();
-          data.updatedIso = geofenceCollection.updateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, geofenceCollection.collectionArn())
+            .withResourceName(geofenceCollection.collectionName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(geofenceCollection))
+            .withCreatedIso(geofenceCollection.createTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverGeofences(client, geofenceCollection, data);
           discoverTags(client, geofenceCollection.collectionArn(), data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":geofenceCollection"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":geofenceCollection"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverGeofences(LocationClient client, DescribeGeofenceCollectionResponse geofenceCollection, AWSResource data) {
+  private void discoverGeofences(LocationClient client, DescribeGeofenceCollectionResponse geofenceCollection, MagpieResource data) {
     final String keyname = "geofences";
 
     getAwsResponse(
@@ -196,16 +202,18 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describePlaceIndex(DescribePlaceIndexRequest.builder().indexName(responseEntry.indexName()).build()))
         .forEach(placeIndex -> {
-          var data = new AWSResource(placeIndex.toBuilder(), region.toString(), account, mapper);
-          data.arn = placeIndex.indexArn();
-          data.resourceName = placeIndex.indexName();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = placeIndex.createTime();
-          data.updatedIso = placeIndex.updateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, placeIndex.indexArn())
+            .withResourceName(placeIndex.indexName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(placeIndex))
+            .withCreatedIso(placeIndex.createTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverTags(client, placeIndex.indexArn(), data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":placeIndex"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":placeIndex"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -221,23 +229,25 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeRouteCalculator(DescribeRouteCalculatorRequest.builder().calculatorName(responseEntry.calculatorName()).build()))
         .forEach(routeCalculator -> {
-          var data = new AWSResource(routeCalculator.toBuilder(), region.toString(), account, mapper);
-          data.arn = routeCalculator.calculatorArn();
-          data.resourceName = routeCalculator.calculatorName();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = routeCalculator.createTime();
-          data.updatedIso = routeCalculator.updateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, routeCalculator.calculatorArn())
+            .withResourceName(routeCalculator.calculatorName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(routeCalculator))
+            .withCreatedIso(routeCalculator.createTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverTags(client, routeCalculator.calculatorArn(), data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":routeCalculator"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":routeCalculator"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverTags(LocationClient client, String arn, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(LocationClient client, String arn, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(arn).build()),
       (resp) -> data.tags = mapper.valueToTree(resp.tags()),

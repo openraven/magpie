@@ -18,6 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
@@ -57,23 +58,26 @@ public class FSXDiscovery implements AWSDiscovery {
 
     try {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
-        var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
-        data.arn = fileSystem.resourceARN();
-        data.resourceId = fileSystem.fileSystemId();
-        data.resourceName = fileSystem.fileSystemId();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = fileSystem.creationTime();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, fileSystem.resourceARN())
+          .withResourceName(fileSystem.fileSystemId())
+          .withResourceId(fileSystem.fileSystemId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(fileSystem.toBuilder()))
+          .withCreatedIso(fileSystem.creationTime())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverSize(fileSystem, data, region);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverSize(FileSystem resource, AWSResource data, Region region) {
+  private void discoverSize(FileSystem resource, MagpieResource data, Region region) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());

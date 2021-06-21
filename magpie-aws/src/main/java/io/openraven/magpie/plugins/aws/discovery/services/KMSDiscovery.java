@@ -20,8 +20,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -59,11 +59,14 @@ public class KMSDiscovery implements AWSDiscovery {
 
     try {
       client.listKeysPaginator().keys().forEach(key -> {
-        var data = new AWSResource(key.toBuilder(), region.toString(), account, mapper);
-        data.arn = key.keyArn();
-        data.resourceId = key.keyId();
-        data.resourceName = key.toString();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, key.keyArn())
+          .withResourceName(key.toString())
+          .withResourceId(key.keyId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(key))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverKeyRotation(client, key, data);
         discoverAliases(client, key, data);
@@ -71,14 +74,14 @@ public class KMSDiscovery implements AWSDiscovery {
         discoverGrants(client, key, data);
         discoverTags(client, key, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, AWSResource data) {
+  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, MagpieResource data) {
     final String keyname = "rotation";
     getAwsResponse(
       () -> client.getKeyRotationStatus(GetKeyRotationStatusRequest.builder().keyId(resource.keyId()).build()),
@@ -87,7 +90,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAliases(KmsClient client, KeyListEntry resource, AWSResource data) {
+  private void discoverAliases(KmsClient client, KeyListEntry resource, MagpieResource data) {
     final String keyname = "aliases";
     getAwsResponse(
       () -> client.listAliasesPaginator(ListAliasesRequest.builder().keyId(resource.keyId()).build()).aliases()
@@ -99,7 +102,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, AWSResource data) {
+  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, MagpieResource data) {
     final String keyname = "keyPolicies";
     getAwsResponse(
       () -> client.listKeyPolicies(ListKeyPoliciesRequest.builder().keyId(resource.keyId()).build()),
@@ -108,7 +111,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverGrants(KmsClient client, KeyListEntry resource, AWSResource data) {
+  private void discoverGrants(KmsClient client, KeyListEntry resource, MagpieResource data) {
     final String keyname = "grants";
     getAwsResponse(
       () -> client.listGrants(ListGrantsRequest.builder().keyId(resource.keyId()).build()),
@@ -117,7 +120,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(KmsClient client, KeyListEntry resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(KmsClient client, KeyListEntry resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listResourceTags(ListResourceTagsRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> {
