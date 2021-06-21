@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -28,6 +29,11 @@ public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
 
   @Captor
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
+
+  @AfterAll
+  public static void cleanup() {
+    removePolicies();
+  }
 
   @Test
   public void testPolicyDiscovery() {

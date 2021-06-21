@@ -39,7 +39,7 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
 
   @AfterAll
   public static void cleanup() {
-    removeRoles();
+    removePolicies();
   }
 
   @Test

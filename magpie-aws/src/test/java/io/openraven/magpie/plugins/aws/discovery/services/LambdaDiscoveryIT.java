@@ -4,6 +4,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
+import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-public class LambdaDiscoveryIT extends BaseAWSServiceIT {
+public class LambdaDiscoveryIT extends BaseIAMServiceIT {
 
   private static final String CF_LAMBDA_TEMPLATE_PATH = "/template/lambda-template.yml";
   private LambdaDiscovery lambdaDiscovery = new LambdaDiscovery();
@@ -30,6 +32,11 @@ public class LambdaDiscoveryIT extends BaseAWSServiceIT {
   @BeforeAll
   public static void setup() {
     updateStackWithResources(CF_LAMBDA_TEMPLATE_PATH);
+  }
+
+  @AfterAll
+  public static void cleanup() {
+    removePolicies();
   }
 
   /**
