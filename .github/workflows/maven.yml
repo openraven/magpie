@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/improved_persistence'
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 11
