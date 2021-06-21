@@ -84,7 +84,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
-    <magpie.api.version>0.2.1-SNAPSHOT</magpie.api.version>
+    <magpie.api.version>0.2.0</magpie.api.version>
     <project.version>0.1.0-SNAPSHOT</project.version>
   </properties>
 </project>
