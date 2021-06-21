@@ -97,6 +97,10 @@
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-bigqueryreservation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-bigquerydatatransfer</artifactId>
     </dependency>
     <dependency>

@@ -38,6 +38,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new AutoMLDiscovery(),
     new AssetDiscovery(),
     new BigQueryDiscovery(),
+    new BigQueryReservationDiscovery(),
     new BigQueryDataTransferDiscovery(),
     new BigTableDiscovery(),
     new ClusterDiscovery(),
