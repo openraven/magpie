@@ -16,9 +16,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [ ]  BigQuery Storage
 - [x]  Cloud Asset Inventory
 - [x]  Cloud Bigtable
-- [ ]  Cloud Bigtable
-- [ ]  Cloud Billing
-- [ ]  Cloud Billing Budget API
+- [x]  Cloud Billing
 - [ ]  Cloud Build
 - [ ]  Cloud DNS
 - [ ]  Cloud Data Loss Prevention
