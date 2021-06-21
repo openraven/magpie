@@ -43,6 +43,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new BigTableDiscovery(),
     new BillingDiscovery(),
     new ClusterDiscovery(),
+    new DlpDiscovery(),
     new DnsDiscovery(),
     new DataLabelingDiscovery(),
     new SecretDiscovery(),
