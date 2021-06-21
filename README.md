@@ -7,7 +7,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 
 # Supported services
 - [x]  AI Platform Data Labeling Service
-- [ ]  Access Approval
+- [x]  Access Approval
 - [x]  AutoML
 - [x]  BigQuery
 - [x]  BigQuery Data Transfer Service
