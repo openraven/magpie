@@ -16,14 +16,15 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.datatransfer.v1.DataTransferServiceClient;
 import com.google.cloud.bigquery.datatransfer.v1.LocationName;
 import com.google.cloud.bigquery.datatransfer.v1.TransferRun;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -69,26 +70,30 @@ public class BigQueryDataTransferDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::BigQueryDataTransfer::TransferConfig";
 
     try (DataTransferServiceClient client = DataTransferServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         LocationName parent = LocationName.of(projectId, location);
         for (var dataSource : client.listTransferConfigs(parent).iterateAll()) {
-          var data = new GCPResource(dataSource.getName(), projectId, RESOURCE_TYPE);
-          data.configuration = GCPUtils.asJsonNode(dataSource);
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, dataSource.getName())
+            .withProjectId(projectId)
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(GCPUtils.asJsonNode(dataSource))
+            .build();
 
           discoverTransferRuns(client, dataSource, data);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":transferConfig"), data.toJsonNode()));
-        }});
+        }
+      });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     }
   }
 
-  private void discoverTransferRuns(DataTransferServiceClient client, com.google.cloud.bigquery.datatransfer.v1.TransferConfig dataSource, GCPResource data) {
+  private void discoverTransferRuns(DataTransferServiceClient client, com.google.cloud.bigquery.datatransfer.v1.TransferConfig dataSource, MagpieResource data) {
     final String fieldName = "transferRuns";
 
     ArrayList<TransferRun.Builder> list = new ArrayList<>();

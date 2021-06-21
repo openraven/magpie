@@ -16,12 +16,13 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.iot.v1.*;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class IoTDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::IoT::deviceRegistry";
 
     try (DeviceManagerClient deviceManagerClient = DeviceManagerClient.create()) {
@@ -49,8 +50,11 @@ public class IoTDiscovery implements GCPDiscovery {
 
         deviceManagerClient.listDeviceRegistries(parent).iterateAll()
           .forEach(deviceRegistry -> {
-            var data = new GCPResource(deviceRegistry.getName(), projectId, RESOURCE_TYPE);
-            data.configuration = GCPUtils.asJsonNode(deviceRegistry);
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, deviceRegistry.getName())
+              .withProjectId(projectId)
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(GCPUtils.asJsonNode(deviceRegistry))
+              .build();
 
             discoverDevices(deviceManagerClient, deviceRegistry, data);
 
@@ -64,7 +68,7 @@ public class IoTDiscovery implements GCPDiscovery {
 
   private void discoverDevices(DeviceManagerClient deviceManagerClient,
                                DeviceRegistry deviceRegistry,
-                               GCPResource data) {
+                               MagpieResource data) {
     final String fieldName = "devices";
 
     ArrayList<Device.Builder> list = new ArrayList<>();

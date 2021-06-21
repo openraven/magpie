@@ -16,12 +16,13 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.asset.v1.AssetServiceClient;
 import com.google.cloud.asset.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -37,32 +38,38 @@ public class AssetDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     try (AssetServiceClient assetServiceClient = AssetServiceClient.create()) {
-      discoverFeeds(projectId, session, emitter, assetServiceClient);
-      discoverAssets(projectId, session, emitter, assetServiceClient);
+      discoverFeeds(mapper, projectId, session, emitter, assetServiceClient);
+      discoverAssets(mapper, projectId, session, emitter, assetServiceClient);
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("Asset", e);
     }
   }
 
-  private void discoverFeeds(String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
+  private void discoverFeeds(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
     final String RESOURCE_TYPE = "GCP::Asset::Feed";
 
     for (var element : assetServiceClient.listFeeds(ProjectName.of(projectId).toString()).getFeedsList()) {
-      var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
-      data.configuration = GCPUtils.asJsonNode(element);
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+        .withProjectId(projectId)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GCPUtils.asJsonNode(element))
+        .build();
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":feed"), data.toJsonNode()));
     }
   }
 
-  private void discoverAssets(String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
+  private void discoverAssets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
     final String RESOURCE_TYPE = "GCP::Asset::Asset";
 
     for (var element : assetServiceClient.listAssets(ProjectName.of(projectId).toString()).iterateAll()) {
-      var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
-      data.configuration = GCPUtils.asJsonNode(element);
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+        .withProjectId(projectId)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GCPUtils.asJsonNode(element))
+        .build();
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":asset"), data.toJsonNode()));
     }

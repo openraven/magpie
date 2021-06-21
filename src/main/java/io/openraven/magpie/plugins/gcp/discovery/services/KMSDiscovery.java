@@ -16,14 +16,15 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.kms.v1.CryptoKey;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.cloud.kms.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -83,14 +84,17 @@ public class KMSDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::KMS::Keyring";
     try (KeyManagementServiceClient keyManagementServiceClient = KeyManagementServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();
         keyManagementServiceClient.listKeyRings(parent).iterateAll().forEach(keyRing -> {
-          var data = new GCPResource(keyRing.getName(), projectId, RESOURCE_TYPE);
-          data.configuration = GCPUtils.asJsonNode(keyRing);
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, keyRing.getName())
+            .withProjectId(projectId)
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(GCPUtils.asJsonNode(keyRing))
+            .build();
 
           discoverKeys(keyManagementServiceClient, keyRing, data);
 
@@ -102,7 +106,7 @@ public class KMSDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, GCPResource data) {
+  private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, MagpieResource data) {
     final String fieldName = "keys";
 
     ArrayList<CryptoKey.Builder> list = new ArrayList<>();

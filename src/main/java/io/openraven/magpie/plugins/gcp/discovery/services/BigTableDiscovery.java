@@ -16,15 +16,16 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigtable.admin.v2.BigtableInstanceAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.Cluster;
 import com.google.cloud.bigtable.admin.v2.models.Instance;
 import com.google.cloud.bigtable.admin.v2.models.PartialListInstancesException;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class BigTableDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::BigTable::Instance";
 
     try (BigtableInstanceAdminClient client = BigtableInstanceAdminClient.create(projectId)) {
@@ -54,8 +55,11 @@ public class BigTableDiscovery implements GCPDiscovery {
       }
 
       instances.listIterator().forEachRemaining(instance -> {
-        var data = new GCPResource(instance.getId(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(instance);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.getId())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(instance))
+          .build();
 
         discoverClusters(client, instance, data);
 
@@ -66,7 +70,7 @@ public class BigTableDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverClusters(BigtableInstanceAdminClient client, Instance instance, GCPResource data) {
+  private void discoverClusters(BigtableInstanceAdminClient client, Instance instance, MagpieResource data) {
     final String fieldName = "clusters";
 
     ArrayList<Cluster> list = new ArrayList<>();

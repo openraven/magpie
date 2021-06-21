@@ -16,15 +16,16 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.NotFoundException;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.datacatalog.v1.DataCatalogClient;
 import com.google.cloud.datacatalog.v1.Entry;
 import com.google.cloud.datacatalog.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -76,7 +77,7 @@ public class DataCatalogDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::DataCatalog::EntryGroup";
 
     try (DataCatalogClient dataCatalogClient = DataCatalogClient.create()) {
@@ -84,8 +85,11 @@ public class DataCatalogDiscovery implements GCPDiscovery {
         try {
           String parent = LocationName.of(projectId, location).toString();
           dataCatalogClient.listEntryGroups(parent).iterateAll().forEach(entryGroup -> {
-            var data = new GCPResource(entryGroup.getName(), projectId, RESOURCE_TYPE);
-            data.configuration = GCPUtils.asJsonNode(entryGroup);
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, entryGroup.getName())
+              .withProjectId(projectId)
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(GCPUtils.asJsonNode(entryGroup))
+              .build();
 
             discoverEntries(dataCatalogClient, entryGroup, data);
 
@@ -99,7 +103,7 @@ public class DataCatalogDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverEntries(DataCatalogClient dataCatalogClient, com.google.cloud.datacatalog.v1.EntryGroup entryGroup, GCPResource data) {
+  private void discoverEntries(DataCatalogClient dataCatalogClient, com.google.cloud.datacatalog.v1.EntryGroup entryGroup, MagpieResource data) {
     final String fieldName = "entries";
 
     ArrayList<Entry.Builder> list = new ArrayList<>();

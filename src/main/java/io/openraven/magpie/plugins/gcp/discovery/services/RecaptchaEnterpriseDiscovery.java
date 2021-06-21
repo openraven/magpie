@@ -16,14 +16,15 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.recaptchaenterprise.v1.RecaptchaEnterpriseServiceClient;
 import com.google.recaptchaenterprise.v1.Key;
 import com.google.recaptchaenterprise.v1.ListKeysRequest;
 import com.google.recaptchaenterprise.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class RecaptchaEnterpriseDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::RecaptchaEnterprise::Key";
 
     try (RecaptchaEnterpriseServiceClient recaptchaEnterpriseServiceClient =
@@ -49,8 +50,11 @@ public class RecaptchaEnterpriseDiscovery implements GCPDiscovery {
           .setParent(ProjectName.of(projectId).toString())
           .build();
       for (Key key : recaptchaEnterpriseServiceClient.listKeys(request).iterateAll()) {
-        var data = new GCPResource(key.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(key);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, key.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(key))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":key"), data.toJsonNode()));
       }

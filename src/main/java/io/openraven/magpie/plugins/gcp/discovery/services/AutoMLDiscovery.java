@@ -16,15 +16,16 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.cloud.automl.v1.AutoMlClient;
 import com.google.cloud.automl.v1.Dataset;
 import com.google.cloud.automl.v1.Model;
 import com.google.cloud.memcache.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -42,26 +43,29 @@ public class AutoMLDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     try (AutoMlClient client = AutoMlClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
-        discoverDatasets(projectId, location, session, emitter, client, logger);
-        discoverModels(projectId, location, session, emitter, client, logger);
+        discoverDatasets(mapper, projectId, location, session, emitter, client, logger);
+        discoverModels(mapper, projectId, location, session, emitter, client, logger);
       });
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("AutoML", e);
     }
   }
 
-  private void discoverDatasets(String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
+  private void discoverDatasets(ObjectMapper mapper, String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
     final String RESOURCE_TYPE = "GCP::AutoML::Dataset";
 
     String parent = LocationName.of(projectId, location).toString();
 
     try {
       for (Dataset element : client.listDatasets(parent).iterateAll()) {
-        var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(element);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(element))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataset"), data.toJsonNode()));
       }
@@ -70,15 +74,18 @@ public class AutoMLDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverModels(String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
+  private void discoverModels(ObjectMapper mapper, String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
     final String RESOURCE_TYPE = "GCP::AutoML::Model";
 
     String parent = LocationName.of(projectId, location).toString();
 
     try {
       for (Model element : client.listModels(parent).iterateAll()) {
-        var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(element);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(element))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":model"), data.toJsonNode()));
       }

@@ -16,12 +16,13 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ public class SecretDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::SecretManager::Secret";
 
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
@@ -45,8 +46,11 @@ public class SecretDiscovery implements GCPDiscovery {
 
       client.listSecrets(projectName).iterateAll()
         .forEach(secret -> {
-          var data = new GCPResource(secret.getName(), projectId, RESOURCE_TYPE);
-          data.configuration = GCPUtils.asJsonNode(secret);
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.getName())
+            .withProjectId(projectId)
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(GCPUtils.asJsonNode(secret))
+            .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));
         });
