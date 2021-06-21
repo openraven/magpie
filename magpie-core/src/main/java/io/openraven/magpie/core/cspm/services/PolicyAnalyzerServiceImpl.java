@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.cspm.Rule;
+import io.openraven.magpie.core.cspm.ScanResults;
 import io.openraven.magpie.core.cspm.Violation;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
@@ -17,9 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -49,16 +49,21 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   @Override
-  public List<Violation> analyze(List<PolicyContext> policies) throws Exception {
-    List<Violation> violations = new ArrayList<>();
+  public ScanResults analyze(List<PolicyContext> policies) throws Exception {
+    Map<PolicyContext, List<Violation>> violations = new HashMap<>();
+    Map<PolicyContext, Map<Rule, ScanResults.IgnoredReason>> ignoredRules = new HashMap<>();
+    AtomicInteger numOfViolations = new AtomicInteger();
 
     policies.forEach(policy -> {
+        List<Violation> policyViolations = new ArrayList<>();
+        Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules = new HashMap<>();
         final var p = policy.getPolicy();
         if (p.isEnabled()) {
           LOGGER.info("Analyzing policy - {}", p.getName());
           p.getRules().forEach(rule -> {
             if (rule.isEnabled()) {
               if (rule.isManualControl()) {
+                policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MANUAL_CONTROL);
                 LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
               } else {
                 LOGGER.info("Analyzing rule - {}", rule.getName());
@@ -87,12 +92,14 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                     violation.setInfo(p.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
                     violation.setError(evalErr.toString());
                     violation.setEvaluatedAt(evaluatedAt);
-                    violations.add(violation);
+                    policyViolations.add(violation);
                   });
+                  numOfViolations.getAndIncrement();
                 } catch (UnableToExecuteStatementException ex) {
                   var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
                   if (!missingTables.isEmpty()) {
                     final var tableName = missingTables.get(0).group(1);
+                    policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MISSING_ASSET);
                     LOGGER.info("No asset table found for rule, ignoring. [table={}, rule={}]", tableName, rule.getName());
                     LOGGER.trace("Could not evaluate rule", ex);
                   } else {
@@ -101,15 +108,22 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                 }
               }
             } else {
+              policyIgnoredRules.put(rule, ScanResults.IgnoredReason.DISABLED);
               LOGGER.info("Rule '{}' disabled", rule.getName());
             }
           });
         } else {
           LOGGER.info("Policy '{}' disabled", p.getName());
         }
+        if (!policyViolations.isEmpty()) {
+          violations.put(policy, policyViolations);
+        }
+        if (!policyIgnoredRules.isEmpty()) {
+          ignoredRules.put(policy, policyIgnoredRules);
+        }
       }
     );
-    return violations;
+    return new ScanResults(policies, violations, ignoredRules, numOfViolations.get());
   }
 
   @Override

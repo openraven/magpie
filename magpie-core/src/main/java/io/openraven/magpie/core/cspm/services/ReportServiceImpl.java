@@ -2,12 +2,12 @@ package io.openraven.magpie.core.cspm.services;
 
 import io.openraven.magpie.core.cspm.Rule;
 import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.Violation;
+import io.openraven.magpie.core.cspm.ScanResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ReportServiceImpl implements ReportService {
@@ -27,37 +27,65 @@ public class ReportServiceImpl implements ReportService {
   }
 
   @Override
-  public void generateReport(List<PolicyContext> policies, List<Violation> violations) {
+  public void generateReport(ScanResults results) {
     final String BOLD_SET = "\033[1m";
     final String BOLD_RESET = "\033[0m";
     final int COLUMN_WIDTH = 60;
     final int GUID_COLUMN_WIDTH = 50;
 
+    final Function<String, String> trimRuleName = (ruleName) -> {
+      String trimmedName = ruleName.replace(System.lineSeparator(), "");
+      trimmedName = trimmedName.length() >= COLUMN_WIDTH ? trimmedName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : trimmedName;
+      return trimmedName;
+    };
+
+
     System.out.println(BOLD_SET + "Scan Summary:" + BOLD_RESET);
     System.out.printf("%-30s%-40s\n", "Scan start time", this.scanMetadata.getStartDateTime().toString());
     System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(this.scanMetadata.getDuration()));
-    System.out.printf("%-30s%-40d\n\n", "Total violations found", violations.size());
+    System.out.printf("%-30s%-40d\n\n", "Total violations found", results.getNumOfViolations());
 
-    System.out.println(BOLD_SET + "Scan Per-policy Details:" + BOLD_RESET);
-    policies.forEach(policy -> {
-      System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getName());
-      System.out.printf("%-30s%-40s\n", "Policy status", policy.getPolicy().isEnabled() ? "Enabled" : "Disabled");
-      var policyViolations = violations.stream().filter(violation -> violation.getPolicyId().equals(policy.getPolicy().getId())).collect(Collectors.toList());
-      System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations.size());
+    var ignoredPolicies = results.getPolicies().stream().filter(policy -> !policy.getPolicy().isEnabled()).collect(Collectors.toList());
+    if (!ignoredPolicies.isEmpty()) {
+      System.out.println(BOLD_SET + "Disabled policies:" + BOLD_RESET);
+      System.out.printf(BOLD_SET + "%-2s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Policy GUID", "Policy name");
+      ignoredPolicies.forEach(policy -> {
+        System.out.printf("%-2s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", policy.getPolicy().getId(), policy.getPolicy().getName());
+      });
+      System.out.printf("\n");
+    }
 
-      if (!policyViolations.isEmpty()) {
-        System.out.printf("%-30s\n", "Violations");
-        System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
-        policyViolations.forEach(policyViolation -> {
-          Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
-          String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
-            "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
-          String ruleName = violatedRule.getName().replace(System.lineSeparator(), "");
-          ruleName = ruleName.length() >= COLUMN_WIDTH ? ruleName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : ruleName;
-          System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), ruleName);
-        });
+    if (!results.getViolations().isEmpty() || !results.getIgnoredRules().isEmpty()) {
+      System.out.println(BOLD_SET + "Scan Per-policy Details:" + BOLD_RESET);
+
+      results.getPolicies().forEach(policy -> {
+        var policyViolations = results.getViolations().get(policy);
+        var ignoredRules = results.getIgnoredRules().get(policy);
+
+        System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getName());
+        System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations == null ? 0 : policyViolations.size());
+
+        if (ignoredRules != null) {
+          System.out.printf("%-30s\n", "Ignored rules");
+          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Rule name", "Rule GUID", "Reason");
+          ignoredRules.forEach((rule, reason) -> {
+            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", trimRuleName.apply(rule.getName()), rule.getId(), reason.getReason());
+          });
+          System.out.printf("\n");
+        }
+
+        if (policyViolations != null) {
+          System.out.printf("%-30s\n", "Violations");
+          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
+          policyViolations.forEach(policyViolation -> {
+            Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
+            String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
+              "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
+            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), trimRuleName.apply(violatedRule.getName()));
+          });
+        }
         System.out.printf("\n");
-      }
-    });
+      });
+    }
   }
 }

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.Violation;
+import io.openraven.magpie.core.cspm.ScanResults;
 import io.openraven.magpie.core.cspm.services.*;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
 
 public class Policy {
   private static final Logger LOGGER = LoggerFactory.getLogger(Policy.class);
@@ -44,9 +43,9 @@ public class Policy {
 
   public static String humanReadableFormat(Duration duration) {
     return duration.toString()
-            .substring(2)
-            .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-            .toLowerCase();
+      .substring(2)
+      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+      .toLowerCase();
   }
 
   public static void main(String[] args) throws IOException, ParseException {
@@ -76,10 +75,10 @@ public class Policy {
       analyzerService.init(config);
       Duration scanDuration;
       try {
-        List<Violation> violations = analyzerService.analyze(policies);
+        ScanResults scanResults = analyzerService.analyze(policies);
         scanDuration = Duration.between(start, Instant.now());
         ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
-        reportService.generateReport(policies, violations);
+        reportService.generateReport(scanResults);
       } catch (Exception e) {
         LOGGER.error("Analyze error: {}", e.getMessage());
       }

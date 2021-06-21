@@ -1,9 +1,7 @@
 package io.openraven.magpie.core.cspm.services;
 
-import io.openraven.magpie.core.cspm.Violation;
-
-import java.util.List;
+import io.openraven.magpie.core.cspm.ScanResults;
 
 public interface ReportService {
-  void generateReport(List<PolicyContext> policies, List<Violation> violations);
+  void generateReport(ScanResults results);
 }
