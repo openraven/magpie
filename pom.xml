@@ -139,6 +139,10 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-asset</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-datalabeling</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>

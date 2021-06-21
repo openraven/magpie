@@ -40,6 +40,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new BigQueryDataTransferDiscovery(),
     new BigTableDiscovery(),
     new ClusterDiscovery(),
+    new DataLabelingDiscovery(),
     new SecretDiscovery(),
     new RedisDiscovery(),
     new MemcacheDiscovery(),
