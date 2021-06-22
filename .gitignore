@@ -4,3 +4,4 @@ target
 .idea
 *.iml
 magpie.log
+dependency-reduced-pom.xml

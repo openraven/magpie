@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPDiscoveryPlugin;
@@ -24,13 +25,13 @@ import org.slf4j.Logger;
 public interface GCPDiscovery {
   String service();
 
-  default void discoverWrapper(String projectId, Session session, Emitter emitter, Logger logger) {
+  default void discoverWrapper(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     logger.debug("Starting {} discovery ", service());
-    discover(projectId, session, emitter, logger);
+    discover(mapper, projectId, session, emitter, logger);
     logger.debug("Completed {} discovery", service());
   }
 
-  void discover(String projectId, Session session, Emitter emitter, Logger logger);
+  void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger);
 
   default String fullService() {
     return GCPDiscoveryPlugin.ID + ":" + service();

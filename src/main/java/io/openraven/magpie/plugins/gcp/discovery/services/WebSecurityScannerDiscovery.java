@@ -16,12 +16,13 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.websecurityscanner.v1.*;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::WebSecurityScanner::ScanConfig";
 
     try (WebSecurityScannerClient webSecurityScannerClient = WebSecurityScannerClient.create()) {
@@ -47,8 +48,11 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
           .setParent(String.format("projects/%s", projectId))
           .build();
       for (ScanConfig element : webSecurityScannerClient.listScanConfigs(request).iterateAll()) {
-        var data = new GCPResource(element.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(element);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(element))
+          .build();
 
         discoverScanRuns(webSecurityScannerClient, element, data);
 
@@ -61,7 +65,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
 
   private void discoverScanRuns(WebSecurityScannerClient client,
                                 ScanConfig scanConfig,
-                                GCPResource data) {
+                                MagpieResource data) {
     final String fieldName = "scanRuns";
 
     ArrayList<ScanRun> list = new ArrayList<>();

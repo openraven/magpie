@@ -16,11 +16,12 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -35,14 +36,17 @@ public class BigQueryDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
 
     final String RESOURCE_TYPE = "GCP::BigQuery::Dataset";
     bigQuery.listDatasets(projectId).iterateAll()
       .forEach(dataset -> {
-        var data = new GCPResource(dataset.getGeneratedId(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(dataset);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, dataset.getGeneratedId())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(dataset))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataset"), data.toJsonNode()));
       });
