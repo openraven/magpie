@@ -16,13 +16,15 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.cloud.billing.v1.BillingAccount;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.ProjectBillingInfo;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -39,13 +41,16 @@ public class BillingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::Billing::BillingAccount";
 
     try (var client = CloudBillingClient.create()) {
       for (var billingAccount : client.listBillingAccounts().iterateAll()) {
-        var data = new GCPResource(billingAccount.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(billingAccount);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, billingAccount.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(billingAccount))
+          .build();
 
         discoverProjectBillingInfo(client, billingAccount, data);
 
@@ -56,7 +61,7 @@ public class BillingDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverProjectBillingInfo(CloudBillingClient client, com.google.cloud.billing.v1.BillingAccount billingAccount, GCPResource data) {
+  private void discoverProjectBillingInfo(CloudBillingClient client, BillingAccount billingAccount, MagpieResource data) {
     final String fieldName = "projectBillingInfo";
 
     ArrayList<ProjectBillingInfo.Builder> list = new ArrayList<>();

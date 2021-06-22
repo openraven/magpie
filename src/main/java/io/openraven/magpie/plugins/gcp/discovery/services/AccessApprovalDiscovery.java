@@ -16,13 +16,14 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.accessapproval.v1.AccessApprovalAdminClient;
 import com.google.cloud.accessapproval.v1.ApprovalRequest;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -38,14 +39,16 @@ public class AccessApprovalDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::AccessApproval::ApprovalRequest";
 
     try (var accessApprovalAdminClient = AccessApprovalAdminClient.create()) {
-      for (ApprovalRequest approvalRequest :
-        accessApprovalAdminClient.listApprovalRequests(ProjectName.of(projectId).toString()).iterateAll()) {
-        var data = new GCPResource(approvalRequest.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(approvalRequest);
+      for (var approvalRequest : accessApprovalAdminClient.listApprovalRequests(ProjectName.of(projectId).toString()).iterateAll()) {
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, approvalRequest.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(approvalRequest))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":approvalRequest"), data.toJsonNode()));
       }

@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.monitoring.v3.AlertPolicyServiceClient;
 import com.google.cloud.monitoring.v3.GroupServiceClient;
 import com.google.cloud.monitoring.v3.ServiceMonitoringServiceClient;
@@ -23,9 +24,9 @@ import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.monitoring.v3.AlertPolicy;
 import com.google.monitoring.v3.Group;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -41,19 +42,22 @@ public class MonitoringDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverMonitoringGroups(projectId, session, emitter);
-    discoverAlertPolicies(projectId, session, emitter);
-    discoverServices(projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+    discoverMonitoringGroups(mapper, projectId, session, emitter);
+    discoverAlertPolicies(mapper, projectId, session, emitter);
+    discoverServices(mapper, projectId, session, emitter);
   }
 
-  private void discoverMonitoringGroups(String projectId, Session session, Emitter emitter) {
+  private void discoverMonitoringGroups(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
     final String RESOURCE_TYPE = "GCP::Monitoring::Group";
 
     try (GroupServiceClient groupServiceClient = GroupServiceClient.create()) {
       for (Group group : groupServiceClient.listGroups(ProjectName.of(projectId)).iterateAll()) {
-        var data = new GCPResource(group.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(group);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, group.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(group))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":group"), data.toJsonNode()));
       }
@@ -62,13 +66,16 @@ public class MonitoringDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverAlertPolicies(String projectId, Session session, Emitter emitter) {
+  private void discoverAlertPolicies(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
     final String RESOURCE_TYPE = "GCP::Monitoring::AlertPolicy";
 
     try (AlertPolicyServiceClient alertPolicyServiceClient = AlertPolicyServiceClient.create()) {
       for (AlertPolicy alertPolicy : alertPolicyServiceClient.listAlertPolicies(ProjectName.of(projectId)).iterateAll()) {
-        var data = new GCPResource(alertPolicy.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(alertPolicy);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, alertPolicy.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(alertPolicy))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":alertPolicy"), data.toJsonNode()));
       }
@@ -77,13 +84,16 @@ public class MonitoringDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverServices(String projectId, Session session, Emitter emitter) {
+  private void discoverServices(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
     final String RESOURCE_TYPE = "GCP::Monitoring::Service";
 
     try (var serviceMonitoringServiceClient = ServiceMonitoringServiceClient.create()) {
       for (var service : serviceMonitoringServiceClient.listServices(ProjectName.of(projectId)).iterateAll()) {
-        var data = new GCPResource(service.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(service);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(service))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":service"), data.toJsonNode()));
       }

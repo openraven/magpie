@@ -155,11 +155,12 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-dlp</artifactId>
     </dependency>
-     <dependency>
+    <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-dns</artifactId>
     </dependency>
-    <groupId>com.google.cloud</groupId>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-billing</artifactId>
     </dependency>
     <dependency>

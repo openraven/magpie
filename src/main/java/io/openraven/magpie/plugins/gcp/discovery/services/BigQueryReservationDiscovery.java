@@ -16,15 +16,16 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.reservation.v1.Assignment;
 import com.google.cloud.bigquery.reservation.v1.LocationName;
 import com.google.cloud.bigquery.reservation.v1.Reservation;
 import com.google.cloud.bigquery.reservation.v1.ReservationServiceClient;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -70,54 +71,60 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
-      try (var client = ReservationServiceClient.create()) {
-
-        discoverReservations(projectId, session, emitter, client);
-        discoverCapacityCommitments(projectId, session, emitter, client);
-
-      } catch (IOException e) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+    try (var client = ReservationServiceClient.create()) {
+      discoverReservations(mapper, projectId, session, emitter, client);
+      discoverCapacityCommitments(mapper, projectId, session, emitter, client);
+    } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("BigQueryReservation", e);
     }
   }
 
-  private void discoverReservations(String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
+  private void discoverReservations(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
     final String RESOURCE_TYPE = "GCP::BigQueryReservation::Reservation";
 
     AVAILABLE_LOCATIONS.forEach(location -> {
       String parent = LocationName.of(projectId, location).toString();
 
       for (var reservation : client.listReservations(parent).iterateAll()) {
-        var data = new GCPResource(reservation.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(reservation);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, reservation.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(reservation))
+          .build();
 
-      discoverAssignments(client, reservation, data);
+        discoverAssignments(client, reservation, data);
 
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":reservation"), data.toJsonNode()));
-    }});
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":reservation"), data.toJsonNode()));
+      }
+    });
   }
 
-  private void discoverAssignments(ReservationServiceClient client, Reservation reservation, GCPResource data) {
+  private void discoverAssignments(ReservationServiceClient client, Reservation reservation, MagpieResource data) {
     final String fieldName = "assignments";
 
     ArrayList<Assignment.Builder> list = new ArrayList<>();
     client.listAssignments(reservation.getName()).iterateAll()
-      .forEach(assingment -> list.add(assingment.toBuilder()));
+      .forEach(assignment -> list.add(assignment.toBuilder()));
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverCapacityCommitments(String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
+  private void discoverCapacityCommitments(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
     final String RESOURCE_TYPE = "GCP::BigQueryReservation::CapacityCommitment";
 
     AVAILABLE_LOCATIONS.forEach(location -> {
       String parent = LocationName.of(projectId, location).toString();
 
       for (var capacityCommitment : client.listCapacityCommitments(parent).iterateAll()) {
-        var data = new GCPResource(capacityCommitment.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(capacityCommitment);
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, capacityCommitment.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(capacityCommitment))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":capacityCommitment"), data.toJsonNode()));
-      }});
+      }
+    });
   }
 }

@@ -16,11 +16,12 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.dns.*;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -36,15 +37,17 @@ public class DnsDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = "GCP::Dns::Zone";
 
     var dnsInstance = DnsOptions.getDefaultInstance().getService();
 
-    dnsInstance.listZones().iterateAll()
-      .forEach(zone -> {
-        var data = new GCPResource(zone.getName(), projectId, RESOURCE_TYPE);
-        data.configuration = GCPUtils.asJsonNode(zone);
+    dnsInstance.listZones().iterateAll().forEach(zone -> {
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, zone.getName())
+          .withProjectId(projectId)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GCPUtils.asJsonNode(zone))
+          .build();
 
         discoverChangeRequests(dnsInstance, zone, data);
         discoverRecordSets(dnsInstance, zone, data);
@@ -53,7 +56,7 @@ public class DnsDiscovery implements GCPDiscovery {
       });
   }
 
-  private void discoverChangeRequests(Dns dnsInstance, Zone zone, GCPResource data) {
+  private void discoverChangeRequests(Dns dnsInstance, Zone zone, MagpieResource data) {
     final String fieldName = "changeRequests";
 
     ArrayList<ChangeRequest.Builder> list = new ArrayList<>();
@@ -63,7 +66,7 @@ public class DnsDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverRecordSets(Dns dnsInstance, Zone zone, GCPResource data) {
+  private void discoverRecordSets(Dns dnsInstance, Zone zone, MagpieResource data) {
     final String fieldName = "recordSets";
 
     ArrayList<RecordSet.Builder> list = new ArrayList<>();

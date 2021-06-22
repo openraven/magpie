@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.datalabeling.v1beta1.AnnotatedDataset;
 import com.google.cloud.datalabeling.v1beta1.DataItem;
@@ -23,9 +24,9 @@ import com.google.cloud.datalabeling.v1beta1.DataLabelingServiceClient;
 import com.google.cloud.datalabeling.v1beta1.Dataset;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.GCPResource;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -42,22 +43,25 @@ public class DataLabelingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     try (DataLabelingServiceClient dataLabelingServiceClient = DataLabelingServiceClient.create()) {
-      discoverDatasets(projectId, session, emitter, dataLabelingServiceClient);
-      discoverInstructions(projectId, session, emitter, dataLabelingServiceClient);
-      discoverAnnotationSpecSet(projectId, session, emitter, dataLabelingServiceClient);
+      discoverDatasets(mapper, projectId, session, emitter, dataLabelingServiceClient);
+      discoverInstructions(mapper, projectId, session, emitter, dataLabelingServiceClient);
+      discoverAnnotationSpecSet(mapper, projectId, session, emitter, dataLabelingServiceClient);
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("DataLabeling", e);
     }
   }
 
-  private void discoverDatasets(String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
+  private void discoverDatasets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
     final String RESOURCE_TYPE = "GCP::DataLabeling::Dataset";
 
     for (var dataset : dataLabelingServiceClient.listDatasets(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new GCPResource(dataset.getName(), projectId, RESOURCE_TYPE);
-      data.configuration = GCPUtils.asJsonNode(dataset);
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, dataset.getName())
+        .withProjectId(projectId)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GCPUtils.asJsonNode(dataset))
+        .build();
 
       discoverAnnotatedDatasets(dataLabelingServiceClient, dataset, data);
       discoverDataItems(dataLabelingServiceClient, dataset, data);
@@ -66,7 +70,7 @@ public class DataLabelingDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverAnnotatedDatasets(DataLabelingServiceClient dataLabelingServiceClient, Dataset dataset, GCPResource data) {
+  private void discoverAnnotatedDatasets(DataLabelingServiceClient dataLabelingServiceClient, Dataset dataset, MagpieResource data) {
     final String fieldName = "annotatedDatasets";
 
     ArrayList<AnnotatedDataset.Builder> list = new ArrayList<>();
@@ -76,7 +80,7 @@ public class DataLabelingDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverDataItems(DataLabelingServiceClient dataLabelingServiceClient, Dataset dataset, GCPResource data) {
+  private void discoverDataItems(DataLabelingServiceClient dataLabelingServiceClient, Dataset dataset, MagpieResource data) {
     final String fieldName = "dataItems";
 
     ArrayList<DataItem.Builder> list = new ArrayList<>();
@@ -86,23 +90,29 @@ public class DataLabelingDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverInstructions(String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
+  private void discoverInstructions(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
     final String RESOURCE_TYPE = "GCP::DataLabeling::Instruction";
 
-    for (var dataset : dataLabelingServiceClient.listInstructions(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new GCPResource(dataset.getName(), projectId, RESOURCE_TYPE);
-      data.configuration = GCPUtils.asJsonNode(dataset);
+    for (var instruction : dataLabelingServiceClient.listInstructions(ProjectName.of(projectId).toString(), "").iterateAll()) {
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, instruction.getName())
+        .withProjectId(projectId)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GCPUtils.asJsonNode(instruction))
+        .build();
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instruction"), data.toJsonNode()));
     }
   }
 
-  private void discoverAnnotationSpecSet(String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
+  private void discoverAnnotationSpecSet(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
     final String RESOURCE_TYPE = "GCP::DataLabeling::AnnotationSpecSet";
 
-    for (var dataset : dataLabelingServiceClient.listAnnotationSpecSets(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new GCPResource(dataset.getName(), projectId, RESOURCE_TYPE);
-      data.configuration = GCPUtils.asJsonNode(dataset);
+    for (var annotationSpecSet : dataLabelingServiceClient.listAnnotationSpecSets(ProjectName.of(projectId).toString(), "").iterateAll()) {
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, annotationSpecSet.getName())
+        .withProjectId(projectId)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GCPUtils.asJsonNode(annotationSpecSet))
+        .build();
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":annotationSpecSet"), data.toJsonNode()));
     }
