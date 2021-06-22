@@ -93,8 +93,9 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                     violation.setError(evalErr.toString());
                     violation.setEvaluatedAt(evaluatedAt);
                     policyViolations.add(violation);
+
+                    numOfViolations.getAndIncrement();
                   });
-                  numOfViolations.getAndIncrement();
                 } catch (UnableToExecuteStatementException ex) {
                   var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
                   if (!missingTables.isEmpty()) {
