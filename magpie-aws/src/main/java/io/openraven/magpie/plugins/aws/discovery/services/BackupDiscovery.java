@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -61,24 +61,27 @@ public class BackupDiscovery implements AWSDiscovery {
     try {
       client.listBackupVaultsPaginator().stream()
         .forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList()
-            .forEach(backupVault -> {
-          var data = new AWSResource(backupVault.toBuilder(), region.toString(), account, mapper);
-          data.resourceType = RESOURCE_TYPE;
-          data.arn = backupVault.backupVaultArn();
-          data.resourceName = backupVault.backupVaultName();
-          data.resourceId = backupVault.backupVaultName();
-          data.createdIso = backupVault.creationDate();
+          .forEach(backupVault -> {
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, backupVault.backupVaultArn())
+              .withResourceName(backupVault.backupVaultName())
+              .withResourceId(backupVault.backupVaultName())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(backupVault.toBuilder()))
+              .withCreatedIso(backupVault.creationDate())
+              .withAccountId(account)
+              .withRegion(region.toString())
+              .build();
 
-          discoverTags(client, backupVault, data);
+            discoverTags(client, backupVault, data);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode(mapper)));
-        }));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
+          }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverTags(BackupClient client, BackupVaultListMember resource, AWSResource data) {
+  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieResource data) {
     final String keyname = "tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())

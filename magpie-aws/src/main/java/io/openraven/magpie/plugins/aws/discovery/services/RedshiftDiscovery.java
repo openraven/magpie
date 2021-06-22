@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -62,24 +62,28 @@ public class RedshiftDiscovery implements AWSDiscovery {
 
     try {
       client.describeClustersPaginator().clusters().stream().forEach(cluster -> {
-        var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
-        data.resourceType = RESOURCE_TYPE;
-        data.resourceId = cluster.clusterIdentifier();
-        data.arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
-        data.resourceName = cluster.dbName();
-        data.createdIso = cluster.clusterCreateTime();
+        String arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          .withResourceName(cluster.dbName())
+          .withResourceId(cluster.clusterIdentifier())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(cluster))
+          .withCreatedIso(cluster.clusterCreateTime())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverStorage(client, data);
         discoverSize(cluster, data, region);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverStorage(RedshiftClient client, AWSResource data) {
+  private void discoverStorage(RedshiftClient client, MagpieResource data) {
     final String keyname = "storage";
 
     getAwsResponse(
@@ -89,7 +93,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Cluster resource, AWSResource data, Region region) {
+  private void discoverSize(Cluster resource, MagpieResource data, Region region) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());

@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -67,25 +67,28 @@ public class QLDBDiscovery implements AWSDiscovery {
         .stream()
         .map(ledgerSummary -> client.describeLedger(DescribeLedgerRequest.builder().name(ledgerSummary.name()).build()))
         .forEach(ledger -> {
-          var data = new AWSResource(ledger.toBuilder(), region.toString(), account, mapper);
-          data.arn = ledger.arn();
-          data.resourceName = ledger.name();
-          data.resourceType = RESOURCE_TYPE;
-          data.createdIso = ledger.creationDateTime();
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, ledger.arn())
+            .withResourceName(ledger.name())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(ledger))
+            .withCreatedIso(ledger.creationDateTime())
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverStreams(client, ledger, data);
           discoverJournalS3Exports(client, ledger, data);
           discoverTags(client, ledger, data, mapper);
           discoverSize(ledger, data, region);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode()));
         }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverStreams(QldbClient client, DescribeLedgerResponse resource, AWSResource data) {
+  private void discoverStreams(QldbClient client, DescribeLedgerResponse resource, MagpieResource data) {
     final String keyname = "streams";
 
     getAwsResponse(
@@ -98,7 +101,7 @@ public class QLDBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverJournalS3Exports(QldbClient client, DescribeLedgerResponse resource, AWSResource data) {
+  private void discoverJournalS3Exports(QldbClient client, DescribeLedgerResponse resource, MagpieResource data) {
     final String keyname = "journalS3Exports";
 
     getAwsResponse(
@@ -111,7 +114,7 @@ public class QLDBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(QldbClient client, DescribeLedgerResponse resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(QldbClient client, DescribeLedgerResponse resource, MagpieResource data, ObjectMapper mapper) {
     final String keyname = "tags";
 
     getAwsResponse(
@@ -121,7 +124,7 @@ public class QLDBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DescribeLedgerResponse resource, AWSResource data, Region region) {
+  private void discoverSize(DescribeLedgerResponse resource, MagpieResource data, Region region) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("LedgerName").value(resource.name()).build());

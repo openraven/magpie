@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -60,15 +60,18 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
     try {
       client.describeCacheClusters().cacheClusters().forEach(cacheCluster -> {
-        var data = new AWSResource(cacheCluster.toBuilder(), region.toString(), account, mapper);
-        data.arn = cacheCluster.arn();
-        data.resourceId = cacheCluster.cacheClusterId();
-        data.resourceName = cacheCluster.cacheClusterId();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, cacheCluster.arn())
+          .withResourceName(cacheCluster.cacheClusterId())
+          .withResourceId(cacheCluster.cacheClusterId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(cacheCluster.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverRedisSize(cacheCluster, data, region.id());
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
 
@@ -76,7 +79,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverRedisSize(CacheCluster resource, AWSResource data, String region) {
+  private void discoverRedisSize(CacheCluster resource, MagpieResource data, String region) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("CacheClusterId").value(resource.cacheClusterId()).build());
 

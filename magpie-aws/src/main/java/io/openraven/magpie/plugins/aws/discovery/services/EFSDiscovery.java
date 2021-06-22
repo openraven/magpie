@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -57,25 +57,28 @@ public class EFSDiscovery implements AWSDiscovery {
 
     try {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
-        var data = new AWSResource(fileSystem.toBuilder(), region.toString(), account, mapper);
-        data.resourceId = fileSystem.fileSystemId();
-        data.awsAccountId = fileSystem.ownerId();
-        data.arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
-        data.resourceName = fileSystem.name();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = fileSystem.creationTime();
-        data.sizeInBytes = fileSystem.sizeInBytes().value();
+        String arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          .withResourceName(fileSystem.name())
+          .withResourceId(fileSystem.fileSystemId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(fileSystem.toBuilder()))
+          .withCreatedIso(fileSystem.creationTime())
+          .withSizeInBytes(fileSystem.sizeInBytes().value())
+          .withAccountId(fileSystem.ownerId())
+          .withRegion(region.toString())
+          .build();
 
         discoverMountTargets(client, fileSystem, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, AWSResource data) {
+  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, MagpieResource data) {
     final String keyname = "mountTargets";
 
     getAwsResponse(

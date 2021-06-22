@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -60,23 +60,26 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build()))
         .forEach(cluster -> {
-          var data = new AWSResource(cluster.cluster().toBuilder(), region.toString(), account, mapper);
-          data.arn = cluster.cluster().arn();
-          data.resourceName = cluster.cluster().name();
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.cluster().arn())
+            .withResourceName(cluster.cluster().name())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverFargateProfiles(client, cluster.cluster(), data);
           discoverNodegroups(client, cluster.cluster(), data);
           discoverUpdates(client, cluster.cluster(), data);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverFargateProfiles(EksClient client, Cluster cluster, AWSResource data) {
+  private void discoverFargateProfiles(EksClient client, Cluster cluster, MagpieResource data) {
     final String keyname = "fargateProfiles";
 
     getAwsResponse(
@@ -91,7 +94,7 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverNodegroups(EksClient client, Cluster cluster, AWSResource data) {
+  private void discoverNodegroups(EksClient client, Cluster cluster, MagpieResource data) {
     final String keyname = "nodegroups";
 
     getAwsResponse(
@@ -106,7 +109,7 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUpdates(EksClient client, Cluster cluster, AWSResource data) {
+  private void discoverUpdates(EksClient client, Cluster cluster, MagpieResource data) {
     final String keyname = "updates";
 
     getAwsResponse(
