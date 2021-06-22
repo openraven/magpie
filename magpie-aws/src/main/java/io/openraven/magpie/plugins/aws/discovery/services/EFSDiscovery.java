@@ -60,11 +60,12 @@ public class EFSDiscovery implements AWSDiscovery {
         String arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
           .withResourceName(fileSystem.name())
+          .withResourceId(fileSystem.fileSystemId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(fileSystem.toBuilder()))
           .withCreatedIso(fileSystem.creationTime())
           .withSizeInBytes(fileSystem.sizeInBytes().value())
-          .withAccountId(account)
+          .withAccountId(fileSystem.ownerId())
           .withRegion(region.toString())
           .build();
 

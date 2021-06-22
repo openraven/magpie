@@ -60,8 +60,7 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
     try {
       client.listDistributions().distributionList().items().forEach(distribution -> {
-        String arn = format("arn:aws:cassandra:keyspace:%s::%s", region, distribution.arn());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, distribution.arn())
           .withResourceName(distribution.domainName())
           .withResourceId(distribution.id())
           .withResourceType(RESOURCE_TYPE)

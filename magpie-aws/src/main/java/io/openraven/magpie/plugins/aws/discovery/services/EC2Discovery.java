@@ -150,8 +150,6 @@ public class EC2Discovery implements AWSDiscovery {
             .withTags(getConvertedTags(securityGroup.tags(), mapper))
             .build();
 
-          data.tags = getConvertedTags(securityGroup.tags(), mapper);
-
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":securityGroup"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
