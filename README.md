@@ -24,7 +24,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Cloud Key Management Service
 - [x]  Cloud Logging
 - [x]  Cloud Monitoring
-- [ ]  Cloud Monitoring Dashboards
+- [x]  Cloud Monitoring Dashboards
 - [ ]  Cloud Natural Language API
 - [ ]  Cloud OS Config
 - [ ]  Cloud OS Login API
