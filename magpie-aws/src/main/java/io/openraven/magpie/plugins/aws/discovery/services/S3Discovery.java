@@ -82,7 +82,7 @@ public class S3Discovery implements AWSDiscovery {
           .withResourceName(bucket.name())
           .withResourceId(bucket.name())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(bucket))
+          .withConfiguration(mapper.valueToTree(bucket.toBuilder()))
           .withCreatedIso(bucket.creationDate())
           .withAccountId(account)
           .withRegion(region.toString())
