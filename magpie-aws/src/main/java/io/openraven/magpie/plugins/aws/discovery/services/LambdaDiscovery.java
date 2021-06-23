@@ -53,14 +53,14 @@ public class LambdaDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = LambdaClient.builder().region(region).build();
     final String RESOURCE_TYPE = "AWS::Lambda::Function";
-    
+
     try {
       client.listFunctionsPaginator().functions().forEach(function -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, function.functionArn())
           .withResourceName(function.functionName())
           .withResourceId(function.revisionId())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(function))
+          .withConfiguration(mapper.valueToTree(function.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();
