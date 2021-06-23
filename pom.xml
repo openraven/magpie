@@ -179,6 +179,10 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-datalabeling</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-scheduler</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>

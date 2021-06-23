@@ -28,7 +28,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [ ]  Cloud Natural Language API
 - [ ]  Cloud OS Config
 - [ ]  Cloud OS Login API
-- [ ]  Cloud Scheduler
+- [x]  Cloud Scheduler
 - [ ]  Cloud Spanner
 - [ ]  Cloud Storage
 - [ ]  Cloud Talent Solution Job Search
