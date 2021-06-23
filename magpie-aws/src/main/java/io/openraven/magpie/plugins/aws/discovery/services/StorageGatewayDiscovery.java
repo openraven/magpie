@@ -61,7 +61,7 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
           .withResourceName(gateway.gatewayName())
           .withResourceId(gateway.gatewayId())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(gateway))
+          .withConfiguration(mapper.valueToTree(gateway.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();

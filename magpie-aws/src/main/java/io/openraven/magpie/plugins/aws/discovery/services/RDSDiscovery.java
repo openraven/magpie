@@ -22,7 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.*;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.Conversions;
+import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -72,7 +75,7 @@ public class RDSDiscovery implements AWSDiscovery {
             .withResourceName(snapshot.dbSnapshotIdentifier())
             .withResourceId(snapshot.dbSnapshotArn())
             .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(snapshot))
+            .withConfiguration(mapper.valueToTree(snapshot.toBuilder()))
             .withCreatedIso(snapshot.instanceCreateTime())
             .withAccountId(account)
             .withRegion(region.toString())
@@ -95,7 +98,7 @@ public class RDSDiscovery implements AWSDiscovery {
             .withResourceName(db.dbInstanceIdentifier())
             .withResourceId(db.dbInstanceArn())
             .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(db))
+            .withConfiguration(mapper.valueToTree(db.toBuilder()))
             .withCreatedIso(db.instanceCreateTime())
             .withAccountId(account)
             .withRegion(region.toString())

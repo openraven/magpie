@@ -56,7 +56,7 @@ public class Route53Discovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = Route53Client.builder().region(region).build();
-    final  String RESOURCE_TYPE = "AWS::Route53::HostedZone";
+    final String RESOURCE_TYPE = "AWS::Route53::HostedZone";
 
     try {
       client.listHostedZonesPaginator().hostedZones().stream().forEach(hostedZone -> {
@@ -65,7 +65,7 @@ public class Route53Discovery implements AWSDiscovery {
           .withResourceName(hostedZone.name())
           .withResourceId(hostedZone.id())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(hostedZone))
+          .withConfiguration(mapper.valueToTree(hostedZone.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();

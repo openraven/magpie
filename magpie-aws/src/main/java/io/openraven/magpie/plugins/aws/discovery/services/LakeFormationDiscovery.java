@@ -63,7 +63,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
           .forEach(resourceInfo -> {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, resourceInfo.resourceArn())
               .withResourceType(RESOURCE_TYPE)
-              .withConfiguration(mapper.valueToTree(resourceInfo))
+              .withConfiguration(mapper.valueToTree(resourceInfo.toBuilder()))
               .withAccountId(account)
               .withRegion(region.toString())
               .build();

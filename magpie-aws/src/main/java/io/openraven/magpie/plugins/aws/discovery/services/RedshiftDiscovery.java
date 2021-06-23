@@ -67,7 +67,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
           .withResourceName(cluster.dbName())
           .withResourceId(cluster.clusterIdentifier())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(cluster))
+          .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
           .withCreatedIso(cluster.clusterCreateTime())
           .withAccountId(account)
           .withRegion(region.toString())

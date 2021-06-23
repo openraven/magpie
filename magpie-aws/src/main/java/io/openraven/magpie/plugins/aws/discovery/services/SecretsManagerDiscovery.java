@@ -54,20 +54,20 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
     try {
       client.listSecretsPaginator(ListSecretsRequest.builder().build()).stream()
         .forEach(secretsPaginatedResponse -> secretsPaginatedResponse.secretList()
-        .stream()
-        .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
-        .forEach(secret -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.arn())
-            .withResourceName(secret.name())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(secret))
-            .withCreatedIso(secret.createdDate())
-            .withAccountId(account)
-            .withRegion(region.toString())
-            .build();
+          .stream()
+          .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
+          .forEach(secret -> {
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.arn())
+              .withResourceName(secret.name())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(secret.toBuilder()))
+              .withCreatedIso(secret.createdDate())
+              .withAccountId(account)
+              .withRegion(region.toString())
+              .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));
-        }));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));
+          }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }

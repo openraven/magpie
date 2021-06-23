@@ -63,7 +63,7 @@ public class KMSDiscovery implements AWSDiscovery {
           .withResourceName(key.toString())
           .withResourceId(key.keyId())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(key))
+          .withConfiguration(mapper.valueToTree(key.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();
