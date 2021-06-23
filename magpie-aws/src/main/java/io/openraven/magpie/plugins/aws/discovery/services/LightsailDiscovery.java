@@ -69,7 +69,7 @@ public class LightsailDiscovery implements AWSDiscovery {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, relationalDatabase.arn())
             .withResourceName(relationalDatabase.name())
             .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(relationalDatabase))
+            .withConfiguration(mapper.valueToTree(relationalDatabase.toBuilder()))
             .withAccountId(account)
             .withRegion(region.toString())
             .build();
@@ -78,7 +78,7 @@ public class LightsailDiscovery implements AWSDiscovery {
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":relationalDatabase"), data.toJsonNode()));
         });
-    }  catch (SdkServiceException | SdkClientException ex) {
+    } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
@@ -115,7 +115,7 @@ public class LightsailDiscovery implements AWSDiscovery {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.arn())
           .withResourceName(instance.name())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(instance))
+          .withConfiguration(mapper.valueToTree(instance.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();
@@ -135,7 +135,7 @@ public class LightsailDiscovery implements AWSDiscovery {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancer.arn())
           .withResourceName(loadBalancer.name())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(loadBalancer))
+          .withConfiguration(mapper.valueToTree(loadBalancer.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())
           .build();

@@ -64,25 +64,25 @@ public class QLDBDiscovery implements AWSDiscovery {
     try {
       client.listLedgersPaginator(ListLedgersRequest.builder().build()).stream()
         .forEach(ledgerList -> ledgerList.ledgers()
-        .stream()
-        .map(ledgerSummary -> client.describeLedger(DescribeLedgerRequest.builder().name(ledgerSummary.name()).build()))
-        .forEach(ledger -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, ledger.arn())
-            .withResourceName(ledger.name())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(ledger))
-            .withCreatedIso(ledger.creationDateTime())
-            .withAccountId(account)
-            .withRegion(region.toString())
-            .build();
+          .stream()
+          .map(ledgerSummary -> client.describeLedger(DescribeLedgerRequest.builder().name(ledgerSummary.name()).build()))
+          .forEach(ledger -> {
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, ledger.arn())
+              .withResourceName(ledger.name())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(ledger.toBuilder()))
+              .withCreatedIso(ledger.creationDateTime())
+              .withAccountId(account)
+              .withRegion(region.toString())
+              .build();
 
-          discoverStreams(client, ledger, data);
-          discoverJournalS3Exports(client, ledger, data);
-          discoverTags(client, ledger, data, mapper);
-          discoverSize(ledger, data, region);
+            discoverStreams(client, ledger, data);
+            discoverJournalS3Exports(client, ledger, data);
+            discoverTags(client, ledger, data, mapper);
+            discoverSize(ledger, data, region);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode()));
-        }));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode()));
+          }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
