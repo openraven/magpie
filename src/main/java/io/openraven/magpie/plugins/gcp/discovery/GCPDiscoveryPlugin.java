@@ -62,6 +62,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new DataCatalogDiscovery(),
     new TasksDiscovery(),
     new KMSDiscovery(),
+    new OsConfigDiscovery(),
     new FunctionsDiscovery(),
     new RecaptchaEnterpriseDiscovery(),
     new WebSecurityScannerDiscovery());

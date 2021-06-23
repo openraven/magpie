@@ -26,7 +26,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Cloud Monitoring
 - [x]  Cloud Monitoring Dashboards
 - [ ]  Cloud Natural Language API
-- [ ]  Cloud OS Config
+- [x]  Cloud OS Config
 - [ ]  Cloud OS Login API
 - [x]  Cloud Spanner
 - [x]  Cloud Scheduler
