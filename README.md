@@ -28,8 +28,8 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [ ]  Cloud Natural Language API
 - [ ]  Cloud OS Config
 - [ ]  Cloud OS Login API
+- [x]  Cloud Spanner
 - [x]  Cloud Scheduler
-- [ ]  Cloud Spanner
 - [ ]  Cloud Storage
 - [ ]  Cloud Talent Solution Job Search
 - [x]  Cloud Tasks
