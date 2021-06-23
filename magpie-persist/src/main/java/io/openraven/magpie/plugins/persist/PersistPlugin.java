@@ -24,34 +24,30 @@ import java.time.Instant;
 
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
-  private final Object SYNC = new Object();
-
   private static final String ID = "magpie.persist";
-
+  private final Object SYNC = new Object();
+  ResourceRepo resourceRepo;
   private Logger logger;
-
-  AWSResourceRepo awsResourceRepo;
 
   @Override
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
       var contents = env.getContents();
-      String tableName = contents.get("resourceType")
-        .asText()
-        .replace(":", "")
-        .toLowerCase();
+      String tableName = "assets";
 
-      if(!awsResourceRepo.doesTableExist(tableName)) {
-        awsResourceRepo.createTable(tableName);
+      if (!resourceRepo.doesTableExist(tableName)) {
+        resourceRepo.createTable(tableName);
       }
 
-      awsResourceRepo.upsert(tableName,
+      resourceRepo.upsert(tableName,
         contents.get("documentId").asText(),
-        contents.get("arn").asText(),
+        contents.get("assetId").asText(),
         contents.get("resourceName").asText(),
         contents.get("resourceId").asText(),
         contents.get("resourceType").asText(),
-        contents.get("awsRegion").asText(),
+        contents.get("region").asText(),
+        contents.get("accountId").asText(),
+        contents.get("projectId").asText(),
         contents.get("createdIso").isNull() ? null : Instant.parse(contents.get("createdIso").textValue()),
         contents.get("updatedIso").isNull() ? null : Instant.parse(contents.get("updatedIso").textValue()),
         contents.get("discoverySessionId").asText(),
@@ -62,7 +58,7 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
         contents.get("tags").toPrettyString(),
         contents.get("discoveryMeta").toPrettyString());
 
-      logger.info("Saved resource with arn: {} into table {}", contents.get("arn"), tableName);
+      logger.info("Saved resource with asset ID: {} into table {}", contents.get("assetId"), tableName);
     }
   }
 
@@ -75,7 +71,7 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   public void init(PersistConfig config, Logger logger) {
     this.logger = logger;
 
-    awsResourceRepo = new AWSResourceRepo(config);
+    resourceRepo = new ResourceRepo(config);
   }
 
   @Override

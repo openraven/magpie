@@ -23,18 +23,20 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import java.time.Instant;
 
-public interface AWSResourceDao {
+public interface ResourceDao {
   @SqlQuery("SELECT count(*) FROM information_schema.tables WHERE table_name = :table")
   String doesTableExist(@Bind("table") String name);
 
   @SqlUpdate("" +
     "CREATE TABLE <table> (" +
     "  documentid TEXT PRIMARY KEY, " +
-    "  arn TEXT, " +
+    "  assetid TEXT, " +
     "  resourcename TEXT, " +
     "  resourceid TEXT, " +
     "  resourcetype TEXT, " +
-    "  awsregion TEXT, " +
+    "  region TEXT, " +
+    "  accountid TEXT, " +
+    "  projectid TEXT, " +
     "  creatediso TIMESTAMPTZ, " +
     "  updatediso TIMESTAMPTZ, " +
     "  discoverysessionid TEXT, " +
@@ -52,11 +54,13 @@ public interface AWSResourceDao {
   @SqlUpdate("" +
     "INSERT INTO <table> (" +
     "  documentid, " +
-    "  arn, " +
+    "  assetid, " +
     "  resourcename, " +
     "  resourceid, " +
     "  resourcetype, " +
-    "  awsregion, " +
+    "  region, " +
+    "  accountid, " +
+    "  projectid, " +
     "  creatediso, " +
     "  updatediso, " +
     "  discoverysessionid, " +
@@ -68,11 +72,13 @@ public interface AWSResourceDao {
     "  discoverymeta) " +
     "VALUES(" +
     "  :documentId, " +
-    "  :arn, " +
+    "  :assetId, " +
     "  :resourceName, " +
     "  :resourceId, " +
     "  :resourceType, " +
-    "  :awsRegion, " +
+    "  :region, " +
+    "  :accountId, " +
+    "  :projectId, " +
     "  CAST(:createdIso as TIMESTAMPTZ), " +
     "  CAST(:updatedIso as TIMESTAMPTZ), " +
     "  :discoverySessionId, " +
@@ -84,11 +90,13 @@ public interface AWSResourceDao {
     "  CAST(:discoveryMeta as jsonb))")
   void insert(@Define("table") String table,
               @Bind("documentId") String documentId,
-              @Bind("arn") String arn,
+              @Bind("assetId") String assetId,
               @Bind("resourceName") String resourceName,
               @Bind("resourceId") String resourceId,
               @Bind("resourceType") String resourceType,
-              @Bind("awsRegion") String awsRegion,
+              @Bind("region") String region,
+              @Bind("accountId") String accountId,
+              @Bind("projectId") String projectId,
               @Bind("createdIso") Instant createdIso,
               @Bind("updatedIso") Instant updatedIso,
               @Bind("discoverySessionId") String discoverySessionId,

@@ -24,10 +24,10 @@ import java.time.Instant;
 
 import static java.lang.String.format;
 
-public class AWSResourceRepo {
+public class ResourceRepo {
   private final Jdbi jdbi;
 
-  AWSResourceRepo(PersistConfig config) {
+  ResourceRepo(PersistConfig config) {
     String url = format("jdbc:postgresql://%s:%s/%s", config.getHostname(), config.getPort(), config.getDatabaseName());
     jdbi = Jdbi.create(url, config.getUser(), config.getPassword())
       .installPlugin(new PostgresPlugin())
@@ -35,20 +35,22 @@ public class AWSResourceRepo {
   }
 
   boolean doesTableExist(String tableName) {
-    return jdbi.withExtension(AWSResourceDao.class, dao -> dao.doesTableExist(tableName).equals("1"));
+    return jdbi.withExtension(ResourceDao.class, dao -> dao.doesTableExist(tableName).equals("1"));
   }
 
   void createTable(String tableName) {
-    jdbi.useExtension(AWSResourceDao.class, dao -> dao.createTable(tableName));
+    jdbi.useExtension(ResourceDao.class, dao -> dao.createTable(tableName));
   }
 
   void upsert(String tableName,
               String documentId,
-              String arn,
+              String assetId,
               String resourceName,
               String resourceId,
               String resourceType,
-              String awsRegion,
+              String region,
+              String accountId,
+              String projectId,
               Instant createdIso,
               Instant updatedIso,
               String discoverySessionId,
@@ -58,16 +60,18 @@ public class AWSResourceRepo {
               String supplementaryConfiguration,
               String tags,
               String discoveryMeta) {
-    jdbi.useExtension(AWSResourceDao.class, dao -> {
+    jdbi.useExtension(ResourceDao.class, dao -> {
       dao.removeRecord(tableName, documentId);
 
       dao.insert(tableName,
         documentId,
-        arn,
+        assetId,
         resourceName,
         resourceId,
         resourceType,
-        awsRegion,
+        region,
+        accountId,
+        projectId,
         createdIso,
         updatedIso,
         discoverySessionId,
