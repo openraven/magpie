@@ -28,7 +28,7 @@ class PersistPluginIT {
 
   private static final String SELECT_TABLES_META =
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
-  private static final String SELECT_ASSSET_TABLE = "SELECT * FROM asset";
+  private static final String SELECT_ASSET_TABLE = "SELECT * FROM assets";
 
   private static Jdbi jdbi;
   private static PersistConfig persistConfig;
@@ -71,7 +71,7 @@ class PersistPluginIT {
     List<String> tablesAfter = jdbi.withHandle(this::selectTables);
     assertEquals(2, tablesAfter.size());
     assertTrue(tablesAfter.contains("flyway_schema_history"));
-    assertTrue(tablesAfter.contains("asset"));
+    assertTrue(tablesAfter.contains("assets"));
   }
 
   private List<String> selectTables(Handle handle) {
@@ -83,7 +83,7 @@ class PersistPluginIT {
   }
 
   @Test
-  void whenPersistPluginProcessEnvelopDataSaved() throws Exception {
+  void whenPersistPluginProcessEnvelopeDataShouldBeSaved() throws Exception {
     // given
     persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
     ObjectNode contents = objectMapper.readValue(
@@ -123,7 +123,7 @@ class PersistPluginIT {
 
   private List<AssetModel> queryAssetTable(Handle handle) {
     return handle
-      .createQuery(SELECT_ASSSET_TABLE)
+      .createQuery(SELECT_ASSET_TABLE)
       .mapToBean(AssetModel.class)
       .stream()
       .collect(Collectors.toList());

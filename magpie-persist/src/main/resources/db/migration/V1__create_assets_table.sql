@@ -1,5 +1,5 @@
 -- Generic resource table for various cloud provider assets
-CREATE TABLE IF NOT EXISTS asset (
+CREATE TABLE IF NOT EXISTS assets (
     document_id varchar(59) primary key,
     asset_id varchar(255),
     resource_name varchar(255),
