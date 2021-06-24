@@ -88,7 +88,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                     Violation violation = new Violation();
                     violation.setPolicyId(p.getId());
                     violation.setRuleId(rule.getId());
-                    violation.setAssetId(result.get("arn").toString());
+                    violation.setAssetId(result.get("asset_id").toString());
                     violation.setInfo(p.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
                     violation.setError(evalErr.toString());
                     violation.setEvaluatedAt(evaluatedAt);
