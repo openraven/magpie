@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CarSalesTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      TopicName: CarSalesTopic
+  SCMSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref CarSalesTopic
+      Endpoint: 'test@openraven.com'
+      Protocol: https
+      DeliveryPolicy:
+        healthyRetryPolicy:
+          numRetries: 20
+          minDelayTarget: 10
+          maxDelayTarget: 30
+          numMinDelayRetries: 3
+          numMaxDelayRetries: 17
+          numNoDelayRetries: 0
+          backoffFunction: exponential

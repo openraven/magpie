@@ -20,10 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
-import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
-import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.*;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -41,7 +38,7 @@ public class VPCDiscovery implements AWSDiscovery {
   private static final String SERVICE = "vpc";
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = Ec2Client.builder().region(region).build();
+    final var client = AWSUtils.configure(Ec2Client.builder(), region);
 
     discoverVpcs(mapper, session, client, region, emitter, account);
     discoverVpcPeeringConnections(mapper, session, client, region, emitter, account);

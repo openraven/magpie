@@ -55,7 +55,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = ElastiCacheClient.builder().region(region).build();
+    final var client = AWSUtils.configure(ElastiCacheClient.builder(), region);
     final  String RESOURCE_TYPE = "AWS::ElastiCache::Cluster";
 
     try {

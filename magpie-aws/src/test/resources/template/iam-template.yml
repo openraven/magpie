@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Test template for creating a stack with a IAM resources
+Resources:
+  TestUserA:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: userA
+      Path: "/"
+      LoginProfile:
+        Password: myP@ssW0rdAs
+  TestUserB:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: userB
+      Path: "/"
+      LoginProfile:
+        Password: myP@ssW0rdB

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ public class BatchDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = BatchClient.builder().region(region).build();
+    final var client = AWSUtils.configure(BatchClient.builder(), region);
 
     discoverComputeEnvironments(mapper, session, client, region, emitter, account);
     discoverJobQueues(mapper, session, client, region, emitter, account);

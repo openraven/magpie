@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Empty stack for further test execute and resource allocation
+Conditions:
+  HasNot: !Equals [ 'true', 'false' ]
+# dummy (null) resource, never created
+Resources:
+  NullResource:
+    Type: 'Custom::NullResource'
+    Condition: HasNot
+Outputs:
+  ExportsStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'ExportsStackName-${AWS::StackName}'
