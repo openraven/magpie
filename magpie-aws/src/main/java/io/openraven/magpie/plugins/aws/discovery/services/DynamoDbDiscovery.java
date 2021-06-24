@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.configure;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class DynamoDbDiscovery implements AWSDiscovery {
@@ -54,13 +55,13 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = DynamoDbClient.builder().region(region).build();
+    final var client = configure(DynamoDbClient.builder(), region);
 
     discoverGlobalTables(mapper, session, region, emitter, client, account);
     discoverTables(mapper, session, region, emitter, client, account);
   }
 
-  private void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
+  protected void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
     final String RESOURCE_TYPE = "AWS::DynamoDB::GlobalTable";
     try {
       client.listGlobalTables().globalTables().stream()
@@ -79,7 +80,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
+  protected void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
     final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
 
     try {

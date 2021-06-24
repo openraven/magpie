@@ -43,7 +43,7 @@ public class VPCDiscovery implements AWSDiscovery {
   private static final String SERVICE = "vpc";
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = Ec2Client.builder().region(region).build();
+    final var client = AWSUtils.configure(Ec2Client.builder(), region);
 
     discoverVpcs(mapper, session, client, region, emitter, account);
     discoverVpcPeeringConnections(mapper, session, client, region, emitter, account);

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
@@ -36,6 +37,7 @@ import software.amazon.awssdk.utils.builder.ToCopyableBuilder;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -181,7 +183,7 @@ public class AWSUtils {
 
   public static GetMetricStatisticsResponse getCloudwatchMetricStatistics( String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions) {
 
-    try (final CloudWatchClient client = CloudWatchClient.builder().region(Region.of(regionID)).build()) {
+    try (final CloudWatchClient client = configure(CloudWatchClient.builder(), Region.of(regionID))) {
 
       // The start time is t-minus 2 days (48 hours) because an asset is considered "active" if it's been updated within
       // 48hrs, otherwise it is considered "terminated/deleted", so start capturing at the longest possible period
@@ -200,7 +202,20 @@ public class AWSUtils {
       return client.getMetricStatistics(request);
     }
   }
+
   public static String getAwsAccountId() {
     return StsClient.create().getCallerIdentity().account();
+  }
+
+  public static <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> ClientT
+  configure(AwsClientBuilder<BuilderT, ClientT> builder, Region region) {
+    // Remap magpie clients to local environment
+    String magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
+    if (magpieAwsEndpoint != null) {
+      builder.endpointOverride(URI.create(magpieAwsEndpoint));
+    }
+    // Build for region only
+    builder.region(region);
+    return builder.build();
   }
 }

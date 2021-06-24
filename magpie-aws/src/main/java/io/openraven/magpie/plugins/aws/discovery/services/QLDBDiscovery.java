@@ -58,7 +58,7 @@ public class QLDBDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = QldbClient.builder().region(region).build();
+    final var client = AWSUtils.configure(QldbClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::Qldb::Ledger";
 
     try {

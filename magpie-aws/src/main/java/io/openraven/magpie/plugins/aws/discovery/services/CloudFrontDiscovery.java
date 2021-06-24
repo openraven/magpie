@@ -54,7 +54,7 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = CloudFrontClient.builder().region(region).build();
+    final var client = AWSUtils.configure(CloudFrontClient.builder(), region);
     String RESOURCE_TYPE = "AWS::CloudFront::Distribution";
 
     try {

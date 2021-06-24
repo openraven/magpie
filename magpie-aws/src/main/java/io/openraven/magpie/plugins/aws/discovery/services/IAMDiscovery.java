@@ -45,7 +45,7 @@ import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 public class IAMDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "iam";
-  private static final String AWS_LINE_SEPARATOR = "/n";
+  private static final String AWS_LINE_SEPARATOR = "\n";
 
   @Override
   public String service() {
@@ -59,17 +59,17 @@ public class IAMDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = IamClient.builder().region(region).build();
+    final var client = AWSUtils.configure(IamClient.builder(), region);
 
     discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
-    discoverAccount(client, mapper, session, region, emitter, account);
+    discoverAccounts(client, mapper, session, region, emitter, account);
     discoverGroups(client, mapper, session, region, emitter, account);
     discoverUsers(client, mapper, session, region, emitter, account);
     discoverRoles(client, mapper, session, region, emitter, account);
     discoverPolicies(client, mapper, session, region, emitter, account);
   }
 
-  private void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Role";
 
     try {
@@ -127,7 +127,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverPolicies(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverPolicies(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Policy";
 
     try {
@@ -259,7 +259,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Group";
 
     try {
@@ -314,7 +314,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverAccount(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
@@ -362,7 +362,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
+  protected void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       () -> generateCredentialReport(client),
       (resp) -> {

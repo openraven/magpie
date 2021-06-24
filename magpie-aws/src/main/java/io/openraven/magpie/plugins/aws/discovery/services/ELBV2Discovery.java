@@ -55,7 +55,7 @@ public class ELBV2Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = ElasticLoadBalancingV2Client.builder().region(region).build();
+    final var client = AWSUtils.configure(ElasticLoadBalancingV2Client.builder(), region);
     final String RESOURCE_TYPE = "AWS::ElasticLoadBalancingV2::LoadBalancer";
 
     try {
