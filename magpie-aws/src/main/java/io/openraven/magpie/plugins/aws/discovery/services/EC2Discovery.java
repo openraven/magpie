@@ -46,7 +46,7 @@ public class EC2Discovery implements AWSDiscovery {
   private static final String SERVICE = "ec2";
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = Ec2Client.builder().region(region).build();
+    final var client = AWSUtils.configure(Ec2Client.builder(), region);
 
     discoverEc2Instances(mapper, session, client, region, emitter, account);
     discoverEIPs(mapper, session, client, region, emitter, account);

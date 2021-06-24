@@ -52,7 +52,7 @@ public class EMRDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = EmrClient.builder().region(region).build();
+    final var client = AWSUtils.configure(EmrClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::EMR::Cluster";
 
     try {

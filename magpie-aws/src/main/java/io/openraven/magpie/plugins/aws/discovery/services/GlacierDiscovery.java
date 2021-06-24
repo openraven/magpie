@@ -53,7 +53,7 @@ public class GlacierDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = GlacierClient.builder().region(region).build();
+    final var client = AWSUtils.configure(GlacierClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::Glacier::Vault";
 
     try {

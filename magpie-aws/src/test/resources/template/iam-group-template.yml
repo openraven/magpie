@@ -1,0 +1,5 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Test template for creating a stack with a IAM Group and policies resources
+Resources:
+  CFNUserGroup:
+    Type: AWS::IAM::Group

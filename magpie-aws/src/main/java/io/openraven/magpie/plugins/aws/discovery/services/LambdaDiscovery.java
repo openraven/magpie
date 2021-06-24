@@ -51,7 +51,7 @@ public class LambdaDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = LambdaClient.builder().region(region).build();
+    final var client = AWSUtils.configure(LambdaClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::Lambda::Function";
 
     try {

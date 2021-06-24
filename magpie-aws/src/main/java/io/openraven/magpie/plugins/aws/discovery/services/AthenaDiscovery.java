@@ -56,7 +56,7 @@ public class AthenaDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AthenaClient.builder().region(region).build();
+    final var client = AWSUtils.configure(AthenaClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::Athena::DataCatalog";
 
     try {

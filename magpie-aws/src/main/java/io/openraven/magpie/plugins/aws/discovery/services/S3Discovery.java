@@ -42,6 +42,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.configure;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class S3Discovery implements AWSDiscovery {
@@ -67,7 +68,7 @@ public class S3Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = S3Client.builder().region(region).build();
+    final var client = configure(S3Client.builder(), region);
     final String RESOURCE_TYPE = "AWS::S3::Bucket";
 
     try {
@@ -114,9 +115,9 @@ public class S3Discovery implements AWSDiscovery {
   private Optional<List<Bucket>> getBuckets(Session session, S3Client client, Region bucketRegion, Logger logger) {
     try {
       //
-// This method is executed whenever the bucket cache does not contain entries for a given session ID.  This ensures
-// that we only make this expensive computation the lesser of once per scan or once per timeout period (defined above).
-//
+      // This method is executed whenever the bucket cache does not contain entries for a given session ID.  This ensures
+      // that we only make this expensive computation the lesser of once per scan or once per timeout period (defined above).
+      //
       var buckets = bucketCache.get(session.getId(), () -> {
         logger.debug("No cache found for {}, creating one now.", session);
         var map = new HashMap<Region, List<Bucket>>();
@@ -125,7 +126,9 @@ public class S3Discovery implements AWSDiscovery {
           final var location = resp.locationConstraint();
           // Thanks to https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/model/GetBucketLocationResponse.html#locationConstraint--
           // we need to be aware of both null and UNKNOWN_TO_SDK_VERSION values.
-          var region = resp.locationConstraintAsString().isEmpty() ? Region.US_EAST_1 : Region.of(location.toString());
+          var region = Region.US_EAST_1.toString().equals(resp.locationConstraintAsString())
+            ? Region.US_EAST_1
+            : Region.of(location.toString());
           logger.debug("Associating {} to region {}", bucket.name(), region);
           var list = map.getOrDefault(region, new LinkedList<>());
           list.add(bucket);
@@ -167,7 +170,10 @@ public class S3Discovery implements AWSDiscovery {
           .bucket(resource.name())
           .build());
 
-      isPublicByPolicy = bucketPolicyStatus.policyStatus().isPublic();
+      // TODO : Does Null check required if policy not setup (catch with test)
+      isPublicByPolicy = bucketPolicyStatus.policyStatus().isPublic() != null
+        ? bucketPolicyStatus.policyStatus().isPublic()
+        : false;
     } catch (SdkServiceException ex) {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;

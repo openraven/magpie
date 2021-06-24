@@ -54,7 +54,7 @@ public class EBDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = ElasticBeanstalkClient.builder().region(region).build();
+    final var client = AWSUtils.configure(ElasticBeanstalkClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::ElasticBeanstalk";
 
     try {

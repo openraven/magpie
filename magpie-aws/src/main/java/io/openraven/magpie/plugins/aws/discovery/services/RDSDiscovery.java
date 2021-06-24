@@ -59,7 +59,7 @@ public class RDSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = RdsClient.builder().region(region).build();
+    final var client = AWSUtils.configure(RdsClient.builder(), region);
 
     discoverDbSnapshot(mapper, session, region, emitter, account, client);
     discoverDbInstances(mapper, session, region, emitter, logger, account, client);

@@ -53,7 +53,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = CloudTrailClient.builder().region(region).build();
+    final var client = AWSUtils.configure(CloudTrailClient.builder(), region);
     final String RESOURCE_TYPE = "AWS::CloudTrail::Trail";
 
     try {

@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  HealthCheck:
+    Type: 'AWS::Route53::HealthCheck'
+    Properties:
+      HealthCheckConfig:
+        IPAddress: 192.0.2.44
+        Port: 80
+        Type: HTTP
+        ResourcePath: '/example/index.html'
+        FullyQualifiedDomainName: example.com
+        RequestInterval: 30
+        FailureThreshold: 3
+      HealthCheckTags:
+        - Key: SampleKey1
+          Value: SampleValue1
+        - Key: SampleKey2
+          Value: SampleValue2
+  DNS:
+    Type: "AWS::Route53::HostedZone"
+    Properties:
+      HostedZoneConfig:
+        Comment: 'My hosted zone for example.com'
+      Name: 'example.com'
+      VPCs:
+        - VPCId: 'vpc-abcd1234'
+          VPCRegion: 'ap-northeast-1'
+        - VPCId: 'vpc-efgh5678'
+          VPCRegion: 'us-west-2'
