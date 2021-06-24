@@ -35,7 +35,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Cloud Tasks
 - [x]  Cloud Trace
 - [ ]  Cloud Translation
-- [ ]  Cloud Vision
+- [x]  Cloud Vision
 - [ ]  Compute Engine
 - [ ]  Container Analysis
 - [x]  Data Catalog
