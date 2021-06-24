@@ -45,8 +45,6 @@ public class VisionDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-
-
     try (ProductSearchClient productSearchClient = ProductSearchClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         discoverProducts(mapper, projectId, session, emitter, productSearchClient, location);
