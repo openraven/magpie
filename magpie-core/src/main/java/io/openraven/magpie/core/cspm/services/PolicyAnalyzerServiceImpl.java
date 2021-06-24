@@ -69,7 +69,9 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                 LOGGER.info("Analyzing rule - {}", rule.getName());
                 LocalDateTime evaluatedAt = LocalDateTime.now();
 
-                try {
+                var missingAssets = checkForMissingAssets(jdbi, rule.getSql());
+                if (missingAssets.isEmpty()) {
+
                   var results = jdbi.withHandle(handle -> {
                     return handle.createQuery(rule.getSql()).mapToMap().list();
                   });
@@ -96,16 +98,9 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
                     numOfViolations.getAndIncrement();
                   });
-                } catch (UnableToExecuteStatementException ex) {
-                  var missingTables = MISSING_TABLE_PATTERN.matcher(ex.getMessage()).results().collect(Collectors.toList());
-                  if (!missingTables.isEmpty()) {
-                    final var tableName = missingTables.get(0).group(1);
-                    policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MISSING_ASSET);
-                    LOGGER.info("No asset table found for rule, ignoring. [table={}, rule={}]", tableName, rule.getName());
-                    LOGGER.trace("Could not evaluate rule", ex);
-                  } else {
-                    throw ex;
-                  }
+                } else {
+                  policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MISSING_ASSET);
+                  LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getName());
                 }
               }
             } else {
@@ -125,6 +120,38 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       }
     );
     return new ScanResults(policies, violations, ignoredRules, numOfViolations.get());
+  }
+
+  private List<String> checkForMissingAssets(Jdbi jdbi, String sql) {
+    String sqlNoWhitespaces = sql.replaceAll("\\s+", "");
+    String resourceTypeSearch = "resource_type='";
+    List<String> resourceTypes = new ArrayList<>();
+
+    int index = 0;
+    while (index != -1) {
+      index = sqlNoWhitespaces.indexOf(resourceTypeSearch, index);
+      if (index != -1) {
+        int resourceTypeEndIndex = sqlNoWhitespaces.indexOf('\'', index + resourceTypeSearch.length());
+        String resourceType = sqlNoWhitespaces.substring(index + resourceTypeSearch.length(), resourceTypeEndIndex);
+        resourceTypes.add(resourceType);
+        index++;
+      }
+    }
+
+    List<String> missingAssets = new ArrayList<>();
+    resourceTypes.forEach(resourceType -> {
+      String query = String.format("SELECT COUNT(*) FROM assets WHERE resource_type ='%s';", resourceType);
+
+      var results = jdbi.withHandle(handle -> {
+        return handle.createQuery(query).mapToMap().list();
+      });
+
+      if ((long) results.get(0).get("count") == 0) {
+        missingAssets.add(resourceType);
+      }
+    });
+
+    return missingAssets;
   }
 
   @Override

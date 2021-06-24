@@ -52,7 +52,7 @@ public class ScanResults {
 
   public enum IgnoredReason {
     DISABLED("Disabled via configuration"),
-    MISSING_ASSET("Asset table not found"),
+    MISSING_ASSET("Asset not found"),
     MANUAL_CONTROL("Manual Control");
 
     private final String reason;
