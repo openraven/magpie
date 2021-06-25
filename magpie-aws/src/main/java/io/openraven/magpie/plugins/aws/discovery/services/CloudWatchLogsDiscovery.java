@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -57,14 +57,18 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
 
     try {
       client.describeMetricFiltersPaginator().metricFilters().forEach(metricFilter -> {
-        var data = new AWSResource(metricFilter.toBuilder(), region.toString(), account, mapper);
         // Fabricated arn - metric filters don't have arn
-        data.arn = String.format("arn:aws:cloudwatchlogs:%s:%s:metric-filter/%s", region, account, metricFilter.filterName());
-        data.resourceName = metricFilter.filterName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = Instant.ofEpochSecond(metricFilter.creationTime().longValue());
+        String arn = String.format("arn:aws:cloudwatchlogs:%s:%s:metric-filter/%s", region, account, metricFilter.filterName());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          .withResourceName(metricFilter.filterName())
+          .withResourceType(RESOURCE_TYPE)
+          .withCreatedIso(Instant.ofEpochSecond(metricFilter.creationTime().longValue()))
+          .withConfiguration(mapper.valueToTree(metricFilter.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":metricFilter"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":metricFilter"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
