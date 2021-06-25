@@ -34,7 +34,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Cloud Talent Solution Job Search
 - [x]  Cloud Tasks
 - [x]  Cloud Trace
-- [ ]  Cloud Translation
+- [x]  Cloud Translation
 - [x]  Cloud Vision
 - [x]  Compute Engine
 - [x]  Container Analysis
