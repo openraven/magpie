@@ -94,7 +94,7 @@ public class IAMGroupDiscoveryIT extends BaseIAMServiceIT {
 
     var policy = attachedPolicies.get(0);
     assertEquals("managedDataAccess", policy.get("name").asText());
-    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", MANAGED_POLICY_NAME), policy.get("assetId").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", MANAGED_POLICY_NAME), policy.get("arn").asText());
 
   }
 

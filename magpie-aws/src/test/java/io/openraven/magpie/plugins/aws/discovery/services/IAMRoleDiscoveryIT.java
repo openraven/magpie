@@ -16,7 +16,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +78,7 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
     var configuration = envelope.getContents().get("configuration");
     assertEquals("/", configuration.get("path").asText());
     assertNotNull(configuration.get("roleId"));
-    assertTrue(configuration.get("assetId").asText().contains(ROLE_NAME));
+    assertTrue(configuration.get("arn").asText().contains(ROLE_NAME));
     assertNotNull(configuration.get("createDate"));
     assertNotNull(configuration.get("assumeRolePolicyDocument"));
   }
@@ -92,7 +91,7 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
     assertEquals("inlinePolicy", inlinePolicy.get("name").asText());
     assertEquals("{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"*\", \"Resource\": \"*\"}]}",
       inlinePolicy.get("policyDocument").asText()
-      );
+    );
   }
 }
 

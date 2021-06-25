@@ -45,8 +45,8 @@ class PersistPluginIT {
     jdbcDatabaseContainer.start();
 
     jdbi = Jdbi.create(jdbcDatabaseContainer.getJdbcUrl(),
-                       jdbcDatabaseContainer.getUsername(),
-                       jdbcDatabaseContainer.getPassword())
+      jdbcDatabaseContainer.getUsername(),
+      jdbcDatabaseContainer.getPassword())
       .installPlugin(new PostgresPlugin())
       .installPlugin(new SqlObjectPlugin());
 
@@ -62,7 +62,7 @@ class PersistPluginIT {
   void whenPersistPluginIntiFlywaySetupSchemaProperly() {
     // given
     List<String> tablesBefore = jdbi.withHandle(this::selectTables);
-    assertEquals(2, tablesBefore.size());
+    assertEquals(0, tablesBefore.size());
 
     // when
     persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
