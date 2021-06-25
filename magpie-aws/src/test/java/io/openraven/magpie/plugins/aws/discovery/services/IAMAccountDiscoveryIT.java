@@ -55,6 +55,9 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {
+    var configuration = envelope.getContents().get("configuration");
+    assertNotNull(configuration);
+
     var supplementaryConfiguration = envelope.getContents().get("supplementaryConfiguration");
     var passwordPolicy = supplementaryConfiguration.get("PasswordPolicy");
     assertEquals("{\"minimumPasswordLength\":8,\"requireSymbols\":true,\"requireNumbers\":true,\"requireUppercaseCharacters\":true,\"requireLowercaseCharacters\":true,\"allowUsersToChangePassword\":true,\"expirePasswords\":true,\"maxPasswordAge\":200,\"passwordReusePrevention\":1,\"hardExpiry\":true}",

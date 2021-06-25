@@ -333,10 +333,12 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
+      var accountSummary = client.getAccountSummary();
       var data = new MagpieResource.MagpieResourceBuilder(mapper, RESOURCE_TYPE)
         .withResourceType(RESOURCE_TYPE)
         .withAccountId(account)
         .withRegion(region.toString())
+        .withConfiguration(mapper.valueToTree(accountSummary.summaryMapAsStrings()))
         .build();
 
       discoverAccountAlias(client, data);
