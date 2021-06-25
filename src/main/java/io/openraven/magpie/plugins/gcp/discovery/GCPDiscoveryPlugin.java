@@ -46,6 +46,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new BillingDiscovery(),
     new ClusterDiscovery(),
     new CloudBuildDiscovery(),
+    new ContainerAnalysisDiscovery(),
     new ComputeEngineDiscovery(),
     new DlpDiscovery(),
     new DnsDiscovery(),

@@ -37,7 +37,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [ ]  Cloud Translation
 - [x]  Cloud Vision
 - [x]  Compute Engine
-- [ ]  Container Analysis
+- [x]  Container Analysis
 - [x]  Data Catalog
 - [ ]  Dataproc
 - [ ]  Datastore
