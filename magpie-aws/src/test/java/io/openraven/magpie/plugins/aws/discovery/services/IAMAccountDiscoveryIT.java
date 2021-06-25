@@ -12,7 +12,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +59,6 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
     var passwordPolicy = supplementaryConfiguration.get("PasswordPolicy");
     assertEquals("{\"minimumPasswordLength\":8,\"requireSymbols\":true,\"requireNumbers\":true,\"requireUppercaseCharacters\":true,\"requireLowercaseCharacters\":true,\"allowUsersToChangePassword\":true,\"expirePasswords\":true,\"maxPasswordAge\":200,\"passwordReusePrevention\":1,\"hardExpiry\":true}",
       passwordPolicy.toString());
-    assertNotNull(supplementaryConfiguration.get("summaryMap").toString());
   }
 
   private void assertAccount(MagpieEnvelope envelope) {
@@ -88,7 +88,6 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private void createAccountAlliases(String allias) {
     IAMCLIENT.createAccountAlias(req -> req.accountAlias(allias));
   }
-
 
 
 }
