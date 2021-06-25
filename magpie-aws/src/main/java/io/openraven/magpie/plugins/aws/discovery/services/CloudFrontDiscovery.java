@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class CloudFrontDiscovery implements AWSDiscovery {
 
@@ -59,23 +60,25 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
     try {
       client.listDistributions().distributionList().items().forEach(distribution -> {
-        var data = new AWSResource(distribution.toBuilder(), region.toString(), account, mapper);
-        data.arn = distribution.arn();
-        data.resourceId = distribution.id();
-        data.resourceName = distribution.domainName();
-        data.resourceType = RESOURCE_TYPE;
-        data.updatedIso = distribution.lastModifiedTime();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, distribution.arn())
+          .withResourceName(distribution.domainName())
+          .withResourceId(distribution.id())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(distribution.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverTags(client, distribution, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":distribution"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverTags(CloudFrontClient client, DistributionSummary resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(CloudFrontClient client, DistributionSummary resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resource(resource.arn()).build()),
       (resp) -> {

@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -60,23 +60,27 @@ public class ELBDiscovery implements AWSDiscovery {
 
     try {
       client.describeLoadBalancers().loadBalancerDescriptions().forEach(loadBalancer -> {
-        var data = new AWSResource(loadBalancer.toBuilder(), region.toString(), account, mapper);
-        data.resourceName = loadBalancer.dnsName();
-        data.resourceId = loadBalancer.loadBalancerName();
-        data.resourceType = RESOURCE_TYPE;
-        data.arn = String.format("arn:aws:elasticloadbalancing:%s:%s:loadbalancer/%s", region, account, loadBalancer.loadBalancerName());
-        data.createdIso = loadBalancer.createdTime();
+        var arn = String.format("arn:aws:elasticloadbalancing:%s:%s:loadbalancer/%s", region, account, loadBalancer.loadBalancerName());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          .withResourceName(loadBalancer.dnsName())
+          .withResourceId(loadBalancer.loadBalancerName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(loadBalancer.toBuilder()))
+          .withCreatedIso(loadBalancer.createdTime())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverTags(client, loadBalancer, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverTags(ElasticLoadBalancingClient client, LoadBalancerDescription resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticLoadBalancingClient client, LoadBalancerDescription resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.describeTags(DescribeTagsRequest.builder().loadBalancerNames(resource.loadBalancerName()).build()).tagDescriptions(),
       (resp) -> {

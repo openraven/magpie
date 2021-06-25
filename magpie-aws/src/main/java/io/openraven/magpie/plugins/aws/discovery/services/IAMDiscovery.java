@@ -20,8 +20,8 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -74,12 +74,15 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       client.listRolesPaginator().roles().forEach(role -> {
-        var data = new AWSResource(role.toBuilder(), region.toString(), account, mapper);
-        data.arn = role.arn();
-        data.resourceId = role.roleId();
-        data.resourceName = role.roleName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = role.createDate();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, role.arn())
+          .withResourceName(role.roleName())
+          .withResourceId(role.roleId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(role.toBuilder()))
+          .withCreatedIso(role.createDate())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverAttachedPolicies(client, data, role);
         discoverInlinePolicies(client, data, role);
@@ -87,14 +90,14 @@ public class IAMDiscovery implements AWSDiscovery {
         AWSUtils.update(data.tags, Map.of("tags", mapper.convertValue(role.tags().stream().collect(
           Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)));
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverInlinePolicies(IamClient client, AWSResource data, Role role) {
+  private void discoverInlinePolicies(IamClient client, MagpieResource data, Role role) {
     List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -111,7 +114,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("inlinePolicies", inlinePolicies));
   }
 
-  private void discoverAttachedPolicies(IamClient client, AWSResource data, Role role) {
+  private void discoverAttachedPolicies(IamClient client, MagpieResource data, Role role) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -132,23 +135,26 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       client.listPoliciesPaginator().policies().forEach(policy -> {
-        var data = new AWSResource(policy.toBuilder(), region.toString(), account, mapper);
-        data.arn = policy.arn();
-        data.resourceId = policy.policyId();
-        data.resourceName = policy.policyName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = policy.createDate();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, policy.arn())
+          .withResourceName(policy.policyName())
+          .withResourceId(policy.policyId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(policy.toBuilder()))
+          .withCreatedIso(policy.createDate())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverPolicyDocument(client, data, policy);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":policy"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":policy"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverPolicyDocument(IamClient client, AWSResource data, Policy policy) {
+  private void discoverPolicyDocument(IamClient client, MagpieResource data, Policy policy) {
     getAwsResponse(
       () -> client.listPolicyVersionsPaginator(ListPolicyVersionsRequest.builder().policyArn(policy.arn()).build()),
       (resp) -> resp.forEach(policyVersionsResponse -> {
@@ -168,17 +174,21 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::User";
 
     try {
       client.listUsersPaginator().users().forEach(user -> {
-        var data = new AWSResource(user.toBuilder(), region.toString(), account, mapper);
-        data.arn = user.arn();
-        data.resourceId = user.userId();
-        data.resourceName = user.userName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = user.createDate();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, user.arn())
+          .withResourceName(user.userName())
+          .withResourceId(user.userId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(user.toBuilder()))
+          .withCreatedIso(user.createDate())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverGroupsForUser(client, data, user);
         discoverAttachedUserPolicies(client, data, user);
@@ -187,14 +197,14 @@ public class IAMDiscovery implements AWSDiscovery {
 
         AWSUtils.update(data.tags, mapper.convertValue(user.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class));
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":user"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":user"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverGroupsForUser(IamClient client, AWSResource data, User user) {
+  private void discoverGroupsForUser(IamClient client, MagpieResource data, User user) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -210,7 +220,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("groups", attachedPolicies));
   }
 
-  private void discoverAttachedUserPolicies(IamClient client, AWSResource data, User user) {
+  private void discoverAttachedUserPolicies(IamClient client, MagpieResource data, User user) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -226,7 +236,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverUserPolicies(IamClient client, AWSResource data, User user) {
+  private void discoverUserPolicies(IamClient client, MagpieResource data, User user) {
     List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -246,7 +256,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("userPolicies", inlinePolicies));
   }
 
-  private void discoverUserMFADevices(IamClient client, AWSResource data, User user) {
+  private void discoverUserMFADevices(IamClient client, MagpieResource data, User user) {
     String keyname = "mfaDevices";
 
     getAwsResponse(
@@ -259,29 +269,33 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Group";
 
     try {
       client.listGroups().groups().forEach(group -> {
-        var data = new AWSResource(group.toBuilder(), region.toString(), account, mapper);
-        data.arn = group.arn();
-        data.resourceId = group.groupId();
-        data.resourceName = group.groupName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = group.createDate();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, group.arn())
+          .withResourceName(group.groupName())
+          .withResourceId(group.groupId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(group.toBuilder()))
+          .withCreatedIso(group.createDate())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverGroupInlinePolicies(client, data, group);
         discoverGroupAttachedPolicies(client, data, group);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":group"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":group"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverGroupInlinePolicies(IamClient client, AWSResource data, Group group) {
+  private void discoverGroupInlinePolicies(IamClient client, MagpieResource data, Group group) {
     List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -298,7 +312,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("inlinePolicies", inlinePolicies));
   }
 
-  private void discoverGroupAttachedPolicies(IamClient client, AWSResource data, Group group) {
+  private void discoverGroupAttachedPolicies(IamClient client, MagpieResource data, Group group) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -314,26 +328,30 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
       var accountSummary = client.getAccountSummary();
-      var data = new AWSResource(accountSummary.summaryMapAsStrings(), region.toString(), account, mapper);
-      data.resourceType = RESOURCE_TYPE;
-      data.arn = RESOURCE_TYPE + ":" + region + ":" + account;
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, RESOURCE_TYPE)
+        .withResourceType(RESOURCE_TYPE)
+        .withAccountId(account)
+        .withRegion(region.toString())
+        .withConfiguration(mapper.valueToTree(accountSummary.summaryMapAsStrings()))
+        .build();
 
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
       discoverVirtualMFADevices(client, data);
 
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode(mapper)));
+      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode()));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException("Account", null, region, ex);
     }
   }
 
-  private void discoverAccountAlias(IamClient client, AWSResource data) {
+  private void discoverAccountAlias(IamClient client, MagpieResource data) {
     getAwsResponse(
       () -> client.listAccountAliases().accountAliases().stream().findFirst().orElse(null),
       (resp) -> data.resourceName = resp,
@@ -342,8 +360,8 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAccountPasswordPolicy(IamClient client, AWSResource data) {
-    final String keyname = "passwordPolicy";
+  private void discoverAccountPasswordPolicy(IamClient client, MagpieResource data) {
+    final String keyname = "PasswordPolicy";
 
     getAwsResponse(
       () -> client.getAccountPasswordPolicy().passwordPolicy(),
@@ -352,7 +370,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverVirtualMFADevices(IamClient client, AWSResource data) {
+  private void discoverVirtualMFADevices(IamClient client, MagpieResource data) {
     final String keyname = "virtualMFADevices";
 
     getAwsResponse(
@@ -362,7 +380,8 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  protected void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
+  protected void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region
+    region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       () -> generateCredentialReport(client),
       (resp) -> {
@@ -395,7 +414,8 @@ public class IAMDiscovery implements AWSDiscovery {
     return status.equals("COMPLETE");
   }
 
-  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region
+    region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::CredentialsReport";
 
     var report = client.getCredentialReport();
@@ -405,13 +425,17 @@ public class IAMDiscovery implements AWSDiscovery {
 
     for (int i = 1; i < reportLines.length; i++) {
       var credential = new IAMCredential(reportLines[i]);
-      var data = new AWSResource(mapper.valueToTree(credential), region.toString(), account, mapper);
-      data.arn = credential.arn;
-      data.resourceId = credential.arn;
-      data.resourceName = credential.user;
-      data.resourceType = RESOURCE_TYPE;
 
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":credentialsReport"), data.toJsonNode(mapper)));
+      var data = new MagpieResource.MagpieResourceBuilder(mapper, credential.arn)
+        .withResourceName(credential.user)
+        .withResourceId(credential.arn)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(mapper.valueToTree(credential))
+        .withAccountId(account)
+        .withRegion(region.toString())
+        .build();
+
+      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":credentialsReport"), data.toJsonNode()));
     }
   }
 }

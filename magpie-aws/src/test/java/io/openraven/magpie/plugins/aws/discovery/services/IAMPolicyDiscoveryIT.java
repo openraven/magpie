@@ -12,9 +12,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
 public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
@@ -50,12 +52,19 @@ public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
       ACCOUNT
     );
     // then
-    Mockito.verify(emitter, atLeast(1)).emit(envelopeCapture.capture());
-    var envelope = envelopeCapture.getValue();
 
-    assertPolicy(envelope);
-    assertConfiguration(envelope);
-    assertPolicyDocument(envelope);
+    Mockito.verify(emitter, Mockito.atLeastOnce()).emit(envelopeCapture.capture());
+
+    List<MagpieEnvelope> envelopes = envelopeCapture.getAllValues();
+    var filteredPolicies = envelopes.stream().filter(envelope ->
+      POLICY_NAME.equals(envelope.getContents().get("resourceName").asText())
+    ).collect(Collectors.toList());
+
+    assertEquals(1, filteredPolicies.size());
+
+    assertPolicy(filteredPolicies.get(0));
+    assertConfiguration(filteredPolicies.get(0));
+    assertPolicyDocument(filteredPolicies.get(0));
   }
 
   private void assertPolicyDocument(MagpieEnvelope envelope) {
@@ -74,19 +83,19 @@ public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
   private void assertPolicy(MagpieEnvelope envelope) {
     var contents = envelope.getContents();
     assertNotNull(contents.get("documentId"));
-    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", POLICY_NAME), contents.get("arn").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", POLICY_NAME), contents.get("assetId").asText());
     assertEquals(POLICY_NAME, contents.get("resourceName").asText());
     assertNotNull(contents.get("resourceId").asText());
     assertEquals("AWS::IAM::Policy", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
+    assertEquals(ACCOUNT, contents.get("accountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
   }
 
   private String createPolicy() {
     return IAMCLIENT.createPolicy(policyRequest -> policyRequest
-        .policyName(POLICY_NAME)
-        .description("Tax data access")
-        .policyDocument(getResourceAsString(POLICY_DYNAMODB_PATH)))
+      .policyName(POLICY_NAME)
+      .description("Tax data access")
+      .policyDocument(getResourceAsString(POLICY_DYNAMODB_PATH)))
       .policy()
       .arn();
   }

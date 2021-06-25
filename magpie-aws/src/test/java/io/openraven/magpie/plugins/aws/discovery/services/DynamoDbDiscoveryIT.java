@@ -55,9 +55,9 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
 
     assertNotNull(contents.get("documentId"));
     assertEquals(String.format("arn:aws:dynamodb:%s:000000000000:table/%s", BASE_REGION, TEST_TABLE),
-      contents.get("arn").asText());
+      contents.get("assetId").asText());
     assertEquals(TEST_TABLE, contents.get("resourceName").asText());
     assertEquals("AWS::DynamoDB::Table", contents.get("resourceType").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
   }
 }

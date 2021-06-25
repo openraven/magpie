@@ -12,7 +12,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,21 +55,23 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {
+    var configuration = envelope.getContents().get("configuration");
+    assertNotNull(configuration);
+
     var supplementaryConfiguration = envelope.getContents().get("supplementaryConfiguration");
     var passwordPolicy = supplementaryConfiguration.get("PasswordPolicy");
     assertEquals("{\"minimumPasswordLength\":8,\"requireSymbols\":true,\"requireNumbers\":true,\"requireUppercaseCharacters\":true,\"requireLowercaseCharacters\":true,\"allowUsersToChangePassword\":true,\"expirePasswords\":true,\"maxPasswordAge\":200,\"passwordReusePrevention\":1,\"hardExpiry\":true}",
       passwordPolicy.toString());
-    assertNotNull(supplementaryConfiguration.get("summaryMap").toString());
   }
 
   private void assertAccount(MagpieEnvelope envelope) {
     var contents = envelopeCapture.getValue().getContents();
     assertNotNull(contents.get("documentId").asText());
-    assertEquals("AWS::IAM::Account", contents.get("arn").asText());
+    assertEquals("AWS::IAM::Account", contents.get("assetId").asText());
     assertEquals(allias, contents.get("resourceName").asText());
     assertEquals("AWS::IAM::Account", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
+    assertEquals(ACCOUNT, contents.get("accountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
   }
 
   private void createPasswordPolicy() {
@@ -88,7 +91,6 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private void createAccountAlliases(String allias) {
     IAMCLIENT.createAccountAlias(req -> req.accountAlias(allias));
   }
-
 
 
 }

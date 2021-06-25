@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -58,21 +58,24 @@ public class ConfigDiscovery implements AWSDiscovery {
     try {
       client.describeConfigurationRecorders().configurationRecorders()
         .forEach(configurationRecorder -> {
-          var data = new AWSResource(configurationRecorder.toBuilder(), region.toString(), account, mapper);
-          data.arn = configurationRecorder.roleARN();
-          data.resourceName = configurationRecorder.name();
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, configurationRecorder.roleARN())
+            .withResourceName(configurationRecorder.name())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(configurationRecorder.toBuilder()))
+            .withRegion(region.toString())
+            .withAccountId(account)
+            .build();
 
           discoverConfigurationRecorderStatus(client, configurationRecorder, data);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":configurationRecorder"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":configurationRecorder"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverConfigurationRecorderStatus(ConfigClient client, ConfigurationRecorder resource, AWSResource data) {
+  private void discoverConfigurationRecorderStatus(ConfigClient client, ConfigurationRecorder resource, MagpieResource data) {
     final String keyname = "status";
 
     var request =

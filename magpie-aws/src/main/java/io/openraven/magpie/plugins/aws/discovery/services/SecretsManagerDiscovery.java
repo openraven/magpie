@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -55,18 +55,20 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
     try {
       client.listSecretsPaginator(ListSecretsRequest.builder().build()).stream()
         .forEach(secretsPaginatedResponse -> secretsPaginatedResponse.secretList()
-        .stream()
-        .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
-        .forEach(secret -> {
-          var data = new AWSResource(secret.toBuilder(), region.toString(), account, mapper);
-          data.arn = secret.arn();
-          data.resourceName = secret.name();
-          data.createdIso = secret.createdDate();
-          data.updatedIso = secret.lastChangedDate();
-          data.resourceType = RESOURCE_TYPE;
+          .stream()
+          .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
+          .forEach(secret -> {
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.arn())
+              .withResourceName(secret.name())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(secret.toBuilder()))
+              .withCreatedIso(secret.createdDate())
+              .withAccountId(account)
+              .withRegion(region.toString())
+              .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode(mapper)));
-        }));
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));
+          }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }

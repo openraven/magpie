@@ -18,51 +18,27 @@ package io.openraven.magpie.plugins.persist;
 
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
+import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
 import org.slf4j.Logger;
-
-import java.time.Instant;
 
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
+  private final AssetMapper MAPPER = new AssetMapper();
 
   public static final String ID = "magpie.persist";
 
   private Logger logger;
 
-  AWSResourceRepo awsResourceRepo;
+  private AssetsRepo assetsRepo;
 
   @Override
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
-      var contents = env.getContents();
-      String tableName = contents.get("resourceType")
-        .asText()
-        .replace(":", "")
-        .toLowerCase();
+      AssetModel asset = MAPPER.map(env);
+      assetsRepo.upsert(asset);
 
-      if(!awsResourceRepo.doesTableExist(tableName)) {
-        awsResourceRepo.createTable(tableName);
-      }
-
-      awsResourceRepo.upsert(tableName,
-        contents.get("documentId").asText(),
-        contents.get("arn").asText(),
-        contents.get("resourceName").asText(),
-        contents.get("resourceId").asText(),
-        contents.get("resourceType").asText(),
-        contents.get("awsRegion").asText(),
-        contents.get("createdIso").isNull() ? null : Instant.parse(contents.get("createdIso").textValue()),
-        contents.get("updatedIso").isNull() ? null : Instant.parse(contents.get("updatedIso").textValue()),
-        contents.get("discoverySessionId").asText(),
-        contents.get("maxSizeInBytes").asLong(),
-        contents.get("sizeInBytes").asLong(),
-        contents.get("configuration").toPrettyString(),
-        contents.get("supplementaryConfiguration").toPrettyString(),
-        contents.get("tags").toPrettyString(),
-        contents.get("discoveryMeta").toPrettyString());
-
-      logger.info("Saved resource with arn: {} into table {}", contents.get("arn"), tableName);
+      logger.info("Saved asset with id: {}", asset.getAssetId());
     }
   }
 
@@ -74,8 +50,8 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void init(PersistConfig config, Logger logger) {
     this.logger = logger;
-
-    awsResourceRepo = new AWSResourceRepo(config);
+    assetsRepo = new AssetsRepo(config);
+    FlywayMigrationService.initiateDBMigration(config);
   }
 
   @Override
