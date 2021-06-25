@@ -47,6 +47,7 @@ public class OriginLayer implements Layer {
   public void exec() throws FifoException {
     plugins.forEach(p -> {
       try {
+        LOGGER.trace("Running discover for plugin {}", p.id());
         p.discover(session, this::emit);
       } catch (Exception ex) {
         LOGGER.warn("Plugin exception: {}", p.id(), ex);

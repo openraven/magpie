@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, cspm ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, cspm ]
 
 jobs:
   build:
@@ -40,7 +40,7 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cspm'
     steps:
       - uses: actions/checkout@v2
       - name: Download Artifact
@@ -60,5 +60,5 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: quay.io/openraven/magpie:latest
+          tags: quay.io/openraven/magpie-cspm:latest
 

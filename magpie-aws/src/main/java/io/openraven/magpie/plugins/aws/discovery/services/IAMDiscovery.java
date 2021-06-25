@@ -32,7 +32,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
 import software.amazon.awssdk.services.iam.model.*;
 
-import java.time.Instant;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -133,7 +134,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Policy";
 
     try {
-      client.listPoliciesPaginator(builder -> builder.scope(PolicyScopeType.LOCAL)).policies().forEach(policy -> {
+      client.listPoliciesPaginator().policies().forEach(policy -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, policy.arn())
           .withResourceName(policy.policyName())
           .withResourceId(policy.policyId())
@@ -163,7 +164,7 @@ public class IAMDiscovery implements AWSDiscovery {
           .findFirst();
         currentPolicy.ifPresent(policyVersion -> getAwsResponse(
           () -> client.getPolicyVersion(GetPolicyVersionRequest.builder().policyArn(policy.arn()).versionId(policyVersion.versionId()).build()),
-          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", innerResp.policyVersion().document()))),
+          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", URLDecoder.decode(innerResp.policyVersion().document(), StandardCharsets.UTF_8)))),
           (innerNoresp) -> {
           }
         ));
@@ -173,7 +174,8 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::User";
 
     try {
@@ -267,7 +269,8 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Group";
 
     try {
@@ -325,7 +328,8 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
+    emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::Account";
 
     try {
@@ -337,7 +341,6 @@ public class IAMDiscovery implements AWSDiscovery {
 
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
-      discoverAccountSummary(client, data);
       discoverVirtualMFADevices(client, data);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":account"), data.toJsonNode()));
@@ -365,16 +368,6 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAccountSummary(IamClient client, MagpieResource data) {
-    final String keyname = "summaryMap";
-
-    getAwsResponse(
-      () -> client.getAccountSummary().summaryMapAsStrings(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
-  }
-
   private void discoverVirtualMFADevices(IamClient client, MagpieResource data) {
     final String keyname = "virtualMFADevices";
 
@@ -385,7 +378,8 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  protected void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
+  protected void discoverCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region
+    region, Emitter emitter, Logger logger, String account) {
     getAwsResponse(
       () -> generateCredentialReport(client),
       (resp) -> {
@@ -418,7 +412,8 @@ public class IAMDiscovery implements AWSDiscovery {
     return status.equals("COMPLETE");
   }
 
-  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region
+    region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = "AWS::IAM::CredentialsReport";
 
     var report = client.getCredentialReport();
