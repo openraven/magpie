@@ -215,6 +215,10 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-containeranalysis</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-dataproc</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>

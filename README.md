@@ -39,7 +39,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Compute Engine
 - [x]  Container Analysis
 - [x]  Data Catalog
-- [ ]  Dataproc
+- [x]  Dataproc
 - [ ]  Datastore
 - [ ]  Dialogflow
 - [ ]  Error Reporting
