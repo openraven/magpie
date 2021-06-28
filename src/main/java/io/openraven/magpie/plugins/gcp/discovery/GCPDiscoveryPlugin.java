@@ -52,6 +52,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new DnsDiscovery(),
     new DataLabelingDiscovery(),
     new SecretDiscovery(),
+    new ServiceDirectoryDiscovery(),
     new StorageDiscovery(),
     new SpannerDiscovery(),
     new SchedulerDiscovery(),
