@@ -5,12 +5,28 @@ import java.util.List;
 
 public class Policy {
   private String id;
-  private String refId;
-  private String name;
+  private String policyId;
+  private String policyName;
   private String description;
   private boolean enabled = true;
   private List<Rule> rules = new ArrayList<>();
   private String version;
+
+  public String getPolicyId() {
+    return policyId;
+  }
+
+  public void setPolicyId(String policyId) {
+    this.policyId = policyId;
+  }
+
+  public String getPolicyName() {
+    return policyName;
+  }
+
+  public void setPolicyName(String policyName) {
+    this.policyName = policyName;
+  }
 
   public String getId() {
     return id;
@@ -18,22 +34,6 @@ public class Policy {
 
   public void setId(String id) {
     this.id = id;
-  }
-
-  public String getRefId() {
-    return refId;
-  }
-
-  public void setRefId(String refId) {
-    this.refId = refId;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public String getDescription() {
