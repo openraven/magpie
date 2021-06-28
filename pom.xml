@@ -226,7 +226,7 @@
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-gameservices</artifactId>
+      <artifactId>google-cloud-pubsub</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
