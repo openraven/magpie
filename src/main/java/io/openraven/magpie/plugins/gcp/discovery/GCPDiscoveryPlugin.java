@@ -69,6 +69,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new TasksDiscovery(),
     new TranslateDiscovery(),
     new TraceDiscovery(),
+    new PubSubDiscovery(),
     new KMSDiscovery(),
     new VisionDiscovery(),
     new OsConfigDiscovery(),

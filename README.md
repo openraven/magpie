@@ -52,7 +52,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Memorystore for Memcached
 - [x]  Memorystore for Redis
 - [ ]  Phishing Protection
-- [ ]  Pub/Sub
+- [x]  Pub/Sub
 - [ ]  Pub/Sub Lite
 - [ ]  Recommendations AI
 - [ ]  Recommender
