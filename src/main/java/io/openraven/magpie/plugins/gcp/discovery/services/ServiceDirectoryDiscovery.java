@@ -17,12 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.cloud.servicedirectory.v1.Endpoint;
 import com.google.cloud.servicedirectory.v1.LocationName;
-import com.google.cloud.servicedirectory.v1.NamespaceName;
+import com.google.cloud.servicedirectory.v1.Namespace;
 import com.google.cloud.servicedirectory.v1.RegistrationServiceClient;
-import com.google.cloud.servicedirectory.v1.ServiceName;
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
@@ -32,13 +31,12 @@ import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class ServiceDirectoryDiscovery implements GCPDiscovery{
+public class ServiceDirectoryDiscovery implements GCPDiscovery {
   private static final String SERVICE = "serviceDirectory";
 
-  // TODO: move to GCP constants once finalized
   private static final List<String> AVAILABLE_LOCATIONS = List.of(
     "asia-east1",
     "asia-east2",
@@ -78,23 +76,27 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery{
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Namespace";
+    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Service";
 
     try (RegistrationServiceClient registrationServiceClient = RegistrationServiceClient.create()) {
-      AVAILABLE_LOCATIONS.forEach(location -> {
+      AVAILABLE_LOCATIONS.forEach(location -> {  // Discover services in all namespaces for all locations
         String parent = LocationName.of(projectId, location).toString();
 
         registrationServiceClient.listNamespaces(parent).iterateAll().forEach(namespace -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, namespace.getName())
-            .withProjectId(projectId)
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(GCPUtils.asJsonNode(namespace))
-            .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":namespace"), data.toJsonNode()));
+          registrationServiceClient.listServices(namespace.getName()).iterateAll().forEach(service -> {
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
+              .withProjectId(projectId)
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(GCPUtils.asJsonNode(service.toBuilder()))
+              .build();
 
-          discoverServices(mapper, projectId, session, emitter, registrationServiceClient, location,
-            getEntityNameFromPath(namespace.getName()));
+            addNamespaceConfiguration(namespace, data);
+            discoverEndpoints(registrationServiceClient, service.getName(), data);
+
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":service"), data.toJsonNode()));
+          });
+
         });
       });
     } catch (IOException e) {
@@ -102,56 +104,22 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery{
     }
   }
 
-  private void discoverServices(ObjectMapper mapper,
-                                String projectId,
-                                Session session,
-                                Emitter emitter,
-                                RegistrationServiceClient registrationServiceClient,
-                                String location,
-                                String namespaceName) {
-    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Service";
+  private void addNamespaceConfiguration(Namespace namespace, MagpieResource data) {
+    final String fieldName = "namespace";
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, namespace.toBuilder()));
 
-    registrationServiceClient.listServices(NamespaceName.of(projectId, location, namespaceName))
-      .iterateAll().forEach(service -> {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
-        .withProjectId(projectId)
-        .withResourceType(RESOURCE_TYPE)
-        .withConfiguration(GCPUtils.asJsonNode( // Circular dependency exception while serialization of service object
-          Map.of("annotations", service.getAnnotationsMap(),
-                 "endpoints", service.getEndpointsList())))
-        .build();
-
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":service"), data.toJsonNode()));
-
-      // Discover endpoints for each service
-      discoverEndpoints(mapper, projectId, session, emitter, registrationServiceClient, location, namespaceName, service.getName());
-    });
   }
 
-  private void discoverEndpoints(ObjectMapper mapper,
-                                 String projectId,
-                                 Session session,
-                                 Emitter emitter,
-                                 RegistrationServiceClient registrationServiceClient,
-                                 String location,
-                                 String namespaceName,
-                                 String serviceName) {
-    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Endpoints";
+  private void discoverEndpoints(RegistrationServiceClient registrationServiceClient,
+                                 String serviceName,
+                                 MagpieResource data) {
+    final String fieldName = "endpoints";
 
-    registrationServiceClient.listEndpoints(ServiceName.of(projectId, location, namespaceName, getEntityNameFromPath(serviceName)))
-      .iterateAll().forEach(endpoint -> {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, endpoint.getName())
-        .withProjectId(projectId)
-        .withResourceType(RESOURCE_TYPE)
-        .withConfiguration(GCPUtils.asJsonNode(endpoint))
-        .build();
+    List<Endpoint.Builder> endpoints = new ArrayList<>();
+    registrationServiceClient.listEndpoints(serviceName).iterateAll()
+      .forEach(endpoint -> endpoints.add(endpoint.toBuilder()));
 
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":endpoints"), data.toJsonNode()));
-    });
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, endpoints));
   }
 
-  private String getEntityNameFromPath(String path) {
-    String[] entries = path.split("/");
-    return entries[entries.length - 1]; // Get the last one
-  }
 }
