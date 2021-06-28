@@ -55,58 +55,59 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .forEach(repository -> {
         String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
 
-        var repositoryRulesMap = loadRulesFromRepository(repositoryPath);
-
-        var repositoryPolicies = loadPoliciesFromRepository(repositoryPath, repositoryRulesMap);
+        var repositoryPolicies = loadPoliciesFromRepository(repositoryPath);
         policyContexts.addAll(repositoryPolicies);
       });
 
     return policyContexts;
   }
 
-  private Map<String, Rule> loadRulesFromRepository(String repositoryPath) {
-    File rulesDirectory = new File(repositoryPath + "/rules");
-    var rules = new HashMap<String, Rule>();
+  private List<Rule> loadRules(String rulesDirectory, List<String> ruleFileNames) {
+    List<Rule> rules = new ArrayList<>();
 
-    if (rulesDirectory.exists()) {
-      for (File ruleFile : Objects.requireNonNull(rulesDirectory.listFiles())) {
-        try {
-          Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
-          rules.put(yamlRule.getId(), yamlRule);
-          LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
-        } catch (IOException yamlIOException) {
-          LOGGER.error(yamlIOException.getMessage());
-        }
+    for (String ruleFileName : ruleFileNames) {
+      try {
+        File ruleFile = new File(rulesDirectory + "/" + ruleFileName);
+        Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
+        rules.add(yamlRule);
+        LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
+      } catch (IOException yamlIOException) {
+        LOGGER.error(yamlIOException.getMessage());
       }
-    } else {
-      LOGGER.error("Rules directory {} doesn't exists!", rulesDirectory);
     }
 
     return rules;
   }
 
-  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath, Map<String, Rule> repositoryRulesMap) {
+  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath) {
     File policiesDirectory = new File(repositoryPath + "/policies");
+    File rulesDirectory = new File(repositoryPath + "/rules");
 
     var policiesContexts = new ArrayList<PolicyContext>();
 
-    if (policiesDirectory.exists()) {
+    if (policiesDirectory.exists() && rulesDirectory.exists()) {
       for (File policyFile : Objects.requireNonNull(policiesDirectory.listFiles())) {
         var policy = loadPolicy(policyFile);
 
         if (policy != null) {
-          var policyRulesIds = policy.getRules()
+          var policyRulesFiles = policy.getRules()
             .stream()
             .map(Rule::getId)
             .collect(Collectors.toList());
-          policy.setRules(getRulesFromRulesMap(repositoryRulesMap, policyRulesIds));
+
+          policy.setRules(loadRules(rulesDirectory.toString(), policyRulesFiles));
 
           var policyMetadata = new PolicyMetadata(policyFile.getPath(), getRepoHashOrLocalRepositoryString(repositoryPath));
           policiesContexts.add(new PolicyContext(policyMetadata, policy));
         }
       }
     } else {
-      LOGGER.error("Policies directory {} doesn't exists!", policiesDirectory);
+      if (!policiesDirectory.exists()) {
+        LOGGER.error("Policies directory {} doesn't exists!", policiesDirectory);
+      }
+      if (!rulesDirectory.exists()) {
+        LOGGER.error("Rules directory {} doesn't exists!", rulesDirectory);
+      }
     }
 
     return policiesContexts;

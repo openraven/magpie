@@ -6,8 +6,8 @@ import java.util.List;
 public class Rule {
   private final String type = "asset";
   private String id;
-  private String refId;
-  private String name;
+  private String ruleId;
+  private String ruleName;
   private String description;
   private Severity severity;
   private boolean enabled = true;
@@ -49,20 +49,20 @@ public class Rule {
     this.id = id;
   }
 
-  public String getRefId() {
-    return refId;
+  public String getRuleId() {
+    return ruleId;
   }
 
-  public void setRefId(String refId) {
-    this.refId = refId;
+  public void setRuleId(String ruleId) {
+    this.ruleId = ruleId;
   }
 
-  public String getName() {
-    return name;
+  public String getRuleName() {
+    return ruleName;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setRuleName(String ruleName) {
+    this.ruleName = ruleName;
   }
 
   public String getType() {

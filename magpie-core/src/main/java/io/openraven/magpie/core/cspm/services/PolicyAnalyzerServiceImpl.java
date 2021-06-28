@@ -59,14 +59,14 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
         Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules = new HashMap<>();
         final var p = policy.getPolicy();
         if (p.isEnabled()) {
-          LOGGER.info("Analyzing policy - {}", p.getName());
+          LOGGER.info("Analyzing policy - {}", p.getPolicyName());
           p.getRules().forEach(rule -> {
             if (rule.isEnabled()) {
               if (rule.isManualControl()) {
                 policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MANUAL_CONTROL);
-                LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
+                LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getRuleName());
               } else {
-                LOGGER.info("Analyzing rule - {}", rule.getName());
+                LOGGER.info("Analyzing rule - {}", rule.getRuleName());
                 LocalDateTime evaluatedAt = LocalDateTime.now();
 
                 var missingAssets = checkForMissingAssets(jdbi, rule.getSql());
@@ -100,16 +100,16 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                   });
                 } else {
                   policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MISSING_ASSET);
-                  LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getName());
+                  LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getRuleName());
                 }
               }
             } else {
               policyIgnoredRules.put(rule, ScanResults.IgnoredReason.DISABLED);
-              LOGGER.info("Rule '{}' disabled", rule.getName());
+              LOGGER.info("Rule '{}' disabled", rule.getRuleName());
             }
           });
         } else {
-          LOGGER.info("Policy '{}' disabled", p.getName());
+          LOGGER.info("Policy '{}' disabled", p.getPolicyName());
         }
         if (!policyViolations.isEmpty()) {
           violations.put(policy, policyViolations);
