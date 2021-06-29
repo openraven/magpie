@@ -69,6 +69,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       try {
         File ruleFile = new File(rulesDirectory + "/" + ruleFileName);
         Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
+        yamlRule.setFileName(ruleFileName);
         rules.add(yamlRule);
         LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
       } catch (IOException yamlIOException) {

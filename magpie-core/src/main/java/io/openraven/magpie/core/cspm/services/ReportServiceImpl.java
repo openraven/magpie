@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class ReportServiceImpl implements ReportService {
@@ -32,11 +32,12 @@ public class ReportServiceImpl implements ReportService {
     final String BOLD_RESET = "\033[0m";
     final int COLUMN_WIDTH = 60;
     final int GUID_COLUMN_WIDTH = 50;
+    final int FILE_NAME_COLUMN_WIDTH = 55;
 
-    final Function<String, String> trimRuleName = (ruleName) -> {
-      String trimmedName = ruleName.replace(System.lineSeparator(), "");
-      trimmedName = trimmedName.length() >= COLUMN_WIDTH ? trimmedName.substring(0, COLUMN_WIDTH - "...".length() - 1) + "..." : trimmedName;
-      return trimmedName;
+    final BiFunction<String, Integer, String> trimColumnValue = (value, columnWidth) -> {
+      String trimmedValue = value.replace(System.lineSeparator(), "");
+      trimmedValue = trimmedValue.length() >= columnWidth ? trimmedValue.substring(0, columnWidth - "...".length() - 1) + "..." : trimmedValue;
+      return trimmedValue;
     };
 
 
@@ -65,25 +66,26 @@ public class ReportServiceImpl implements ReportService {
         System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicy().getPolicyName());
         System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations == null ? 0 : policyViolations.size());
 
-        if (ignoredRules != null) {
-          System.out.printf("%-30s\n", "Ignored rules");
-          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Rule name", "Rule GUID", "Reason");
-          ignoredRules.forEach((rule, reason) -> {
-            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", trimRuleName.apply(rule.getRuleName()), rule.getId(), reason.getReason());
-          });
-          System.out.printf("\n");
-        }
-
         if (policyViolations != null) {
           System.out.printf("%-30s\n", "Violations");
-          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule GUID", "Rule name");
+          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Resource ID", "Rule file name", "Rule name");
           policyViolations.forEach(policyViolation -> {
             Rule violatedRule = policy.getPolicy().getRules().stream().filter(rule -> rule.getId().equals(policyViolation.getRuleId())).findFirst().get();
             String resourceID = policyViolation.getAssetId().length() >= COLUMN_WIDTH ?
               "..." + policyViolation.getAssetId().substring(policyViolation.getAssetId().length() - COLUMN_WIDTH + "...".length() + 2) : policyViolation.getAssetId();
-            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, violatedRule.getId(), trimRuleName.apply(violatedRule.getRuleName()));
+            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", resourceID, trimColumnValue.apply(violatedRule.getFileName(), FILE_NAME_COLUMN_WIDTH), trimColumnValue.apply(violatedRule.getRuleName(), COLUMN_WIDTH));
+          });
+          System.out.printf("\n");
+        }
+
+        if (ignoredRules != null) {
+          System.out.printf("%-30s\n", "Ignored rules");
+          System.out.printf(BOLD_SET + "%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Rule name", "Rule file name", "Reason");
+          ignoredRules.forEach((rule, reason) -> {
+            System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", trimColumnValue.apply(rule.getRuleName(), COLUMN_WIDTH), trimColumnValue.apply(rule.getFileName(), FILE_NAME_COLUMN_WIDTH), reason.getReason());
           });
         }
+
         System.out.printf("\n");
       });
     }
