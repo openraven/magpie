@@ -60,7 +60,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Resource Manager
 - [x]  Secret Manager
 - [ ]  Security Command Center
-- [ ]  Service Directory
+- [x]  Service Directory
 - [ ]  Speech-to-Text
 - [ ]  Text-to-Speech
 - [ ]  Video Intelligence API
