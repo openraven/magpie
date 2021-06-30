@@ -57,7 +57,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Pub/Sub Lite
 - [ ]  Recommendations AI
 - [ ]  Recommender
-- [ ]  Resource Manager
+- [x]  Resource Manager
 - [x]  Secret Manager
 - [ ]  Security Command Center
 - [ ]  Service Directory

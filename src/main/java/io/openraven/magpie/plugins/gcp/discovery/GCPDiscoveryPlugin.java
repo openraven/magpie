@@ -18,8 +18,7 @@ package io.openraven.magpie.plugins.gcp.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.PermissionDeniedException;
-import com.google.cloud.resourcemanager.Project;
-import com.google.cloud.resourcemanager.ResourceManagerOptions;
+import com.google.cloud.resourcemanager.v3.ProjectsClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
@@ -27,6 +26,8 @@ import io.openraven.magpie.plugins.gcp.discovery.services.*;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -35,7 +36,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
   public final static String ID = "magpie.gcp.discovery";
   protected static final ObjectMapper MAPPER = GCPUtils.createObjectMapper();
 
-  private static final List<GCPDiscovery> DISCOVERY_LIST = List.of(
+  private static final List<GCPDiscovery> PER_PROJECT_DISCOVERY_LIST = List.of(
     new AccessApprovalDiscovery(),
     new AutoMLDiscovery(),
     new AssetDiscovery(),
@@ -80,27 +81,48 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new RecaptchaEnterpriseDiscovery(),
     new WebSecurityScannerDiscovery());
 
+  private static final List<GCPDiscovery> SINGLE_DISCOVERY_LIST = List.of(
+    new ResourceManagerDiscovery());
+
   GCPDiscoveryConfig config;
 
   private Logger logger;
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    getProjectList().forEach(project -> DISCOVERY_LIST
+    getProjectList().forEach(project -> PER_PROJECT_DISCOVERY_LIST
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gcpDiscovery -> {
         try {
-          gcpDiscovery.discoverWrapper(MAPPER, project.getProjectId(), session, emitter, logger);
+          gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger);
         } catch (PermissionDeniedException permissionDeniedException) {
-          logger.error("{} While discovering {} service in {}", permissionDeniedException.getMessage(), gcpDiscovery.service(), project.getProjectId());
+          logger.error("{} While discovering {} service in {}", permissionDeniedException.getMessage(), gcpDiscovery.service(), project);
         }
       }));
+
+
+    SINGLE_DISCOVERY_LIST.stream()
+      .filter(service -> isEnabled(service.service()))
+      .forEach(service -> {
+      try {
+        service.discoverWrapper(MAPPER, null, session, emitter, logger);
+      } catch (PermissionDeniedException permissionDeniedException) {
+        logger.error("{} While discovering {} service", permissionDeniedException.getMessage(), service.service());
+      }
+    });
   }
 
-  Iterable<Project> getProjectList() {
-    var resourceManager = ResourceManagerOptions.getDefaultInstance().getService();
-    return resourceManager.list().iterateAll();
+  List<String> getProjectList() {
+    var projects = new ArrayList<String>();
+
+    try (ProjectsClient projectsClient = ProjectsClient.create()) {
+      projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
+    } catch (IOException e) {
+      DiscoveryExceptions.onDiscoveryException("Project::List", e);
+    }
+
+    return  projects;
   }
 
   @Override
