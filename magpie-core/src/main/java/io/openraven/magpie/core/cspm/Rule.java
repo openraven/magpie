@@ -17,6 +17,7 @@ public class Rule {
   private String remediation;
   private List<String> remediationDocURLs = new ArrayList<>();
   private String version;
+  private String fileName;
 
   public Rule() {
   }
@@ -124,4 +125,13 @@ public class Rule {
   public void setEval(String eval) {
     this.eval = eval;
   }
+
+  public String getFileName() {
+    return fileName;
+  }
+
+  public void setFileName(String fileName) {
+    this.fileName = fileName;
+  }
+
 }
