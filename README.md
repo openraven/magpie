@@ -47,6 +47,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 - [x]  Game Servers
 - [x]  Google Kubernetes Engine
 - [ ]  Identity and Access Management
+- [x]  Iam
 - [x]  IoT Core
 - [ ]  Media Translation
 - [x]  Memorystore for Memcached
