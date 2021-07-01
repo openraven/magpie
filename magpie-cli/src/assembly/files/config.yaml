@@ -13,6 +13,10 @@ layers:
 fifos:
   default:
     type: local
+policies:
+  root: ~/.magpie/policies
+  repositories:
+    - https://github.com/openraven/aws-cis-1.2.git
 plugins:
   magpie.aws.discovery:
     enabled: true

@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -60,12 +60,15 @@ public class BatchDiscovery implements AWSDiscovery {
     try {
       client.describeComputeEnvironmentsPaginator().computeEnvironments()
         .forEach( computeEnvironment -> {
-          var data = new AWSResource(computeEnvironment.toBuilder(), region.toString(), account, mapper);
-          data.arn = computeEnvironment.computeEnvironmentArn();
-          data.resourceName = computeEnvironment.computeEnvironmentName();
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, computeEnvironment.computeEnvironmentArn())
+            .withResourceName(computeEnvironment.computeEnvironmentName())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(computeEnvironment.toBuilder()))
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -77,12 +80,15 @@ public class BatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeJobQueuesPaginator().jobQueues().forEach(jobQueue -> {
-        var data = new AWSResource(jobQueue.toBuilder(), region.toString(), account, mapper);
-        data.arn = jobQueue.jobQueueArn();
-        data.resourceName = jobQueue.jobQueueName();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobQueue.jobQueueArn())
+          .withResourceName(jobQueue.jobQueueName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(jobQueue.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -94,12 +100,15 @@ public class BatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeJobDefinitionsPaginator().jobDefinitions().forEach(jobDefinition -> {
-        var data = new AWSResource(jobDefinition.toBuilder(), region.toString(), account, mapper);
-        data.arn = jobDefinition.jobDefinitionArn();
-        data.resourceName = jobDefinition.jobDefinitionName();
-        data.resourceType = RESOURCE_TYPE;
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobDefinition.jobDefinitionArn())
+          .withResourceName(jobDefinition.jobDefinitionName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(jobDefinition.toBuilder()))
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);

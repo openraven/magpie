@@ -71,12 +71,12 @@ public class IAMGroupDiscoveryIT extends BaseIAMServiceIT {
   private void assertGroup(MagpieEnvelope envelope) {
     var contents = envelope.getContents();
     assertNotNull(contents.get("documentId"));
-    assertEquals(String.format("arn:aws:iam::000000000000:group/%s", GROUP_NAME), contents.get("arn").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:group/%s", GROUP_NAME), contents.get("assetId").asText());
     assertEquals(GROUP_NAME, contents.get("resourceName").asText());
     assertNotNull(contents.get("resourceId").asText());
     assertEquals("AWS::IAM::Group", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
+    assertEquals(ACCOUNT, contents.get("accountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
   }
 
   private void assertInlinePolicies(MagpieEnvelope envelope) {

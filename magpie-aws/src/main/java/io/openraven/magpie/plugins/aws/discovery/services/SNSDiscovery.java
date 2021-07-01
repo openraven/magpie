@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.amazonaws.arn.Arn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -52,11 +52,11 @@ public class SNSDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(SnsClient.builder(), region);
 
-    discoverTopics(client, mapper, session, region, emitter, account);
-    discoverSubscriptions(client, mapper, session, region, emitter, account);
+    discoverTopics(client, mapper, session, region, emitter);
+    discoverSubscriptions(client, mapper, session, region, emitter);
   }
 
-  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {
     final String RESOURCE_TYPE = "AWS::SNS::Topic";
 
     try {
@@ -66,37 +66,40 @@ public class SNSDiscovery implements AWSDiscovery {
           var attributes = attributesResp.attributes();
           var arn = attributes.get("TopicArn");
 
-          var data = new AWSResource(attributesResp.toBuilder(), region.toString(), account, mapper);
-          data.awsRegion = Arn.fromString(arn).getRegion();
-          data.awsAccountId = attributesResp.attributes().get("Owner");
-          data.arn = attributes.get("TopicArn");
-          data.resourceName = attributes.get("DisplayName");
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, attributes.get("TopicArn"))
+            .withResourceName(attributes.get("DisplayName"))
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(attributesResp.toBuilder()))
+            .withAccountId(attributesResp.attributes().get("Owner"))
+            .withRegion(Arn.fromString(arn).getRegion())
+            .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":topic"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":topic"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
+  private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {
     final String RESOURCE_TYPE = "AWS::SNS::Subscription";
 
     try {
       client.listSubscriptions().subscriptions().stream()
         .map(subscription -> client.getSubscriptionAttributes(GetSubscriptionAttributesRequest.builder().subscriptionArn(subscription.subscriptionArn()).build()))
         .forEach(attributesResp -> {
-          var data = new AWSResource(attributesResp.toBuilder(), region.toString(), account, mapper);
           var attributes = attributesResp.attributes();
           var arn = Arn.fromString(attributes.get("SubscriptionArn"));
-          data.awsRegion = arn.getRegion();
-          data.awsAccountId = arn.getAccountId();
-          data.arn = arn.toString();
-          data.resourceName = getName(arn);
-          data.resourceType = RESOURCE_TYPE;
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":subscription"), data.toJsonNode(mapper)));
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn.toString())
+            .withResourceName(getName(arn))
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(attributesResp.toBuilder()))
+            .withAccountId(arn.getAccountId())
+            .withRegion(arn.getRegion())
+            .build();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":subscription"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);

@@ -16,7 +16,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,12 +66,12 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
   private void assertRole(MagpieEnvelope envelope) {
     var contents = envelope.getContents();
     assertNotNull(contents.get("documentId"));
-    assertTrue(contents.get("arn").asText().contains(ROLE_NAME));
+    assertTrue(contents.get("assetId").asText().contains(ROLE_NAME));
     assertTrue(contents.get("resourceName").asText().contains(ROLE_NAME));
     assertNotNull(contents.get("resourceId").asText());
     assertEquals("AWS::IAM::Role", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
+    assertEquals(ACCOUNT, contents.get("accountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {
@@ -92,7 +91,7 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
     assertEquals("inlinePolicy", inlinePolicy.get("name").asText());
     assertEquals("{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"*\", \"Resource\": \"*\"}]}",
       inlinePolicy.get("policyDocument").asText()
-      );
+    );
   }
 }
 

@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -56,27 +56,30 @@ public class EMRDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::EMR::Cluster";
 
     try {
-      client.listClustersPaginator().clusters().stream().forEach(cluster ->{
-        var data = new AWSResource(cluster.toBuilder(), region.toString(), account, mapper);
-        data.arn = String.format("arn:aws:emr:::cluster/%s", cluster.id());
-        data.resourceId = cluster.id();
-        data.resourceName = cluster.name();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = cluster.status().timeline().creationDateTime();
+      client.listClustersPaginator().clusters().stream().forEach(cluster -> {
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.clusterArn())
+          .withResourceName(cluster.name())
+          .withResourceId(cluster.id())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
+          .withCreatedIso(cluster.status().timeline().creationDateTime())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverSteps(client, cluster, data);
         discoverInstances(client, cluster, data);
         discoverInstanceFleets(client, cluster, data);
         discoverInstanceGroups(client, cluster, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverSteps(EmrClient client, ClusterSummary resource, AWSResource data) {
+  private void discoverSteps(EmrClient client, ClusterSummary resource, MagpieResource data) {
     final String keyname = "steps";
 
     getAwsResponse(
@@ -89,7 +92,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstances(EmrClient client, ClusterSummary resource, AWSResource data) {
+  private void discoverInstances(EmrClient client, ClusterSummary resource, MagpieResource data) {
     final String keyname = "instances";
 
     getAwsResponse(
@@ -102,7 +105,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, AWSResource data) {
+  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, MagpieResource data) {
     final String keyname = "instancesFleet";
 
     getAwsResponse(
@@ -115,7 +118,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, AWSResource data) {
+  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, MagpieResource data) {
     final String keyname = "instancesGroups";
 
     getAwsResponse(

@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -59,10 +59,13 @@ public class CloudTrailDiscovery implements AWSDiscovery {
     try {
       client.listTrailsPaginator(ListTrailsRequest.builder().build()).trails()
         .forEach(trail -> {
-          var data = new AWSResource(trail.toBuilder(), region.toString(), account, mapper);
-          data.arn = trail.trailARN();
-          data.resourceName = trail.name();
-          data.resourceType = RESOURCE_TYPE;
+          var data = new MagpieResource.MagpieResourceBuilder(mapper, trail.trailARN())
+            .withResourceName(trail.name())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(trail.toBuilder()))
+            .withAccountId(account)
+            .withRegion(region.toString())
+            .build();
 
           discoverEventSelectors(client, trail, data);
           discoverInsightSelectors(client, trail, data);
@@ -70,14 +73,14 @@ public class CloudTrailDiscovery implements AWSDiscovery {
           discoverTrailStatus(client, trail, data);
           discoverTags(client, trail, data, mapper);
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data.toJsonNode(mapper)));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":trail"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverEventSelectors(CloudTrailClient client, TrailInfo resource, AWSResource data) {
+  private void discoverEventSelectors(CloudTrailClient client, TrailInfo resource, MagpieResource data) {
     final String keyname = "eventSelectors";
 
     getAwsResponse(
@@ -87,7 +90,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInsightSelectors(CloudTrailClient client, TrailInfo resource, AWSResource data) {
+  private void discoverInsightSelectors(CloudTrailClient client, TrailInfo resource, MagpieResource data) {
     final String keyname = "insightSelectors";
 
     getAwsResponse(
@@ -97,7 +100,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTrailDetails(CloudTrailClient client, TrailInfo resource, AWSResource data) {
+  private void discoverTrailDetails(CloudTrailClient client, TrailInfo resource, MagpieResource data) {
     final String keyname = "trailDetails";
 
     getAwsResponse(
@@ -107,7 +110,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTrailStatus(CloudTrailClient client, TrailInfo resource, AWSResource data) {
+  private void discoverTrailStatus(CloudTrailClient client, TrailInfo resource, MagpieResource data) {
     final String keyname = "status";
 
     getAwsResponse(
@@ -117,7 +120,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(CloudTrailClient client, TrailInfo resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(CloudTrailClient client, TrailInfo resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceIdList(resource.trailARN()).build()).resourceTagList().stream().findFirst(),
       (resp) -> {

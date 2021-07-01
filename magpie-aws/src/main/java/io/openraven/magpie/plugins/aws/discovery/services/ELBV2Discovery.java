@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -60,23 +60,26 @@ public class ELBV2Discovery implements AWSDiscovery {
 
     try {
       client.describeLoadBalancers().loadBalancers().forEach(loadBalancerV2 -> {
-        var data = new AWSResource(loadBalancerV2.toBuilder(), region.toString(), account, mapper);
-        data.resourceName = loadBalancerV2.dnsName();
-        data.resourceId = loadBalancerV2.loadBalancerName();
-        data.resourceType = RESOURCE_TYPE;
-        data.arn = loadBalancerV2.loadBalancerArn();
-        data.createdIso = loadBalancerV2.createdTime();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancerV2.loadBalancerArn())
+          .withResourceName(loadBalancerV2.dnsName())
+          .withResourceId(loadBalancerV2.loadBalancerName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(loadBalancerV2.toBuilder()))
+          .withCreatedIso(loadBalancerV2.createdTime())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverTags(client, loadBalancerV2, data, mapper);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.describeTags(DescribeTagsRequest.builder().resourceArns(resource.loadBalancerArn()).build()).tagDescriptions(),
       (resp) -> {

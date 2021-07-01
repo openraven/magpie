@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -79,12 +79,16 @@ public class S3Discovery implements AWSDiscovery {
       }
 
       bucketOpt.get().forEach(bucket -> {
-        var data = new AWSResource(bucket.toBuilder(), region.toString(), account, mapper);
-        data.arn = "arn:aws:s3:::" + bucket.name();
-        data.resourceName = bucket.name();
-        data.resourceId = bucket.name();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = bucket.creationDate();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, "arn:aws:s3:::" + bucket.name())
+          .withResourceName(bucket.name())
+          .withResourceId(bucket.name())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(bucket.toBuilder()))
+          .withCreatedIso(bucket.creationDate())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
+
 
         discoverEncryption(client, bucket, data);
         discoverHosting(client, bucket, data);
@@ -101,7 +105,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
@@ -139,7 +143,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
 
-  private void discoverPublic(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverPublic(S3Client client, Bucket resource, MagpieResource data) {
     boolean isPublicByACL = false;
     boolean isPublicByPolicy = false;
 
@@ -182,7 +186,7 @@ public class S3Discovery implements AWSDiscovery {
         "isPublicByPolicy", isPublicByPolicy));
   }
 
-  private void discoverACLS(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverACLS(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "bucketACLConfiguration";
     getAwsResponse(
       () -> client.getBucketAcl(GetBucketAclRequest.builder().bucket(resource.name()).build()),
@@ -192,7 +196,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverEncryption(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverEncryption(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "serverSideEncryptionConfiguration";
     getAwsResponse(
       () -> client.getBucketEncryption(GetBucketEncryptionRequest.builder().bucket(resource.name()).build()).serverSideEncryptionConfiguration(),
@@ -201,7 +205,7 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverVersioning(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverVersioning(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "versioning";
     getAwsResponse(
       () -> client.getBucketVersioning(GetBucketVersioningRequest.builder().bucket(resource.name()).build()),
@@ -210,7 +214,7 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverHosting(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverHosting(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "bucketWebsiteConfiguration";
     getAwsResponse(
       () -> client.getBucketWebsite(GetBucketWebsiteRequest.builder().bucket(resource.name()).build()),
@@ -220,7 +224,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverObjectLockConfiguration(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverObjectLockConfiguration(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "bucketObjectLockConfiguration";
     getAwsResponse(
       () -> client.getObjectLockConfiguration(GetObjectLockConfigurationRequest.builder().bucket(resource.name()).build()).objectLockConfiguration(),
@@ -230,7 +234,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverLogging(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverLogging(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "bucketLoggingConfiguration";
     getAwsResponse(
       () -> client.getBucketLogging(GetBucketLoggingRequest.builder().bucket(resource.name()).build()),
@@ -240,7 +244,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverMetrics(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverMetrics(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "metricsConfiguration";
     getAwsResponse(
       () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().bucket(resource.name()).build()).metricsConfiguration(),
@@ -250,7 +254,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverNotifications(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverNotifications(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "notificationConfiguration";
     getAwsResponse(
       () -> client.getBucketNotificationConfiguration(GetBucketNotificationConfigurationRequest.builder().bucket(resource.name()).build()),
@@ -260,7 +264,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverPublicAccess(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverPublicAccess(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "publicAccessBlockConfiguration";
     getAwsResponse(
       () -> client.getPublicAccessBlock(GetPublicAccessBlockRequest.builder().bucket(resource.name()).build()).publicAccessBlockConfiguration(),
@@ -270,7 +274,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverBucketPolicy(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverBucketPolicy(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "bucketPolicyStatus";
     getAwsResponse(
       () -> client.getBucketPolicyStatus(GetBucketPolicyStatusRequest.builder().bucket(resource.name()).build()).policyStatus(),
@@ -288,7 +292,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverReplication(S3Client client, Bucket resource, AWSResource data) {
+  private void discoverReplication(S3Client client, Bucket resource, MagpieResource data) {
     final String keyname = "replicationConfiguration";
     getAwsResponse(
       () -> client.getBucketReplication(GetBucketReplicationRequest.builder().bucket(resource.name()).build()).replicationConfiguration(),
@@ -297,7 +301,7 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverBucketTags(S3Client client, Bucket resource, AWSResource data, ObjectMapper mapper) {
+  private void discoverBucketTags(S3Client client, Bucket resource, MagpieResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.getBucketTagging(GetBucketTaggingRequest.builder().bucket(resource.name()).build()),
       (resp) -> {
@@ -309,18 +313,18 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Bucket resource, AWSResource data) {
+  private void discoverSize(Bucket resource, MagpieResource data) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("bucketName").value(resource.name()).build());
     dimensions.add(Dimension.builder().name("storageType").value("StandardStorage").build());
     Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions);
+      AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/S3", "BucketSizeBytes", dimensions);
 
     List<Dimension> dimensions2 = new ArrayList<>();
     dimensions2.add(Dimension.builder().name("bucketName").value(resource.name()).build());
     dimensions2.add(Dimension.builder().name("storageType").value("AllStorageTypes").build());
     Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2);
+      AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/S3", "NumberOfObjects", dimensions2);
 
     if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration,

@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -58,13 +58,15 @@ public class GlacierDiscovery implements AWSDiscovery {
 
     try {
       client.listVaultsPaginator().vaultList().stream().forEach(vault -> {
-        var data = new AWSResource(vault.toBuilder(), region.toString(), account, mapper);
-        data.arn = vault.vaultARN();
-        data.resourceName = vault.vaultName();
-        data.resourceType = RESOURCE_TYPE;
-        data.createdIso = Instant.parse(vault.creationDate());
-        data.updatedIso = Instant.parse(vault.lastInventoryDate());
-        data.sizeInBytes = vault.sizeInBytes();
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, vault.vaultARN())
+          .withResourceName(vault.vaultName())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(vault.toBuilder()))
+          .withCreatedIso(Instant.parse(vault.creationDate()))
+          .withSizeInBytes(vault.sizeInBytes())
+          .withAccountId(account)
+          .withRegion(region.toString())
+          .build();
 
         discoverJobs(client, vault, data);
         discoverMultipartUploads(client, vault, data);
@@ -73,14 +75,14 @@ public class GlacierDiscovery implements AWSDiscovery {
         discoverVaultNotifications(client, vault, data);
         discoverTags(client, vault, data);
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":vault"), data.toJsonNode(mapper)));
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":vault"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
-  private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "jobs";
 
     getAwsResponse(
@@ -93,7 +95,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverMultipartUploads(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverMultipartUploads(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "multipartUploads";
 
     getAwsResponse(
@@ -106,7 +108,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAccessPolicy(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverAccessPolicy(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "accessPolicy";
 
     getAwsResponse(
@@ -116,7 +118,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverVaultNotifications(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverVaultNotifications(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "vaultNotifications";
 
     getAwsResponse(
@@ -126,7 +128,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverVaultLock(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverVaultLock(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "vaultLock";
 
     getAwsResponse(
@@ -136,7 +138,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(GlacierClient client, DescribeVaultOutput resource, AWSResource data) {
+  private void discoverTags(GlacierClient client, DescribeVaultOutput resource, MagpieResource data) {
     final String keyname = "tags";
 
     getAwsResponse(

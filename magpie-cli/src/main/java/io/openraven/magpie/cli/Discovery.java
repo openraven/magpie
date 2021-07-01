@@ -34,9 +34,9 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 
-public class Main {
+public class Discovery {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Discovery.class);
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
 
@@ -59,6 +59,8 @@ public class Main {
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
       configFile = DEFAULT_CONFIG_FILE;
+    } else {
+      LOGGER.info("Using config file {}", configFile);
     }
 
     try(var is = new FileInputStream((configFile))) {
