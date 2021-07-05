@@ -7,10 +7,19 @@ public class Policy {
   private String id;
   private String policyId;
   private String policyName;
+  private String cloudProvider;
   private String description;
   private boolean enabled = true;
   private List<Rule> rules = new ArrayList<>();
   private String version;
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
 
   public String getPolicyId() {
     return policyId;
@@ -28,12 +37,12 @@ public class Policy {
     this.policyName = policyName;
   }
 
-  public String getId() {
-    return id;
+  public String getCloudProvider() {
+    return cloudProvider;
   }
 
-  public void setId(String id) {
-    this.id = id;
+  public void setCloudProvider(String cloudProvider) {
+    this.cloudProvider = cloudProvider;
   }
 
   public String getDescription() {
