@@ -100,7 +100,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                            Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules,
                            Policy policy,
                            Rule rule) {
-    if (rule.isEnabled()) {
+    if (!rule.isEnabled()) {
       policyIgnoredRules.put(rule, ScanResults.IgnoredReason.DISABLED);
       LOGGER.info("Rule '{}' disabled", rule.getRuleName());
       return;
@@ -139,6 +139,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       violation.setPolicyId(policy.getId());
       violation.setRuleId(rule.getId());
       violation.setAssetId(result.get("asset_id").toString());
+      // TODO : Policy description or rule description
       violation.setInfo(policy.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
