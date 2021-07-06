@@ -69,12 +69,14 @@ class PolicyAnalyzerServiceIT {
     jdbiSetuo(jdbcDatabaseContainer);
     persistanceSetup(jdbcDatabaseContainer);
     loggerStubSetup();
+    populateAssetData();
   }
 
   @BeforeEach
   void setupLoggerSpy() {
     loggerStubAppender.reset();
     reset(config, policy, policyContext, rule);
+    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
   }
 
   @Test
@@ -86,24 +88,19 @@ class PolicyAnalyzerServiceIT {
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
     assertEquals(0, analyze.getViolations().size());
     assertEquals(0, analyze.getIgnoredRules().size());
 
-    assertTrue(loggerStubAppender.contains(
-      String.format("Policy '%s' disabled", policyName),
-      Level.INFO));
+    assertTrue(loggerStubAppender.contains(String.format("Policy '%s' disabled", policyName), Level.INFO));
   }
 
   @Test
   void skipPolicyWithoutCloudRelatedAssets() throws Exception {
     // given
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
-    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
-
     String policyName = "no-asset-policy";
     String cloudProvider = "GCP";
     when(policy.isEnabled()).thenReturn(true);
@@ -112,8 +109,7 @@ class PolicyAnalyzerServiceIT {
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
-    policyAnalyzerService.init(config);
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
@@ -128,9 +124,6 @@ class PolicyAnalyzerServiceIT {
   @Test
   void processingPolicyWithAWSAssetsWithDisabledRules() throws Exception {
     // given
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
-    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
-
     String policyName = "no-rules-policy";
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
@@ -144,8 +137,7 @@ class PolicyAnalyzerServiceIT {
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
-    policyAnalyzerService.init(config);
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
@@ -160,9 +152,6 @@ class PolicyAnalyzerServiceIT {
   @Test
   void processingPolicyWithAWSAssetsWithMunuallyControlledRules() throws Exception {
     // given
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
-    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
-
     String policyName = "no-rules-policy";
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
@@ -177,8 +166,7 @@ class PolicyAnalyzerServiceIT {
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
-    policyAnalyzerService.init(config);
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
@@ -194,9 +182,6 @@ class PolicyAnalyzerServiceIT {
   @Test
   void processingPolicyWithAWSAssetsWithMissedAssetRules() throws Exception {
     // given
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
-    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
-
     String policyName = "no-rules-policy";
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
@@ -213,8 +198,7 @@ class PolicyAnalyzerServiceIT {
     when(rule.getSql()).thenReturn(getResourceAsString("/sql/rule-sql-with-missed-asset.sql"));
 
     // when
-    policyAnalyzerService.init(config);
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
@@ -230,9 +214,6 @@ class PolicyAnalyzerServiceIT {
   @Test
   void processingPolicyWithAWSAssetsWithViolatedRule() throws Exception {
     // given
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
-    when(config.getPlugins()).thenReturn(Map.of(PersistPlugin.ID, pluginConfig));
-
     String policyName = "no-rules-policy";
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
@@ -255,8 +236,7 @@ class PolicyAnalyzerServiceIT {
     when(rule.getSql()).thenReturn(getResourceAsString("/sql/rule-sql-with-available-asset.sql"));
 
     // when
-    policyAnalyzerService.init(config);
-    ScanResults analyze = policyAnalyzerService.analyze(List.of(policyContext));
+    ScanResults analyze = initAndAnalyzePolicies();
 
     // then
     assertEquals(1, analyze.getPolicies().size());
@@ -311,5 +291,14 @@ class PolicyAnalyzerServiceIT {
       Objects.requireNonNull(PolicyAnalyzerServiceIT.class.getResourceAsStream(resourcePath)),
       StandardCharsets.UTF_8)
       .useDelimiter("\\A").next();
+  }
+
+  private static void populateAssetData() {
+    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
+  }
+
+  private ScanResults initAndAnalyzePolicies() throws Exception {
+    policyAnalyzerService.init(config);
+    return policyAnalyzerService.analyze(List.of(policyContext));
   }
 }
