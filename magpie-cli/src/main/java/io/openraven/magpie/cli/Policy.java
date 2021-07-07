@@ -36,17 +36,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
-public class Policy {
+public class Policy extends AbstractMain {
   private static final Logger LOGGER = LoggerFactory.getLogger(Policy.class);
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
-
-  public static String humanReadableFormat(Duration duration) {
-    return duration.toString()
-      .substring(2)
-      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-      .toLowerCase();
-  }
 
   public static void main(String[] args) throws IOException, ParseException {
     final var start = Instant.now();

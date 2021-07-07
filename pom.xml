@@ -15,6 +15,7 @@
     <module>magpie-aws</module>
     <module>magpie-json</module>
     <module>magpie-persist</module>
+      <module>magpie-dmap</module>
   </modules>
 
   <properties>

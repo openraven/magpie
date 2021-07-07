@@ -18,10 +18,10 @@ package io.openraven.magpie.cli;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.openraven.magpie.api.Session;
-import io.openraven.magpie.core.Orchestrator;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
+import io.openraven.magpie.core.cspm.VpcConfig;
+import io.openraven.magpie.core.cspm.services.DMapServiceImpl;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -33,21 +33,35 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
-public class Discovery extends AbstractMain {
+public class DMap extends AbstractMain {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Discovery.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DMap.class);
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
 
   public static void main(String[] args) throws IOException, ParseException {
+    var config = getConfig(args);
+
     final var start = Instant.now();
+
+    DMapServiceImpl dMapService = new DMapServiceImpl(config);
+    Map<VpcConfig, List<String>> vpcConfigListMap = dMapService.groupScanTargets();
+
+    LOGGER.info("ScanTargets: {}", vpcConfigListMap);
+
+    LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
+  }
+
+  private static MagpieConfig getConfig(String[] args) throws ParseException, IOException {
 
     final var options = new Options();
     options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
 
     final var parser = new DefaultParser();
-    final var cmd = parser.parse( options, args);
+    final var cmd = parser.parse(options, args);
 
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
@@ -56,11 +70,12 @@ public class Discovery extends AbstractMain {
       LOGGER.info("Using config file {}", configFile);
     }
 
-    try(var is = new FileInputStream((configFile))) {
-      final var config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
-      LOGGER.info("OSS Discovery. Classpath={}", System.getProperties().get("java.class.path"));
-      new Orchestrator(config, new Session()).scan();
+    MagpieConfig config = null;
+
+    try (var is = new FileInputStream((configFile))) {
+      LOGGER.info("DMap. Classpath={}", System.getProperties().get("java.class.path"));
+      config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
     }
-    LOGGER.info("Discovery completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
+    return config;
   }
 }
