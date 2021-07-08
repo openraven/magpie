@@ -286,7 +286,7 @@ class PolicyAnalyzerServiceIT {
     loggerStubAppender.start();
   }
 
-  protected static String getResourceAsString(String resourcePath) {
+  private static String getResourceAsString(String resourcePath) {
     return new Scanner(
       Objects.requireNonNull(PolicyAnalyzerServiceIT.class.getResourceAsStream(resourcePath)),
       StandardCharsets.UTF_8)

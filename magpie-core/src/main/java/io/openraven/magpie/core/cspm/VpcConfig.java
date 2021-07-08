@@ -34,4 +34,22 @@ public class VpcConfig {
   public List<String> getSecurityGroupIds() {
     return securityGroupIds;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    VpcConfig vpcConfig = (VpcConfig) o;
+
+    if (subnetId != null ? !subnetId.equals(vpcConfig.subnetId) : vpcConfig.subnetId != null) return false;
+    return securityGroupIds != null ? securityGroupIds.equals(vpcConfig.securityGroupIds) : vpcConfig.securityGroupIds == null;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = subnetId != null ? subnetId.hashCode() : 0;
+    result = 31 * result + (securityGroupIds != null ? securityGroupIds.hashCode() : 0);
+    return result;
+  }
 }
