@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.cspm.DMapTarget;
+import io.openraven.magpie.core.cspm.EC2Target;
 import io.openraven.magpie.core.cspm.VpcConfig;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
@@ -36,7 +37,10 @@ public class DMapServiceImpl implements DMapService {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String QUERY_TARGETS_SQL =
-    "SELECT t.resource_id, t.configuration ->> 'subnetId' as subnet_id, arr.group as security_group " +
+    "SELECT t.resource_id, " +
+    "       t.configuration ->> 'subnetId' as subnet_id, " +
+    "       t.configuration ->> 'privateIpAddress' as private_ip_address,  " +
+    "       arr.group as security_group " +
     "FROM   assets t, LATERAL (" +
     "   SELECT string_agg(value::jsonb ->> 'groupId', ',') as group " +
     "   FROM   jsonb_array_elements_text(t.configuration->'securityGroups') " +
@@ -64,12 +68,13 @@ public class DMapServiceImpl implements DMapService {
 
 
   @Override
-  public Map<VpcConfig, List<String>> groupScanTargets() {
+  public Map<VpcConfig, List<EC2Target>> groupScanTargets() {
     List<DMapTarget> scanTargets = jdbi.withHandle(handle -> handle.createQuery(QUERY_TARGETS_SQL)
       .map((rs, ctx) ->
         new DMapTarget(
           rs.getString("resource_id"),
           rs.getString("subnet_id"),
+          rs.getString("private_ip_address"),
           List.of(rs.getString("security_group").split(","))))
       .list());
 
@@ -77,7 +82,7 @@ public class DMapServiceImpl implements DMapService {
       .stream()
       .collect(groupingBy(
         dmapTarget -> new VpcConfig(dmapTarget.getSubnetId(), dmapTarget.getSecurityGroups()),
-        mapping(DMapTarget::getResourceId, toList())
+        mapping(dmapTarget -> new EC2Target(dmapTarget.getResourceId(), dmapTarget.getPrivateIpAddress()), toList())
       ));
   }
 }

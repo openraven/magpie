@@ -22,11 +22,13 @@ public class DMapTarget {
 
   private String resourceId;
   private String subnetId;
+  private String privateIpAddress;
   private List<String> securityGroups;
 
-  public DMapTarget(String resourceId, String subnetId, List<String> securityGroups) {
+  public DMapTarget(String resourceId, String subnetId, String privateIpAddress, List<String> securityGroups) {
     this.resourceId = resourceId;
     this.subnetId = subnetId;
+    this.privateIpAddress = privateIpAddress;
     this.securityGroups = securityGroups;
   }
 
@@ -36,6 +38,10 @@ public class DMapTarget {
 
   public String getSubnetId() {
     return subnetId;
+  }
+
+  public String getPrivateIpAddress() {
+    return privateIpAddress;
   }
 
   public List<String> getSecurityGroups() {

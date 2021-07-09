@@ -52,4 +52,12 @@ public class VpcConfig {
     result = 31 * result + (securityGroupIds != null ? securityGroupIds.hashCode() : 0);
     return result;
   }
+
+  @Override
+  public String toString() {
+    return "VpcConfig{" +
+      "subnetId='" + subnetId + '\'' +
+      ", securityGroupIds=" + securityGroupIds +
+      '}';
+  }
 }

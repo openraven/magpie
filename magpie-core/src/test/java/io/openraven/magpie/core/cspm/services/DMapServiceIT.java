@@ -2,6 +2,7 @@ package io.openraven.magpie.core.cspm.services;
 
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PluginConfig;
+import io.openraven.magpie.core.cspm.EC2Target;
 import io.openraven.magpie.core.cspm.VpcConfig;
 import io.openraven.magpie.plugins.persist.FlywayMigrationService;
 import io.openraven.magpie.plugins.persist.PersistConfig;
@@ -59,34 +60,37 @@ public class DMapServiceIT {
   @Test
   public void testGroupingTargetsReturnProperMap() {
     DMapService dMapService = new DMapServiceImpl(config);
-    Map<VpcConfig, List<String>> vpcConfigListMap = dMapService.groupScanTargets();
+    Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapService.groupScanTargets();
 
     assertEquals(4, vpcConfigListMap.size());
 
     // Group 1
-    List<String> ec2BatchOneTarget = vpcConfigListMap.get(
+    List<EC2Target> ec2BatchOneTarget = vpcConfigListMap.get(
       getVpcConfg("subnet-0e0c65d2da128849f", List.of("sg-00a0b7c747d5bc8af")));
     assertEquals(1, ec2BatchOneTarget.size());
-    assertTrue(ec2BatchOneTarget.contains("i-0b2bff5afdc58ef7a"));
+    assertTrue(ec2BatchOneTarget.contains(new EC2Target("i-0b2bff5afdc58ef7a", "10.128.0.253")));
+
     // Group 2
-    List<String> ec2BatchThreeTargets = vpcConfigListMap.get(
+    List<EC2Target> ec2BatchThreeTargets = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-07a6077c9af3c6801")));
     assertEquals(3, ec2BatchThreeTargets.size());
-    assertTrue(ec2BatchThreeTargets.contains("i-02d707a66b2c4d632"));
-    assertTrue(ec2BatchThreeTargets.contains("i-0bcfc92093c876165"));
-    assertTrue(ec2BatchThreeTargets.contains("i-0c4779103ad377ecb"));
+    assertTrue(ec2BatchThreeTargets.contains(new EC2Target("i-02d707a66b2c4d632", "10.128.111.91")));
+    assertTrue(ec2BatchThreeTargets.contains(new EC2Target("i-0bcfc92093c876165", "10.128.111.142")));
+    assertTrue(ec2BatchThreeTargets.contains(new EC2Target("i-0c4779103ad377ecb", "10.128.104.217")));
+
     // Group 3
-    List<String> ec2BatchAnotherSG = vpcConfigListMap.get(
+    List<EC2Target> ec2BatchAnotherSG = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-00a0b7c747d5bc8af")));
     assertEquals(3, ec2BatchAnotherSG.size());
-    assertTrue(ec2BatchAnotherSG.contains("i-0a85540439e24fa0c"));
-    assertTrue(ec2BatchAnotherSG.contains("i-0b08e2ff264f600e2"));
-    assertTrue(ec2BatchAnotherSG.contains("i-0a4314cb5c5f3f65b"));
+    assertTrue(ec2BatchAnotherSG.contains(new EC2Target("i-0a85540439e24fa0c", "10.128.101.122")));
+    assertTrue(ec2BatchAnotherSG.contains(new EC2Target("i-0b08e2ff264f600e2", "10.128.104.104")));
+    assertTrue(ec2BatchAnotherSG.contains(new EC2Target("i-0a4314cb5c5f3f65b", "10.128.99.21")));
+
     // Group 4
-    List<String> ec2BatchTwoSG = vpcConfigListMap.get(
+    List<EC2Target> ec2BatchTwoSG = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-07a6077c9af3c6801", "sg-00a0b7c747d5bc8af")));
     assertEquals(1, ec2BatchTwoSG.size());
-    assertTrue(ec2BatchTwoSG.contains("i-072c5dcd933c2218a"));
+    assertTrue(ec2BatchTwoSG.contains(new EC2Target("i-072c5dcd933c2218a", "10.128.110.70")));
   }
 
   private VpcConfig getVpcConfg(String subnetId, List<String> securityGroups) {

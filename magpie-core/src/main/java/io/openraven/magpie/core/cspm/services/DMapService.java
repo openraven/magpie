@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.core.cspm.services;
 
+import io.openraven.magpie.core.cspm.EC2Target;
 import io.openraven.magpie.core.cspm.VpcConfig;
 
 import java.util.List;
@@ -23,6 +24,6 @@ import java.util.Map;
 
 public interface DMapService {
 
-  Map<VpcConfig, List<String>> groupScanTargets();
+  Map<VpcConfig, List<EC2Target>> groupScanTargets();
 
 }
