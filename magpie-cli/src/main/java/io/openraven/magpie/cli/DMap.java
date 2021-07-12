@@ -20,9 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.services.DMapService;
-import io.openraven.magpie.core.cspm.VpcConfig;
-import io.openraven.magpie.core.cspm.services.DMapServiceImpl;
+import io.openraven.magpie.core.dmap.model.EC2Target;
+import io.openraven.magpie.core.dmap.dto.DMapScanResult;
+import io.openraven.magpie.core.dmap.service.DMapReportService;
+import io.openraven.magpie.core.dmap.service.DMapReportServiceImpl;
+import io.openraven.magpie.core.dmap.service.DMapService;
+import io.openraven.magpie.core.dmap.model.VpcConfig;
+import io.openraven.magpie.core.dmap.service.DMapServiceImpl;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -44,16 +48,15 @@ public class DMap {
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
 
   public static void main(String[] args) throws IOException, ParseException {
-    var config = getConfig(args);
 
-    final var start = Instant.now();
+    DMapService dMapService = new DMapServiceImpl(getConfig(args));
 
-    DMapService dMapService = new DMapServiceImpl(config);
-    Map<VpcConfig, List<String>> vpcConfigListMap = dMapService.groupScanTargets();
+    Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapService.groupScanTargets();
+    DMapScanResult dMapScanResult = dMapService.invokeLambda(vpcConfigListMap);
 
-    LOGGER.info("ScanTargets: {}", vpcConfigListMap);
+    DMapReportService dMapReportService = new DMapReportServiceImpl();
+    dMapReportService.generateReport(dMapScanResult);
 
-    LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
   }
 
   private static MagpieConfig getConfig(String[] args) throws ParseException, IOException {

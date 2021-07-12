@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.core.cspm.services;
+package io.openraven.magpie.core.dmap.service;
 
-import io.openraven.magpie.core.cspm.EC2Target;
-import io.openraven.magpie.core.cspm.VpcConfig;
+import io.openraven.magpie.core.dmap.model.EC2Target;
+import io.openraven.magpie.core.dmap.model.VpcConfig;
+import io.openraven.magpie.core.dmap.dto.DMapScanResult;
 
 import java.util.List;
 import java.util.Map;
@@ -25,5 +26,7 @@ import java.util.Map;
 public interface DMapService {
 
   Map<VpcConfig, List<EC2Target>> groupScanTargets();
+
+  DMapScanResult invokeLambda(Map<VpcConfig, List<EC2Target>> targets);
 
 }

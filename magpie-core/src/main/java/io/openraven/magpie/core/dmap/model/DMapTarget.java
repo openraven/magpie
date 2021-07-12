@@ -14,19 +14,25 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.core.cspm;
+package io.openraven.magpie.core.dmap.model;
 
 import java.util.List;
 
 public class DMapTarget {
 
   private String resourceId;
+  private String region;
   private String subnetId;
   private String privateIpAddress;
   private List<String> securityGroups;
 
-  public DMapTarget(String resourceId, String subnetId, String privateIpAddress, List<String> securityGroups) {
+  public DMapTarget(String resourceId,
+                    String region,
+                    String subnetId,
+                    String privateIpAddress,
+                    List<String> securityGroups) {
     this.resourceId = resourceId;
+    this.region = region;
     this.subnetId = subnetId;
     this.privateIpAddress = privateIpAddress;
     this.securityGroups = securityGroups;
@@ -34,6 +40,10 @@ public class DMapTarget {
 
   public String getResourceId() {
     return resourceId;
+  }
+
+  public String getRegion() {
+    return region;
   }
 
   public String getSubnetId() {

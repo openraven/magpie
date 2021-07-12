@@ -1,9 +1,11 @@
-package io.openraven.magpie.core.cspm.services;
+package io.openraven.magpie.core.dmap;
 
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PluginConfig;
-import io.openraven.magpie.core.cspm.EC2Target;
-import io.openraven.magpie.core.cspm.VpcConfig;
+import io.openraven.magpie.core.dmap.model.EC2Target;
+import io.openraven.magpie.core.dmap.model.VpcConfig;
+import io.openraven.magpie.core.dmap.service.DMapService;
+import io.openraven.magpie.core.dmap.service.DMapServiceImpl;
 import io.openraven.magpie.plugins.persist.FlywayMigrationService;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
@@ -94,7 +96,7 @@ public class DMapServiceIT {
   }
 
   private VpcConfig getVpcConfg(String subnetId, List<String> securityGroups) {
-    return new VpcConfig(subnetId, securityGroups);
+    return new VpcConfig("us-west-1", subnetId, securityGroups);
   }
 
 
@@ -122,7 +124,7 @@ public class DMapServiceIT {
 
   private static String getResourceAsString(String resourcePath) {
     return new Scanner(
-      Objects.requireNonNull(PolicyAnalyzerServiceIT.class.getResourceAsStream(resourcePath)),
+      Objects.requireNonNull(DMapServiceIT.class.getResourceAsStream(resourcePath)),
       StandardCharsets.UTF_8)
       .useDelimiter("\\A").next();
   }

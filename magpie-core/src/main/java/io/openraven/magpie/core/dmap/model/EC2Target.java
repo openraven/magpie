@@ -1,16 +1,16 @@
-package io.openraven.magpie.core.cspm;
+package io.openraven.magpie.core.dmap.model;
 
 public class EC2Target {
-  private String serviceId;
-  private String ipAddress;
+  private final String resourceId;
+  private final String ipAddress;
 
-  public EC2Target(String serviceId, String ipAddress) {
-    this.serviceId = serviceId;
+  public EC2Target(String resourceId, String ipAddress) {
+    this.resourceId = resourceId;
     this.ipAddress = ipAddress;
   }
 
-  public String getServiceId() {
-    return serviceId;
+  public String getResourceId() {
+    return resourceId;
   }
 
   public String getIpAddress() {
@@ -24,13 +24,13 @@ public class EC2Target {
 
     EC2Target ec2Target = (EC2Target) o;
 
-    if (!serviceId.equals(ec2Target.serviceId)) return false;
+    if (!resourceId.equals(ec2Target.resourceId)) return false;
     return ipAddress.equals(ec2Target.ipAddress);
   }
 
   @Override
   public int hashCode() {
-    int result = serviceId.hashCode();
+    int result = resourceId.hashCode();
     result = 31 * result + ipAddress.hashCode();
     return result;
   }
@@ -38,7 +38,7 @@ public class EC2Target {
   @Override
   public String toString() {
     return "EC2Target{" +
-      "serviceId='" + serviceId + '\'' +
+      "serviceId='" + resourceId + '\'' +
       ", ipAddress='" + ipAddress + '\'' +
       '}';
   }

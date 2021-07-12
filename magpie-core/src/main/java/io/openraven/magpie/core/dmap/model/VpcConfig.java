@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.core.cspm;
+package io.openraven.magpie.core.dmap.model;
 
 import java.util.List;
 
 public class VpcConfig {
+  private String region;
   private String subnetId;
   private List<String> securityGroupIds;
 
-  public VpcConfig(String subnetId, List<String> securityGroupIds) {
+  public VpcConfig(String region, String subnetId, List<String> securityGroupIds) {
+    this.region = region;
     this.subnetId = subnetId;
     this.securityGroupIds = securityGroupIds;
   }
@@ -33,6 +35,10 @@ public class VpcConfig {
 
   public List<String> getSecurityGroupIds() {
     return securityGroupIds;
+  }
+
+  public String getRegion() {
+    return region;
   }
 
   @Override
@@ -56,7 +62,8 @@ public class VpcConfig {
   @Override
   public String toString() {
     return "VpcConfig{" +
-      "subnetId='" + subnetId + '\'' +
+      "region=" + region +
+      ", subnetId='" + subnetId + '\'' +
       ", securityGroupIds=" + securityGroupIds +
       '}';
   }
