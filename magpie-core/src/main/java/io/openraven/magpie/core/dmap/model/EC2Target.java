@@ -38,7 +38,7 @@ public class EC2Target {
   @Override
   public String toString() {
     return "EC2Target{" +
-      "serviceId='" + resourceId + '\'' +
+      "resourceId='" + resourceId + '\'' +
       ", ipAddress='" + ipAddress + '\'' +
       '}';
   }

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
+import io.openraven.magpie.core.dmap.DMapProcessingException;
 import io.openraven.magpie.core.dmap.model.DMapTarget;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.client.DMapMLClient;
@@ -39,19 +40,25 @@ import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuil
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.iam.IamClient;
+import software.amazon.awssdk.services.iam.model.*;
 import software.amazon.awssdk.services.lambda.LambdaClient;
-import software.amazon.awssdk.services.lambda.model.InvocationType;
-import software.amazon.awssdk.services.lambda.model.InvokeRequest;
-import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.*;
+import software.amazon.awssdk.services.lambda.model.Runtime;
 import software.amazon.awssdk.utils.AttributeMap;
 import software.amazon.awssdk.utils.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.UUID;
 
 import static java.lang.String.join;
 import static java.nio.charset.Charset.defaultCharset;
@@ -60,7 +67,6 @@ import static java.util.stream.Collectors.*;
 public class DMapServiceImpl implements DMapService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DMapServiceImpl.class);
-  private static final String LAMBDA_NAME = "dmap-50b91f4405e9a8fd75692c2993e37102-296";
   private static final Duration TEN_MINUTES = Duration.ofMinutes(15);
   private static final String QUERY_TARGETS_SQL =   // TODO: save separately
     "SELECT t.resource_id, " +
@@ -73,6 +79,14 @@ public class DMapServiceImpl implements DMapService {
     "   FROM   jsonb_array_elements_text(t.configuration->'securityGroups') " +
     "   ) arr " +
     "WHERE t.resource_type = 'AWS::EC2::Instance'";
+
+  private static final String DMAP_LAMBDA_JAR_PATH = "lambda/source/dmap-lambda-0.0.0.jar";
+  private static final int TIMEOUT = 900;
+  private static final int MEMORY_SIZE = 512;
+
+  private static final String ROLE_NAME = "openraven-dmap-scan-role";
+  private static final String POLICY_NAME = "openraven-dmap-scan-policy";
+  private static final String DMAP_LAMBDA_HANDLER = "io.openraven.dmap.lambda.Scan::handleRequest";
 
   private final Jdbi jdbi;
   private final ObjectMapper mapper;
@@ -104,52 +118,157 @@ public class DMapServiceImpl implements DMapService {
       ));
   }
 
-
   @Override
   public DMapScanResult invokeLambda(Map<VpcConfig, List<EC2Target>> targets) {
     Instant startTime = Instant.now();
 
     List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
-    targets.forEach((vpcConfig, ec2Targets) -> {
-      ec2Targets.forEach(ec2Target -> {
-        LOGGER.info("Starting lambda for : {}", ec2Target);
+
+    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
+      String lambdaRoleArn = createLambdaRole(iam);
+      String policyArn = createPolicyAndAttachRole(iam);
+      LOGGER.info("Role: {} with attached Policy: {} for Dmap-Lambda has been created\n", policyArn, lambdaRoleArn);
+
+      targets.forEach((vpcConfig, ec2Targets) -> {
+
         try (SdkHttpClient httpClient = getSdkHttpClient();
              LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
 
-          InvokeRequest request = getLambdaRequest(ec2Target);
-          InvokeResponse response = lambdaClient.invoke(request);
+          String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
 
-          DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
-          Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
-          LOGGER.debug("Response from lambda {} is {}", LAMBDA_NAME, hosts);
+          ec2Targets.forEach(ec2Target -> {
+            LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
 
-          hosts.values().forEach(fingerprint -> {
-            FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
-            fingerprintAnalysis.setResourceId(fingerprint.getId());
-            fingerprintAnalysis.setRegion(vpcConfig.getRegion());
-            fingerprintAnalysis.setAddress(fingerprint.getAddress());
-            fingerprint.getSignatures().forEach((port, signature) -> {
-              LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
-              List<AppProbability> predictions = dMapMLClient.predict(signature);
-              fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
+            InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
+            InvokeResponse response = lambdaClient.invoke(request);
+
+            DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
+            Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
+            LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
+
+            hosts.values().forEach(fingerprint -> {
+              FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
+              fingerprintAnalysis.setResourceId(fingerprint.getId());
+              fingerprintAnalysis.setRegion(vpcConfig.getRegion());
+              fingerprintAnalysis.setAddress(fingerprint.getAddress());
+              fingerprint.getSignatures().forEach((port, signature) -> {
+                LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
+                List<AppProbability> predictions = dMapMLClient.predict(signature);
+                fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
+              });
+              dmapAnalysis.add(fingerprintAnalysis);
             });
-            dmapAnalysis.add(fingerprintAnalysis);
           });
+          deleteLambda(lambdaClient, lambdaName);
         }
       });
-    });
+      deleteLambdaRoleAndPolicy(iam, policyArn);
+    }
     LOGGER.debug("DMap predictions: {}", dmapAnalysis);
 
     Duration duration = Duration.between(startTime, Instant.now());
     return new DMapScanResult(dmapAnalysis, Date.from(startTime), duration);
   }
 
-  private InvokeRequest getLambdaRequest(EC2Target ec2Target) {
+  private void deleteLambdaRoleAndPolicy(IamClient iam, String policyArn) {
+    iam.detachRolePolicy(builder -> builder.policyArn(policyArn).roleName(ROLE_NAME).build());
+    iam.deletePolicy(builder -> builder.policyArn(policyArn));
+    iam.deleteRole(builder -> builder.roleName(ROLE_NAME).build());
+    LOGGER.info("Role: {} and attached policy: {} has been deleted", ROLE_NAME, policyArn);
+  }
+
+  private String createLambdaRole(IamClient iam) {
+    try {
+
+      GetRoleResponse response = iam.getRole(builder -> builder.roleName(ROLE_NAME).build());
+      LOGGER.info("Required role: {} was found reusing its ARN: {}", ROLE_NAME, response.role().arn());
+      return response.role().arn();
+
+    } catch (NoSuchEntityException e) {
+      LOGGER.info("Creating {}", ROLE_NAME);
+      CreateRoleRequest request = CreateRoleRequest.builder()
+        .roleName(ROLE_NAME)
+        .assumeRolePolicyDocument(getResourceAsString("/lambda/policy/assume-role-policy.json"))
+        .description("Role lambda invoking for DMAP port scanning over EC2 services")
+        .build();
+      CreateRoleResponse response = iam.createRole(request);
+      iam.waiter().waitUntilRoleExists(builder -> builder.roleName(ROLE_NAME).build());
+      return response.role().arn();
+    }
+  }
+
+  private String createPolicyAndAttachRole(IamClient iam) {
+    List<AttachedPolicy> attachedPolicies =
+      iam.listAttachedRolePolicies(builder -> builder.roleName(ROLE_NAME)).attachedPolicies();
+
+    if (attachedPolicies.isEmpty()) {
+      CreatePolicyResponse policyResponse = iam.createPolicy(builder -> builder
+        .policyName(POLICY_NAME)
+        .policyDocument(getResourceAsString("/lambda/policy/role-policy.json"))
+        .build()
+      );
+
+      String policyArn = policyResponse.policy().arn();
+      iam.attachRolePolicy(builder ->
+        builder
+          .policyArn(policyArn)
+          .roleName(ROLE_NAME)
+          .build());
+      iam.waiter().waitUntilPolicyExists(builder -> builder.policyArn(policyArn).build());
+      return policyArn;
+    }
+    LOGGER.info("Skipped policy creation. Target role found with attached policies: {}", attachedPolicies);
+    return attachedPolicies.stream()
+      .filter(attachedPolicy -> attachedPolicy.policyName().equals(POLICY_NAME))
+      .findFirst()
+      .map(AttachedPolicy::policyArn)
+      .orElseThrow(() ->
+        new DMapProcessingException("Incomplete state of Role: " + ROLE_NAME + " Policy: " + POLICY_NAME));
+  }
+
+  public String createLambda(LambdaClient lambdaClient,
+                             VpcConfig vpcConfig,
+                             String roleArn) {
+    LOGGER.info("Creating lambda function in VPC: {} ", vpcConfig);
+
+    SdkBytes source = Optional.ofNullable(this.getClass().getClassLoader()
+      .getResourceAsStream(DMAP_LAMBDA_JAR_PATH))
+      .map(SdkBytes::fromInputStream)
+      .orElseThrow(() -> new RuntimeException("Unable to find sources under " + DMAP_LAMBDA_JAR_PATH));
+
+    CreateFunctionRequest functionRequest = CreateFunctionRequest.builder()
+      .functionName("dmap-" + UUID.randomUUID())
+      .description("DMAP Lambda function for port scanning distributed by OpenRaven")
+      .code(builder -> builder.zipFile(source).build())
+      .handler(DMAP_LAMBDA_HANDLER)
+      .runtime(Runtime.JAVA11)
+      .timeout(TIMEOUT)
+      .memorySize(MEMORY_SIZE)
+      .role(roleArn)
+      .vpcConfig(builder -> builder
+        .securityGroupIds(vpcConfig.getSecurityGroupIds())
+        .subnetIds(vpcConfig.getSubnetId())
+        .build())
+      .build();
+
+    CreateFunctionResponse functionResponse = lambdaClient.createFunction(functionRequest);
+    lambdaClient.waiter()
+      .waitUntilFunctionActive(builder -> builder.functionName(functionResponse.functionName()).build());
+    LOGGER.info("Lambda function for DMap port scan has been created: {}", functionResponse.functionName());
+    return functionResponse.functionName();
+  }
+
+  private void deleteLambda(LambdaClient lambdaClient, String lambdaName) {
+    lambdaClient.deleteFunction(DeleteFunctionRequest.builder().functionName(lambdaName).build());
+    LOGGER.info("Lambda function: {} has been removed\n", lambdaName);
+  }
+
+  private InvokeRequest getLambdaRequest(String lambdaName, EC2Target ec2Target) {
     try {
       String payload = mapper.writeValueAsString(
         new DmapLambdaRequest(Map.of(ec2Target.getResourceId(), ec2Target.getIpAddress())));
       return InvokeRequest.builder()
-        .functionName(LAMBDA_NAME)
+        .functionName(lambdaName)
         .payload(SdkBytes.fromUtf8String(payload))
         .invocationType(InvocationType.REQUEST_RESPONSE)
         .build();
@@ -213,5 +332,12 @@ public class DMapServiceImpl implements DMapService {
       throw new ConfigException("Cannot instantiate PersistConfig while initializing PolicyAnalyzerService", e);
     }
     return jdbi;
+  }
+
+  private static String getResourceAsString(String resourcePath) {
+    return new Scanner(
+      Objects.requireNonNull(DMapServiceImpl.class.getResourceAsStream(resourcePath)),
+      StandardCharsets.UTF_8)
+      .useDelimiter("\\A").next();
   }
 }

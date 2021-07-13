@@ -25,7 +25,7 @@ class DMapReportServiceImplTest {
   void testReportGeneration() throws JsonProcessingException {
     List<FingerprintAnalysis> fingerprintAnalyses = objectMapper.readValue(getResourceAsString("/dmap/finger-print-analysis.json"), new TypeReference<List<FingerprintAnalysis>>() {
     });
-    Duration duration = Duration.between(Instant.now(), Instant.now().minusSeconds(595));
+    Duration duration = Duration.between(Instant.now().minusSeconds(595), Instant.now());
     DMapScanResult dMapScanResult = new DMapScanResult(fingerprintAnalyses, Date.from(Instant.now()), duration);
 
     dMapReportService.generateReport(dMapScanResult);
