@@ -35,17 +35,15 @@ public class DMapReportServiceImpl implements DMapReportService {
 
       if(fingerprintAnalysis.getPredictionsByPort().isEmpty()) {
         System.out.printf("%-"+ PORT_COLUMN_WIDTH + "s%-" + PROBABILITY_COLUMN_WIDTH + "s%-" + APP_COLUMN_WIDTH + "s\n",
-          "--", "--", "No available ports found for analysis");
+          "--", "--", "No open ports");
       } else {
         System.out.println("");
       }
 
       new TreeMap<>(fingerprintAnalysis.getPredictionsByPort()).forEach((port, probabilities) -> {
-        findTop(probabilities).ifPresentOrElse(
+        findTop(probabilities).ifPresent(
           app -> System.out.printf("%-41s%-"+ PORT_COLUMN_WIDTH + "s%-" + PROBABILITY_COLUMN_WIDTH + ".2f" + "%-4s\n",
-            "", port, app.getProbability(), app.getAppName()),
-          () -> System.out.printf("%-41s%-"+ PORT_COLUMN_WIDTH + "s%-" + PROBABILITY_COLUMN_WIDTH + "s%-" + APP_COLUMN_WIDTH + "s\n",
-            "", port, "--", "Low probability: unable to identify app running port"));
+            "", port, app.getProbability(), app.getAppName()));
       });
     });
   }
