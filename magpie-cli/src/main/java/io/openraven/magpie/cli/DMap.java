@@ -22,11 +22,13 @@ import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.dto.DMapScanResult;
+import io.openraven.magpie.core.dmap.model.VpcConfig;
+import io.openraven.magpie.core.dmap.service.DMapAssetService;
+import io.openraven.magpie.core.dmap.service.DMapAssetServiceImpl;
+import io.openraven.magpie.core.dmap.service.DMapLambdaService;
+import io.openraven.magpie.core.dmap.service.DMapLambdaServiceImpl;
 import io.openraven.magpie.core.dmap.service.DMapReportService;
 import io.openraven.magpie.core.dmap.service.DMapReportServiceImpl;
-import io.openraven.magpie.core.dmap.service.DMapService;
-import io.openraven.magpie.core.dmap.model.VpcConfig;
-import io.openraven.magpie.core.dmap.service.DMapServiceImpl;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -36,8 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -49,10 +49,11 @@ public class DMap {
 
   public static void main(String[] args) throws IOException, ParseException {
 
-    DMapService dMapService = new DMapServiceImpl(getConfig(args));
+    DMapAssetService dMapAssetService = new DMapAssetServiceImpl(getConfig(args));
+    Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapAssetService.groupScanTargets();
 
-    Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapService.groupScanTargets();
-    DMapScanResult dMapScanResult = dMapService.invokeLambda(vpcConfigListMap);
+    DMapLambdaService dMapLambdaService = new DMapLambdaServiceImpl();
+    DMapScanResult dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap);
 
     DMapReportService dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
@@ -81,12 +82,5 @@ public class DMap {
       config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
     }
     return config;
-  }
-
-  public static String humanReadableFormat(Duration duration) {
-    return duration.toString()
-      .substring(2)
-      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-      .toLowerCase();
   }
 }
