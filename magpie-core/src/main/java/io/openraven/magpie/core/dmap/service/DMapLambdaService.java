@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.core.dmap.service;
 
+import io.openraven.magpie.core.dmap.DMapExecutionContext;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.model.VpcConfig;
 import io.openraven.magpie.core.dmap.dto.DMapScanResult;
@@ -25,6 +26,8 @@ import java.util.Map;
 
 public interface DMapLambdaService {
 
-  DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets);
+  DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets, DMapExecutionContext dMapExecutionContext);
+
+  void cleanupCreatedResources(DMapExecutionContext dMapExecutionContext);
 
 }

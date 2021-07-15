@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
+import io.openraven.magpie.core.dmap.DMapExecutionContext;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.dto.DMapScanResult;
 import io.openraven.magpie.core.dmap.model.VpcConfig;
@@ -53,7 +54,9 @@ public class DMap {
     Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapAssetService.groupScanTargets();
 
     DMapLambdaService dMapLambdaService = new DMapLambdaServiceImpl();
-    DMapScanResult dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap);
+    DMapExecutionContext dMapExecutionContext = new DMapExecutionContext();
+    Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService, dMapExecutionContext));
+    DMapScanResult dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap, dMapExecutionContext);
 
     DMapReportService dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
@@ -82,5 +85,21 @@ public class DMap {
       config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
     }
     return config;
+  }
+
+  private static class CleanupDmapLambdaResourcesHook extends Thread {
+
+    private final DMapLambdaService dMapLambdaService;
+    private final DMapExecutionContext dMapExecutionContext;
+
+    CleanupDmapLambdaResourcesHook(DMapLambdaService dMapLambdaService, DMapExecutionContext dMapExecutionContext) {
+      this.dMapLambdaService = dMapLambdaService;
+      this.dMapExecutionContext = dMapExecutionContext;
+    }
+
+    @Override
+    public void run() {
+      dMapLambdaService.cleanupCreatedResources(dMapExecutionContext);
+    }
   }
 }

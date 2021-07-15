@@ -18,6 +18,7 @@ package io.openraven.magpie.core.dmap.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openraven.magpie.core.dmap.DMapExecutionContext;
 import io.openraven.magpie.core.dmap.exception.DMapProcessingException;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.client.DMapMLClient;
@@ -77,36 +78,77 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   }
 
   @Override
-  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets) {
+  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets,
+                                      DMapExecutionContext dMapExecutionContext) {
     Instant startTime = Instant.now();
 
     List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
 
-    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
-      String lambdaRoleArn = createLambdaRole(iam);
-      String policyArn = createPolicyAndAttachRole(iam);
-      waitForRoleFinalization();
-      LOGGER.info("Role: {} with attached Policy: {} for Dmap-Lambda has been created\n", policyArn, lambdaRoleArn);
+    String roleArn = createRequiredRole();
+    invokeLambda(targets, dmapAnalysis, roleArn, dMapExecutionContext);
 
-      invokeLambda(targets, dmapAnalysis, lambdaRoleArn);
-
-      deleteLambdaRoleAndPolicy(iam, policyArn); // Cleanup afterwards
-    }
     LOGGER.debug("DMap predictions: {}", dmapAnalysis);
 
     Duration duration = Duration.between(startTime, Instant.now());
     return new DMapScanResult(dmapAnalysis, Date.from(startTime), duration);
   }
 
+  @Override
+  public void cleanupCreatedResources(DMapExecutionContext dMapExecutionContext) {
+    LOGGER.info("Cleanup created resources after DMap Lambda execution");
+
+    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build();
+         LambdaClient lambdaClient =
+           LambdaClient.builder().region(Region.of(dMapExecutionContext.getRegion())).build()) {
+
+      List<AttachedPolicy> attachedPolicies =
+        iam.listAttachedRolePolicies(builder -> builder.roleName(ROLE_NAME)).attachedPolicies();
+
+      // Drop policies
+      attachedPolicies.forEach(attachedPolicy -> {
+          iam.detachRolePolicy(builder -> builder.roleName(ROLE_NAME).policyArn(attachedPolicy.policyArn()));
+          iam.deletePolicy(builder -> builder.policyArn(attachedPolicy.policyArn()));
+          LOGGER.info("Policy: {} has been removed", attachedPolicy.policyArn());
+        }
+      );
+
+      // Drop roles
+      iam.deleteRole(builder -> builder.roleName(ROLE_NAME).build());
+      LOGGER.info("Role: {} has been removed", ROLE_NAME);
+
+      // Drop Lambda
+      if (dMapExecutionContext.getRegion() != null && dMapExecutionContext.getLambdaName() != null) {
+        deleteLambda(lambdaClient, dMapExecutionContext.getLambdaName());
+      }
+
+    } catch (NoSuchEntityException e) {
+      LOGGER.info("DMap Lambda related resources not found. Assume stack clean");
+      LOGGER.debug("Exception: ", e);
+    }
+  }
+
+  private String createRequiredRole() {
+    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
+      String lambdaRoleArn = createLambdaRole(iam);
+      String policyArn = createPolicyAndAttachRole(iam);
+      waitForRoleFinalization();
+      LOGGER.info("Role: {} with attached Policy: {} for Dmap-Lambda has been created\n", policyArn, lambdaRoleArn);
+      return lambdaRoleArn;
+    }
+  }
+
   private void invokeLambda(Map<VpcConfig, List<EC2Target>> targets,
                             List<FingerprintAnalysis> dmapAnalysis,
-                            String lambdaRoleArn) {
+                            String lambdaRoleArn,
+                            DMapExecutionContext dMapExecutionContext) {
     targets.forEach((vpcConfig, ec2Targets) -> {
 
       try (SdkHttpClient httpClient = getSdkHttpClient();
            LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
 
         String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
+        dMapExecutionContext.setRegion(vpcConfig.getRegion());
+        dMapExecutionContext.setLambdaName(lambdaName);
 
         ec2Targets.forEach(ec2Target -> {
           LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
@@ -133,15 +175,9 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
         });
 
         deleteLambda(lambdaClient, lambdaName);
+        dMapExecutionContext.clear();
       }
     });
-  }
-
-  private void deleteLambdaRoleAndPolicy(IamClient iam, String policyArn) {
-    iam.detachRolePolicy(builder -> builder.policyArn(policyArn).roleName(ROLE_NAME).build());
-    iam.deletePolicy(builder -> builder.policyArn(policyArn));
-    iam.deleteRole(builder -> builder.roleName(ROLE_NAME).build());
-    LOGGER.info("Role: {} and attached policy: {} has been deleted", ROLE_NAME, policyArn);
   }
 
   private String createLambdaRole(IamClient iam) {
@@ -191,7 +227,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       .findFirst()
       .map(AttachedPolicy::policyArn)
       .orElseThrow(() ->
-        new DMapProcessingException("Incomplete state of Role: " + ROLE_NAME + " Policy: " + POLICY_NAME));
+        new DMapProcessingException("Incomplete state of Role: " + ROLE_NAME + " Policy: " + POLICY_NAME + " not found"));
   }
 
   public String createLambda(LambdaClient lambdaClient,
