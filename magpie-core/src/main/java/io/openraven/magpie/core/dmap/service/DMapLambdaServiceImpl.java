@@ -97,10 +97,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   public void cleanupCreatedResources(DMapExecutionContext dMapExecutionContext) {
     LOGGER.info("Cleanup created resources after DMap Lambda execution");
 
-    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build();
-         LambdaClient lambdaClient =
-           LambdaClient.builder().region(Region.of(dMapExecutionContext.getRegion())).build()) {
-
+    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
       List<AttachedPolicy> attachedPolicies =
         iam.listAttachedRolePolicies(builder -> builder.roleName(ROLE_NAME)).attachedPolicies();
 
@@ -116,14 +113,19 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       iam.deleteRole(builder -> builder.roleName(ROLE_NAME).build());
       LOGGER.info("Role: {} has been removed", ROLE_NAME);
 
-      // Drop Lambda
-      if (dMapExecutionContext.getRegion() != null && dMapExecutionContext.getLambdaName() != null) {
-        deleteLambda(lambdaClient, dMapExecutionContext.getLambdaName());
-      }
-
     } catch (NoSuchEntityException e) {
       LOGGER.info("DMap Lambda related resources not found. Assume stack clean");
       LOGGER.debug("Exception: ", e);
+    }
+
+    // Drop Lambda
+    if (dMapExecutionContext.getRegion() != null && dMapExecutionContext.getLambdaName() != null) {
+      try (LambdaClient lambdaClient =
+             LambdaClient.builder().region(Region.of(dMapExecutionContext.getRegion())).build()) {
+        deleteLambda(lambdaClient, dMapExecutionContext.getLambdaName());
+      } catch (Exception e) {
+        LOGGER.warn("Unable to delete lambda: {}", dMapExecutionContext.getLambdaName());
+      }
     }
   }
 

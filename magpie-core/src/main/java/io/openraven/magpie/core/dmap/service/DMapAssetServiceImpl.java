@@ -12,6 +12,8 @@ import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,8 @@ import java.util.Map;
 import static java.util.stream.Collectors.*;
 
 public class DMapAssetServiceImpl implements DMapAssetService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DMapAssetServiceImpl.class);
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final Jdbi jdbi;
@@ -39,6 +43,8 @@ public class DMapAssetServiceImpl implements DMapAssetService {
           rs.getString("private_ip_address"),
           List.of(rs.getString("security_group").split(","))))
       .list());
+
+    LOGGER.debug("Retrieved Scan Target Assets from DB : {}", scanTargets);
 
     return scanTargets
       .stream()
