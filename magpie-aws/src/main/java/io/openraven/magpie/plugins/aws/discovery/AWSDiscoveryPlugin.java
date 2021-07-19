@@ -24,8 +24,10 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.services.*;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
+import software.amazon.awssdk.regions.Region;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsAccountId;
@@ -85,14 +87,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     String account = getAwsAccountId();
 
     enabledPlugins.forEach(plugin -> {
-      final var regions = plugin.getSupportedRegions()
-        .stream()
-        .filter(region -> isDiscoveryEnabledIn(region.toString()))
-        .collect(Collectors.toList());
-
-      if (regions.isEmpty()) {
-        logger.warn("{} is enabled but no supported regions are configured.", plugin.fullService());
-      }
+      final List<Region> regions = getRegionsForDiscovery(plugin);
 
       regions.forEach(region -> {
         try {
@@ -105,6 +100,19 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     });
   }
 
+  protected List<Region> getRegionsForDiscovery(AWSDiscovery plugin) {
+    final var regions = plugin.getSupportedRegions()
+      .stream()
+      .filter(region -> isDiscoveryEnabledIn(region.toString()))
+      .filter(region -> isAllowedRegion(region.toString()))
+      .collect(Collectors.toList());
+
+    if (regions.isEmpty()) {
+      logger.warn("{} is enabled but no supported regions are configured.", plugin.fullService());
+    }
+    return regions;
+  }
+
   private boolean isEnabled(String svc) {
     var enabled = config.getServices().isEmpty() || config.getServices().contains(svc);
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", svc);
@@ -115,6 +123,14 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     var enabled = config.getRegions().isEmpty() || config.getRegions().contains(region);
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", region);
     return enabled;
+  }
+
+  private boolean isAllowedRegion(String region) {
+    boolean regionAllowed = config.getIgnoreRegions()
+      .stream()
+      .noneMatch(pattern -> Pattern.matches(pattern, region));
+    logger.info("{} {} per ignore region config", regionAllowed ? "Enabling" : "Disabling", region);
+    return regionAllowed;
   }
 
   @Override
