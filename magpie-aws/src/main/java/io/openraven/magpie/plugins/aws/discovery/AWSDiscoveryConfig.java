@@ -21,7 +21,7 @@ import java.util.List;
 public class AWSDiscoveryConfig {
   private List<String> services = List.of();
   private List<String> regions = List.of();
-  private List<String> ignoreRegions = List.of();
+  private List<String> ignoredRegions = List.of();
 
   /**
    * @return
@@ -44,11 +44,11 @@ public class AWSDiscoveryConfig {
     this.regions = regions == null ? List.of() : regions;
   }
 
-  public List<String> getIgnoreRegions() {
-    return ignoreRegions;
+  public List<String> getIgnoredRegions() {
+    return ignoredRegions;
   }
 
-  public void setIgnoreRegions(List<String> ignoreRegions) {
-    this.ignoreRegions = ignoreRegions;
+  public void setIgnoredRegions(List<String> ignoredRegions) {
+    this.ignoredRegions = ignoredRegions;
   }
 }

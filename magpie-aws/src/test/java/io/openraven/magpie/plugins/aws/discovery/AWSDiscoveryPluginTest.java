@@ -48,7 +48,7 @@ public class AWSDiscoveryPluginTest {
   @Test
   public void testFilteringForIgnoredRegions() {
     awsDiscoveryConfig.setRegions(CONFIG_ENABLED_REGIONS);
-    awsDiscoveryConfig.setIgnoreRegions(CONFIG_IGNORED_REGION_PATTERNS);
+    awsDiscoveryConfig.setIgnoredRegions(CONFIG_IGNORED_REGION_PATTERNS);
     Mockito.when(awsDiscoveryMock.getSupportedRegions()).thenReturn(PLUGIN_SUPPORTED_REGIONS);
 
     // execute
@@ -62,7 +62,7 @@ public class AWSDiscoveryPluginTest {
 
   // Forced to copy this method due to unavailability of testing
   private boolean isNotIgnoredRegion(String region) {
-    return awsDiscoveryConfig.getIgnoreRegions()
+    return awsDiscoveryConfig.getIgnoredRegions()
       .stream()
       .noneMatch(pattern -> Pattern.matches(pattern, region));
   }

@@ -126,7 +126,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   }
 
   private boolean isAllowedRegion(String region) {
-    boolean regionAllowed = config.getIgnoreRegions()
+    boolean regionAllowed = config.getIgnoredRegions()
       .stream()
       .noneMatch(pattern -> Pattern.matches(pattern, region));
     logger.info("{} {} per ignore region config", regionAllowed ? "Enabling" : "Disabling", region);
