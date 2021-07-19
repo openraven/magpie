@@ -35,6 +35,8 @@ plugins:
 #        - us-east-1
 #        - us-west-1
 #        - us-west-2
+      ignoredRegions:
+        - fips.*
   magpie.json:
     enabled: true
     config:
