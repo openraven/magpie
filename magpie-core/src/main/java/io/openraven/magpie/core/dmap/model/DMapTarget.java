@@ -57,4 +57,15 @@ public class DMapTarget {
   public List<String> getSecurityGroups() {
     return securityGroups;
   }
+
+  @Override
+  public String toString() {
+    return "DMapTarget{" +
+      "resourceId='" + resourceId + '\'' +
+      ", region='" + region + '\'' +
+      ", subnetId='" + subnetId + '\'' +
+      ", privateIpAddress='" + privateIpAddress + '\'' +
+      ", securityGroups=" + securityGroups +
+      '}';
+  }
 }

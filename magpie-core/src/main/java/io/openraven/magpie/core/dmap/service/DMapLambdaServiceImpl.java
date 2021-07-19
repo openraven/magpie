@@ -67,7 +67,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
 
   private static final int TIMEOUT = 900;
   private static final int MEMORY_SIZE = 512;
-  private static final int SYNC_TIMEOUT = 5000;
+  private static final int SYNC_TIMEOUT = 9000;
 
   private final ObjectMapper mapper;
   private final DMapMLClient dMapMLClient;
