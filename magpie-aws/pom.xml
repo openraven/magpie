@@ -225,6 +225,11 @@
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>guardduty</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
       <groupId>software.aws.mcs</groupId>
       <artifactId>aws-sigv4-auth-cassandra-java-driver-plugin</artifactId>
       <version>${aws-sigv4-auth-cassandra-java-driver-plugin.version}</version>
