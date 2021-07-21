@@ -71,6 +71,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new QLDBDiscovery(),
     new S3Discovery(),
     new SecretsManagerDiscovery(),
+    new SecurityHubDiscovery(),
     new SNSDiscovery(),
     new StorageGatewayDiscovery(),
     new RDSDiscovery(),

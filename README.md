@@ -197,6 +197,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] ESS
 - [x] FSX
 - [x] Glacier
+- [x] GuardDuty  
 - [x] IAM
 - [x] KMS
 - [x] Lakeformation
@@ -207,6 +208,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Redshift
 - [x] Route 53
 - [x] Secrets Manager
+- [x] SecurityHub  
 - [x] SNS
 - [x] Storage Gateway
 - [x] VPC
