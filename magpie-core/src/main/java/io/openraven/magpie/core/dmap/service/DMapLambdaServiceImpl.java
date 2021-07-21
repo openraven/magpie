@@ -91,6 +91,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
 
     String roleArn = createRequiredRole();
     invokeLambda(targets, dmapAnalysis, roleArn, dMapExecutionContext);
+    executorService.shutdown();
 
     LOGGER.debug("DMap predictions: {}", dmapAnalysis);
 
@@ -158,7 +159,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
           dMapExecutionContext.setRegion(vpcConfig.getRegion());
           dMapExecutionContext.setLambdaName(lambdaName);
 
-          var countDownLatch = new CountDownLatch(targets.size()); // Threads per VPC
+          var countDownLatch = new CountDownLatch(ec2Targets.size()); // Executions per VPC
           ec2Targets.forEach(ec2Target -> {
             executorService.submit(() -> {
               LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
