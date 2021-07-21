@@ -65,24 +65,6 @@ public class SecurityHubDiscovery implements AWSDiscovery {
             .build();
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":standardsSubscription"), data.toJsonNode()));
         }));
-//        .forEach(detector -> detector.detectorIds().forEach(
-//          id -> {
-//            final var resp = client.getDetector(GetDetectorRequest.builder().detectorId(id).build());
-//
-//            var data = new MagpieResource.MagpieResourceBuilder(mapper, "arn:aws:securityhub:::detector/" + id)
-//              .withResourceName(id)
-//              .withResourceId(id)
-//              .withResourceType(RESOURCE_TYPE)
-//              .withConfiguration(mapper.valueToTree(resp.toBuilder()))
-//              .withCreatedIso(Instant.parse(resp.createdAt()))
-//              .withAccountId(account)
-//              .withRegion(region.toString())
-//              .build();
-//
-//            AWSUtils.update(data.tags, mapper.convertValue(resp.tags(), JsonNode.class));
-//            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
-//          })
-//        );
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
