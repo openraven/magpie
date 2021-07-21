@@ -62,6 +62,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new ESDiscovery(),
     new FSXDiscovery(),
     new GlacierDiscovery(),
+    new GuardDutyDiscovery(),
     new IAMDiscovery(),
     new LakeFormationDiscovery(),
     new LambdaDiscovery(),
@@ -70,6 +71,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new QLDBDiscovery(),
     new S3Discovery(),
     new SecretsManagerDiscovery(),
+    new SecurityHubDiscovery(),
     new SNSDiscovery(),
     new StorageGatewayDiscovery(),
     new RDSDiscovery(),
@@ -129,7 +131,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     boolean regionAllowed = config.getIgnoredRegions()
       .stream()
       .noneMatch(pattern -> Pattern.matches(pattern, region));
-    logger.info("{} {} per ignore region config", regionAllowed ? "Enabling" : "Disabling", region);
+    logger.debug("{} {} per ignore region config", regionAllowed ? "Enabling" : "Disabling", region);
     return regionAllowed;
   }
 

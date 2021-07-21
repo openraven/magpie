@@ -37,6 +37,7 @@ plugins:
 #        - us-west-2
       ignoredRegions:
         - fips.*
+        - us-gov.*
   magpie.json:
     enabled: true
     config:
