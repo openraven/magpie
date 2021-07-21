@@ -39,26 +39,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 public class DMap {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DMap.class);
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
+  public static final int DEFAULT_WORKERS_COUNT = 5;
 
   public static void main(String[] args) throws IOException, ParseException {
 
-    DMapAssetService dMapAssetService = new DMapAssetServiceImpl(getConfig(args));
-    Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapAssetService.groupScanTargets();
+    var config = getConfig(args);
+    var dMapAssetService = new DMapAssetServiceImpl(config);
+    var vpcConfigListMap = dMapAssetService.groupScanTargets();
 
-    DMapLambdaService dMapLambdaService = new DMapLambdaServiceImpl();
-    DMapExecutionContext dMapExecutionContext = new DMapExecutionContext();
+    var workers = getWorkersCount(args);
+    var dMapLambdaService = new DMapLambdaServiceImpl(workers);
+    var dMapExecutionContext = new DMapExecutionContext();
     Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService, dMapExecutionContext));
-    DMapScanResult dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap, dMapExecutionContext);
+    var dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap, dMapExecutionContext);
 
-    DMapReportService dMapReportService = new DMapReportServiceImpl();
+    var dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
 
   }
@@ -87,6 +88,18 @@ public class DMap {
     return config;
   }
 
+  private static int getWorkersCount(String[] args) throws ParseException {
+    final var options = new Options();
+    options.addOption(new Option("w", "workers", true, "Execution parallelism. Default workers: " + DEFAULT_WORKERS_COUNT + ")"));
+
+    final var parser = new DefaultParser();
+    final var cmd = parser.parse(options, args);
+
+    Integer workers = Integer.getInteger(cmd.getOptionValue("w"), DEFAULT_WORKERS_COUNT);
+    LOGGER.info("DMap will be executed within {} threads. Use -w arg to change this parameter", workers);
+    return workers;
+  }
+
   private static class CleanupDmapLambdaResourcesHook extends Thread {
 
     private final DMapLambdaService dMapLambdaService;
@@ -95,6 +108,7 @@ public class DMap {
     CleanupDmapLambdaResourcesHook(DMapLambdaService dMapLambdaService, DMapExecutionContext dMapExecutionContext) {
       this.dMapLambdaService = dMapLambdaService;
       this.dMapExecutionContext = dMapExecutionContext;
+      this.setName("shutdownhook");
     }
 
     @Override

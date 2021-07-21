@@ -50,6 +50,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.openraven.magpie.core.dmap.Util.getResourceAsString;
 import static java.lang.String.join;
@@ -71,10 +74,12 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
 
   private final ObjectMapper mapper;
   private final DMapMLClient dMapMLClient;
+  private final ExecutorService executorService;
 
-  public DMapLambdaServiceImpl() {
+  public DMapLambdaServiceImpl(int workers) {
     mapper = new ObjectMapper();
     dMapMLClient = new DMapMLClientImpl(mapper);
+    executorService = Executors.newFixedThreadPool(workers);
   }
 
   @Override
@@ -143,43 +148,58 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
                             List<FingerprintAnalysis> dmapAnalysis,
                             String lambdaRoleArn,
                             DMapExecutionContext dMapExecutionContext) {
+
     targets.forEach((vpcConfig, ec2Targets) -> {
 
-      try (SdkHttpClient httpClient = getSdkHttpClient();
-           LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
+        try (SdkHttpClient httpClient = getSdkHttpClient();
+             LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
 
-        String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
-        dMapExecutionContext.setRegion(vpcConfig.getRegion());
-        dMapExecutionContext.setLambdaName(lambdaName);
+          String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
+          dMapExecutionContext.setRegion(vpcConfig.getRegion());
+          dMapExecutionContext.setLambdaName(lambdaName);
 
-        ec2Targets.forEach(ec2Target -> {
-          LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
+          var countDownLatch = new CountDownLatch(targets.size()); // Threads per VPC
+          ec2Targets.forEach(ec2Target -> {
+            executorService.submit(() -> {
+              LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
 
-          InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
-          InvokeResponse response = lambdaClient.invoke(request);
+              InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
+              InvokeResponse response = lambdaClient.invoke(request);
 
-          DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
-          Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
-          LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
+              DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
+              Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
+              LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
 
-          hosts.values().forEach(fingerprint -> {
-            FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
-            fingerprintAnalysis.setResourceId(fingerprint.getId());
-            fingerprintAnalysis.setRegion(vpcConfig.getRegion());
-            fingerprintAnalysis.setAddress(fingerprint.getAddress());
-            fingerprint.getSignatures().forEach((port, signature) -> {
-              LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
-              List<AppProbability> predictions = dMapMLClient.predict(signature);
-              fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
+              hosts.values().forEach(fingerprint -> {
+                FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
+                fingerprintAnalysis.setResourceId(fingerprint.getId());
+                fingerprintAnalysis.setRegion(vpcConfig.getRegion());
+                fingerprintAnalysis.setAddress(fingerprint.getAddress());
+                fingerprint.getSignatures().forEach((port, signature) -> {
+                  LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
+                  List<AppProbability> predictions = dMapMLClient.predict(signature);
+                  fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
+                });
+                dmapAnalysis.add(fingerprintAnalysis);
+              });
+              LOGGER.info("Completed Dmap scan for {}", ec2Target);
+              countDownLatch.countDown();
             });
-            dmapAnalysis.add(fingerprintAnalysis);
           });
-        });
 
-        deleteLambda(lambdaClient, lambdaName);
-        dMapExecutionContext.clear();
-      }
+          waitForCompletion(countDownLatch);
+          deleteLambda(lambdaClient, lambdaName);
+          dMapExecutionContext.clear();
+        }
     });
+  }
+
+  private void waitForCompletion(CountDownLatch countDownLatch) {
+    try {
+      countDownLatch.await();
+    } catch (InterruptedException e) {
+      LOGGER.warn("DMap scan process was interrupted");
+    }
   }
 
   private String createLambdaRole(IamClient iam) {
