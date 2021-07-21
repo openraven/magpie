@@ -28,8 +28,7 @@ import java.util.Objects;
 import java.util.Scanner;
 
 import static io.openraven.magpie.core.dmap.Util.getResourceAsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
@@ -65,15 +64,14 @@ public class DMapAssetServiceIT {
     DMapAssetService dMapLambdaService = new DMapAssetServiceImpl(config);
     Map<VpcConfig, List<EC2Target>> vpcConfigListMap = dMapLambdaService.groupScanTargets();
 
-    assertEquals(4, vpcConfigListMap.size());
+    assertEquals(3, vpcConfigListMap.size());
 
-    // Group 1
+    // Group 0     // Excluded "i-0b2bff5afdc58ef7a", "10.128.0.253"
     List<EC2Target> ec2BatchOneTarget = vpcConfigListMap.get(
       getVpcConfg("subnet-0e0c65d2da128849f", List.of("sg-00a0b7c747d5bc8af")));
-    assertEquals(1, ec2BatchOneTarget.size());
-    assertTrue(ec2BatchOneTarget.contains(new EC2Target("i-0b2bff5afdc58ef7a", "10.128.0.253")));
+    assertNull(ec2BatchOneTarget);
 
-    // Group 2
+    // Group 1
     List<EC2Target> ec2BatchThreeTargets = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-07a6077c9af3c6801")));
     assertEquals(3, ec2BatchThreeTargets.size());
@@ -81,7 +79,7 @@ public class DMapAssetServiceIT {
     assertTrue(ec2BatchThreeTargets.contains(new EC2Target("i-0bcfc92093c876165", "10.128.111.142")));
     assertTrue(ec2BatchThreeTargets.contains(new EC2Target("i-0c4779103ad377ecb", "10.128.104.217")));
 
-    // Group 3
+    // Group 2
     List<EC2Target> ec2BatchAnotherSG = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-00a0b7c747d5bc8af")));
     assertEquals(3, ec2BatchAnotherSG.size());
@@ -89,7 +87,7 @@ public class DMapAssetServiceIT {
     assertTrue(ec2BatchAnotherSG.contains(new EC2Target("i-0b08e2ff264f600e2", "10.128.104.104")));
     assertTrue(ec2BatchAnotherSG.contains(new EC2Target("i-0a4314cb5c5f3f65b", "10.128.99.21")));
 
-    // Group 4
+    // Group 3
     List<EC2Target> ec2BatchTwoSG = vpcConfigListMap.get(
       getVpcConfg("subnet-022a263e58d1ada34", List.of("sg-07a6077c9af3c6801", "sg-00a0b7c747d5bc8af")));
     assertEquals(1, ec2BatchTwoSG.size());
