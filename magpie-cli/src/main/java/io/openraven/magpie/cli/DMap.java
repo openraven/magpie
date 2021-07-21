@@ -21,24 +21,21 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.dmap.DMapExecutionContext;
-import io.openraven.magpie.core.dmap.model.EC2Target;
-import io.openraven.magpie.core.dmap.dto.DMapScanResult;
-import io.openraven.magpie.core.dmap.model.VpcConfig;
-import io.openraven.magpie.core.dmap.service.DMapAssetService;
 import io.openraven.magpie.core.dmap.service.DMapAssetServiceImpl;
 import io.openraven.magpie.core.dmap.service.DMapLambdaService;
 import io.openraven.magpie.core.dmap.service.DMapLambdaServiceImpl;
-import io.openraven.magpie.core.dmap.service.DMapReportService;
 import io.openraven.magpie.core.dmap.service.DMapReportServiceImpl;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Optional;
 
 public class DMap {
 
@@ -49,29 +46,33 @@ public class DMap {
 
   public static void main(String[] args) throws IOException, ParseException {
 
-    var config = getConfig(args);
-    var dMapAssetService = new DMapAssetServiceImpl(config);
-    var vpcConfigListMap = dMapAssetService.groupScanTargets();
+    var cmd = parseDMapOptions(args);
 
-    var workers = getWorkersCount(args);
+    var config = getConfig(cmd);
+    var dMapAssetService = new DMapAssetServiceImpl(config);
+    var vpcGroups = dMapAssetService.groupScanTargets();
+
+    var workers = getWorkersCount(cmd);
     var dMapLambdaService = new DMapLambdaServiceImpl(workers);
     var dMapExecutionContext = new DMapExecutionContext();
     Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService, dMapExecutionContext));
-    var dMapScanResult = dMapLambdaService.startDMapScan(vpcConfigListMap, dMapExecutionContext);
+    var dMapScanResult = dMapLambdaService.startDMapScan(vpcGroups, dMapExecutionContext);
 
     var dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
 
   }
 
-  private static MagpieConfig getConfig(String[] args) throws ParseException, IOException {
-
+  private static CommandLine parseDMapOptions(String[] args) throws ParseException {
     final var options = new Options();
     options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
+    options.addOption(new Option("w", "workers", true, "Execution parallelism. Default workers: " + DEFAULT_WORKERS_COUNT + ")"));
 
     final var parser = new DefaultParser();
-    final var cmd = parser.parse(options, args);
+    return parser.parse(options, args);
+  }
 
+  private static MagpieConfig getConfig(CommandLine cmd) throws IOException {
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
       configFile = DEFAULT_CONFIG_FILE;
@@ -88,14 +89,10 @@ public class DMap {
     return config;
   }
 
-  private static int getWorkersCount(String[] args) throws ParseException {
-    final var options = new Options();
-    options.addOption(new Option("w", "workers", true, "Execution parallelism. Default workers: " + DEFAULT_WORKERS_COUNT + ")"));
-
-    final var parser = new DefaultParser();
-    final var cmd = parser.parse(options, args);
-
-    Integer workers = Integer.getInteger(cmd.getOptionValue("w"), DEFAULT_WORKERS_COUNT);
+  private static int getWorkersCount(CommandLine cmd) {
+    int workers = Optional.ofNullable(cmd.getOptionValue("w"))
+      .map(Integer::valueOf)
+      .orElse(DEFAULT_WORKERS_COUNT);
     LOGGER.info("DMap will be executed within {} threads. Use -w arg to change this parameter", workers);
     return workers;
   }

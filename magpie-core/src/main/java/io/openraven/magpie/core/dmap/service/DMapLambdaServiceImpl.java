@@ -71,32 +71,32 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   private static final int TIMEOUT = 900;
   private static final int MEMORY_SIZE = 512;
   private static final int SYNC_TIMEOUT = 9000;
+  private static final int TARGET_POOL_MULTIPLIER = 2;
 
   private final ObjectMapper mapper;
   private final DMapMLClient dMapMLClient;
-  private final ExecutorService executorService;
+  private final ExecutorService lambdaExecutorService;
+  private final ExecutorService ec2targetExecutorService;
 
   public DMapLambdaServiceImpl(int workers) {
     mapper = new ObjectMapper();
     dMapMLClient = new DMapMLClientImpl(mapper);
-    executorService = Executors.newFixedThreadPool(workers);
+    lambdaExecutorService = Executors.newFixedThreadPool(workers);
+    ec2targetExecutorService = Executors.newFixedThreadPool(workers * TARGET_POOL_MULTIPLIER);
   }
 
   @Override
-  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets,
+  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> vpcGroups,
                                       DMapExecutionContext dMapExecutionContext) {
     Instant startTime = Instant.now();
 
-    List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
-
     String roleArn = createRequiredRole();
-    invokeLambda(targets, dmapAnalysis, roleArn, dMapExecutionContext);
-    executorService.shutdown();
+    List<FingerprintAnalysis> fingerprintAnalysis = analyzeTargetSerivces(vpcGroups, roleArn, dMapExecutionContext);
 
-    LOGGER.debug("DMap predictions: {}", dmapAnalysis);
+    LOGGER.debug("DMap predictions: {}", fingerprintAnalysis);
 
     Duration duration = Duration.between(startTime, Instant.now());
-    return new DMapScanResult(dmapAnalysis, Date.from(startTime), duration);
+    return new DMapScanResult(fingerprintAnalysis, Date.from(startTime), duration);
   }
 
   @Override
@@ -145,23 +145,28 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     }
   }
 
-  private void invokeLambda(Map<VpcConfig, List<EC2Target>> targets,
-                            List<FingerprintAnalysis> dmapAnalysis,
-                            String lambdaRoleArn,
-                            DMapExecutionContext dMapExecutionContext) {
+  private List<FingerprintAnalysis> analyzeTargetSerivces(Map<VpcConfig, List<EC2Target>> vpcGroups,
+                                                          String lambdaRoleArn,
+                                                          DMapExecutionContext dMapExecutionContext) {
+    List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
 
-    targets.forEach((vpcConfig, ec2Targets) -> {
+    var lambdaCountDownLatch = new CountDownLatch(vpcGroups.size()); // Executions per VPC
+    vpcGroups.forEach((vpcConfig, ec2Targets) -> {
+
+      lambdaExecutorService.submit(() -> {
 
         try (SdkHttpClient httpClient = getSdkHttpClient();
              LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
 
           String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
+          // TODO : map of regions and lambdas set
           dMapExecutionContext.setRegion(vpcConfig.getRegion());
           dMapExecutionContext.setLambdaName(lambdaName);
 
-          var countDownLatch = new CountDownLatch(ec2Targets.size()); // Executions per VPC
+          var ec2TargetCountDownLatch = new CountDownLatch(ec2Targets.size());
           ec2Targets.forEach(ec2Target -> {
-            executorService.submit(() -> {
+
+            ec2targetExecutorService.submit(() -> {
               LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
 
               InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
@@ -183,16 +188,23 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
                 });
                 dmapAnalysis.add(fingerprintAnalysis);
               });
-              LOGGER.info("Completed Dmap scan for {}", ec2Target);
-              countDownLatch.countDown();
+              ec2TargetCountDownLatch.countDown();
             });
-          });
 
-          waitForCompletion(countDownLatch);
+          });
+          waitForCompletion(ec2TargetCountDownLatch);
           deleteLambda(lambdaClient, lambdaName);
           dMapExecutionContext.clear();
         }
+        lambdaCountDownLatch.countDown();
+      });
     });
+    waitForCompletion(lambdaCountDownLatch);
+
+    ec2targetExecutorService.shutdown();
+    lambdaExecutorService.shutdown();
+
+    return dmapAnalysis;
   }
 
   private void waitForCompletion(CountDownLatch countDownLatch) {
@@ -311,7 +323,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       String id = String.format("accountId=%s, subnet=%s, securityGroups=%s", "account",
         vpcConfig.getSubnetId(), join(",", vpcConfig.getSecurityGroupIds()));
       final String errorMessage = String.format("Non-null function error for %s: %s", id, functionError);
-      throw new RuntimeException(errorMessage);
+      throw new DMapProcessingException(errorMessage);
     }
 
     String payload = response.payload().asString(defaultCharset());

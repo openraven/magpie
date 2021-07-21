@@ -26,7 +26,7 @@ import java.util.Map;
 
 public interface DMapLambdaService {
 
-  DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> targets, DMapExecutionContext dMapExecutionContext);
+  DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> vpcGroups, DMapExecutionContext dMapExecutionContext);
 
   void cleanupCreatedResources(DMapExecutionContext dMapExecutionContext);
 
