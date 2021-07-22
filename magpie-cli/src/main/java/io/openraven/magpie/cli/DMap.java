@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.dmap.DMapExecutionContext;
 import io.openraven.magpie.core.dmap.service.DMapAssetServiceImpl;
 import io.openraven.magpie.core.dmap.service.DMapLambdaService;
 import io.openraven.magpie.core.dmap.service.DMapLambdaServiceImpl;
@@ -54,9 +53,9 @@ public class DMap {
 
     var workers = getWorkersCount(cmd);
     var dMapLambdaService = new DMapLambdaServiceImpl(workers);
-    var dMapExecutionContext = new DMapExecutionContext();
-    Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService, dMapExecutionContext));
-    var dMapScanResult = dMapLambdaService.startDMapScan(vpcGroups, dMapExecutionContext);
+    Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService));
+
+    var dMapScanResult = dMapLambdaService.startDMapScan(vpcGroups);
 
     var dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
@@ -100,17 +99,15 @@ public class DMap {
   private static class CleanupDmapLambdaResourcesHook extends Thread {
 
     private final DMapLambdaService dMapLambdaService;
-    private final DMapExecutionContext dMapExecutionContext;
 
-    CleanupDmapLambdaResourcesHook(DMapLambdaService dMapLambdaService, DMapExecutionContext dMapExecutionContext) {
+    CleanupDmapLambdaResourcesHook(DMapLambdaService dMapLambdaService) {
       this.dMapLambdaService = dMapLambdaService;
-      this.dMapExecutionContext = dMapExecutionContext;
       this.setName("shutdownhook");
     }
 
     @Override
     public void run() {
-      dMapLambdaService.cleanupCreatedResources(dMapExecutionContext);
+      dMapLambdaService.cleanupCreatedResources();
     }
   }
 }

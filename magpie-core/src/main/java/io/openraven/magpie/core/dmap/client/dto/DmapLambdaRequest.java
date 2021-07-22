@@ -1,4 +1,4 @@
-package io.openraven.magpie.core.dmap.dto;
+package io.openraven.magpie.core.dmap.client.dto;
 
 import java.util.Map;
 

@@ -1,4 +1,6 @@
-package io.openraven.magpie.core.dmap.dto;
+package io.openraven.magpie.core.dmap.client.dto;
+
+import io.openraven.magpie.core.dmap.dto.DMapFingerprints;
 
 import java.util.Map;
 

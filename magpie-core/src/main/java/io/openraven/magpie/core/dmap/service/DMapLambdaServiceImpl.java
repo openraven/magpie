@@ -18,7 +18,9 @@ package io.openraven.magpie.core.dmap.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.core.dmap.DMapExecutionContext;
+import io.openraven.magpie.core.dmap.client.dto.DMapLambdaResponse;
+import io.openraven.magpie.core.dmap.client.dto.DmapLambdaRequest;
+import io.openraven.magpie.core.dmap.dto.LambdaDetails;
 import io.openraven.magpie.core.dmap.exception.DMapProcessingException;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.client.DMapMLClient;
@@ -40,19 +42,14 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.*;
 import software.amazon.awssdk.services.lambda.model.Runtime;
 import software.amazon.awssdk.utils.AttributeMap;
+import software.amazon.awssdk.utils.NamedThreadFactory;
 import software.amazon.awssdk.utils.StringUtils;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static io.openraven.magpie.core.dmap.Util.getResourceAsString;
 import static java.lang.String.join;
@@ -71,27 +68,30 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   private static final int TIMEOUT = 900;
   private static final int MEMORY_SIZE = 512;
   private static final int SYNC_TIMEOUT = 9000;
-  private static final int TARGET_POOL_MULTIPLIER = 2;
+  private static final int THREADS_PER_LAMBDA = 5;
 
   private final ObjectMapper mapper;
   private final DMapMLClient dMapMLClient;
   private final ExecutorService lambdaExecutorService;
   private final ExecutorService ec2targetExecutorService;
 
+  private final List<LambdaDetails> registeredLambdas = new CopyOnWriteArrayList<>();
+
   public DMapLambdaServiceImpl(int workers) {
     mapper = new ObjectMapper();
     dMapMLClient = new DMapMLClientImpl(mapper);
-    lambdaExecutorService = Executors.newFixedThreadPool(workers);
-    ec2targetExecutorService = Executors.newFixedThreadPool(workers * TARGET_POOL_MULTIPLIER);
+    lambdaExecutorService = Executors.newFixedThreadPool(workers,
+      new NamedThreadFactory(Executors.defaultThreadFactory(), "lamb-pool-thread"));
+    ec2targetExecutorService = Executors.newFixedThreadPool(workers * THREADS_PER_LAMBDA,
+      new NamedThreadFactory(Executors.defaultThreadFactory(), "serv-pool-thread"));
   }
 
   @Override
-  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> vpcGroups,
-                                      DMapExecutionContext dMapExecutionContext) {
+  public DMapScanResult startDMapScan(Map<VpcConfig, List<EC2Target>> vpcGroups) {
     Instant startTime = Instant.now();
 
     String roleArn = createRequiredRole();
-    List<FingerprintAnalysis> fingerprintAnalysis = analyzeTargetSerivces(vpcGroups, roleArn, dMapExecutionContext);
+    List<FingerprintAnalysis> fingerprintAnalysis = analyzeTargetSerivces(vpcGroups, roleArn);
 
     LOGGER.debug("DMap predictions: {}", fingerprintAnalysis);
 
@@ -100,13 +100,11 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   }
 
   @Override
-  public void cleanupCreatedResources(DMapExecutionContext dMapExecutionContext) {
+  public void cleanupCreatedResources() {
     LOGGER.info("Cleanup created resources after DMap Lambda execution");
-
     try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
       List<AttachedPolicy> attachedPolicies =
         iam.listAttachedRolePolicies(builder -> builder.roleName(ROLE_NAME)).attachedPolicies();
-
       // Drop policies
       attachedPolicies.forEach(attachedPolicy -> {
           iam.detachRolePolicy(builder -> builder.roleName(ROLE_NAME).policyArn(attachedPolicy.policyArn()));
@@ -114,7 +112,6 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
           LOGGER.info("Policy: {} has been removed", attachedPolicy.policyArn());
         }
       );
-
       // Drop roles
       iam.deleteRole(builder -> builder.roleName(ROLE_NAME).build());
       LOGGER.info("Role: {} has been removed", ROLE_NAME);
@@ -123,16 +120,85 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       LOGGER.info("DMap Lambda related resources not found. Assume stack clean");
       LOGGER.debug("Exception: ", e);
     }
-
     // Drop Lambda
-    if (dMapExecutionContext.getRegion() != null && dMapExecutionContext.getLambdaName() != null) {
-      try (LambdaClient lambdaClient =
-             LambdaClient.builder().region(Region.of(dMapExecutionContext.getRegion())).build()) {
-        deleteLambda(lambdaClient, dMapExecutionContext.getLambdaName());
+    registeredLambdas.stream()
+      .collect(Collectors.groupingBy(LambdaDetails::getRegion,
+        Collectors.mapping(LambdaDetails::getFunctionName, Collectors.toSet())))
+      .forEach((region, lambdas) -> {
+      try (LambdaClient lambdaClient = LambdaClient.builder().region(Region.of(region)).build()) {
+        lambdas.forEach(lambda -> deleteLambda(lambdaClient, lambda));
       } catch (Exception e) {
-        LOGGER.warn("Unable to delete lambda: {}", dMapExecutionContext.getLambdaName());
+        LOGGER.warn("Unable to delete lambdas in region: {} lambdas: {}", region, lambdas);
       }
-    }
+    });
+  }
+
+  /**
+   *  Implementation of Bulkhead over Executor service
+   *  By default we have 5 initial threads for lambdas and 5 more thread per each lambda, which leads to 25 threads
+   *  Particular lambda could take whole 25 threads for its own execution, so we limit ec2-threads per lambda thread
+   *  Lambda-thread create semaphore and acquire it in loop up to THREADS_PER_LAMBDA rate for each submitted ec2-thread
+   *  and share semaphore in created ec2-threads assuming that they will release semaphore later,
+   *  allowing lambda to trigger another ec2-threads for execution
+   */
+  private List<FingerprintAnalysis> analyzeTargetSerivces(Map<VpcConfig, List<EC2Target>> vpcGroups,
+                                                          String lambdaRoleArn) {
+    List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
+
+    var lambdaCountDownLatch = new CountDownLatch(vpcGroups.size()); // Executions per VPC
+    vpcGroups.forEach((vpcConfig, ec2Targets) -> {
+
+      lambdaExecutorService.submit(() -> {
+
+        try (SdkHttpClient httpClient = getSdkHttpClient();
+             LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
+          String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
+          Semaphore bulkheadSemaphore = new Semaphore(THREADS_PER_LAMBDA);
+
+          var ec2TargetCountDownLatch = new CountDownLatch(ec2Targets.size()); // Overall executions required
+          ec2Targets.forEach(ec2Target -> {
+
+            acquire(bulkheadSemaphore, ec2Target); // Acquire semaphore before submitting thread, to limit submissions
+            ec2targetExecutorService.submit(() -> {
+              LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
+
+              InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
+              InvokeResponse response = lambdaClient.invoke(request);
+
+              DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
+              Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
+              LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
+
+              hosts.values().forEach(fingerprint -> registerFingerprint(dmapAnalysis, vpcConfig, fingerprint));
+              release(bulkheadSemaphore, ec2Target); // Release semaphore once thread complete execution
+              ec2TargetCountDownLatch.countDown(); // EC2 finished
+            });
+
+          });
+          waitForCompletion(ec2TargetCountDownLatch); // Lambda thread should wait for all ec2Targets to be executed
+        }
+        lambdaCountDownLatch.countDown(); // Lambda finished
+      });
+    });
+    waitForCompletion(lambdaCountDownLatch); // Main thread wait for all lambdas to complete
+    ec2targetExecutorService.shutdown();
+    lambdaExecutorService.shutdown();
+    return dmapAnalysis;
+  }
+
+  private void registerFingerprint(List<FingerprintAnalysis> dmapAnalysis,
+                                   VpcConfig vpcConfig,
+                                   DMapFingerprints fingerprint) {
+    FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
+    fingerprintAnalysis.setResourceId(fingerprint.getId());
+    fingerprintAnalysis.setRegion(vpcConfig.getRegion());
+    fingerprintAnalysis.setAddress(fingerprint.getAddress());
+    fingerprint.getSignatures().forEach((port, signature) -> {
+      LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
+      List<AppProbability> predictions = dMapMLClient.predict(signature);
+      fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
+    });
+    dmapAnalysis.add(fingerprintAnalysis);
   }
 
   private String createRequiredRole() {
@@ -145,79 +211,8 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     }
   }
 
-  private List<FingerprintAnalysis> analyzeTargetSerivces(Map<VpcConfig, List<EC2Target>> vpcGroups,
-                                                          String lambdaRoleArn,
-                                                          DMapExecutionContext dMapExecutionContext) {
-    List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
-
-    var lambdaCountDownLatch = new CountDownLatch(vpcGroups.size()); // Executions per VPC
-    vpcGroups.forEach((vpcConfig, ec2Targets) -> {
-
-      lambdaExecutorService.submit(() -> {
-
-        try (SdkHttpClient httpClient = getSdkHttpClient();
-             LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
-
-          String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
-          // TODO : map of regions and lambdas set
-          dMapExecutionContext.setRegion(vpcConfig.getRegion());
-          dMapExecutionContext.setLambdaName(lambdaName);
-
-          var ec2TargetCountDownLatch = new CountDownLatch(ec2Targets.size());
-          ec2Targets.forEach(ec2Target -> {
-
-            ec2targetExecutorService.submit(() -> {
-              LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
-
-              InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
-              InvokeResponse response = lambdaClient.invoke(request);
-
-              DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
-              Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
-              LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
-
-              hosts.values().forEach(fingerprint -> {
-                FingerprintAnalysis fingerprintAnalysis = new FingerprintAnalysis();
-                fingerprintAnalysis.setResourceId(fingerprint.getId());
-                fingerprintAnalysis.setRegion(vpcConfig.getRegion());
-                fingerprintAnalysis.setAddress(fingerprint.getAddress());
-                fingerprint.getSignatures().forEach((port, signature) -> {
-                  LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
-                  List<AppProbability> predictions = dMapMLClient.predict(signature);
-                  fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
-                });
-                dmapAnalysis.add(fingerprintAnalysis);
-              });
-              ec2TargetCountDownLatch.countDown();
-            });
-
-          });
-          waitForCompletion(ec2TargetCountDownLatch);
-          deleteLambda(lambdaClient, lambdaName);
-          dMapExecutionContext.clear();
-        }
-        lambdaCountDownLatch.countDown();
-      });
-    });
-    waitForCompletion(lambdaCountDownLatch);
-
-    ec2targetExecutorService.shutdown();
-    lambdaExecutorService.shutdown();
-
-    return dmapAnalysis;
-  }
-
-  private void waitForCompletion(CountDownLatch countDownLatch) {
-    try {
-      countDownLatch.await();
-    } catch (InterruptedException e) {
-      LOGGER.warn("DMap scan process was interrupted");
-    }
-  }
-
   private String createLambdaRole(IamClient iam) {
     try {
-
       GetRoleResponse response = iam.getRole(builder -> builder.roleName(ROLE_NAME).build());
       LOGGER.info("Required role: {} was found reusing its ARN: {}", ROLE_NAME, response.role().arn());
       return response.role().arn();
@@ -291,15 +286,21 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       .build();
 
     CreateFunctionResponse functionResponse = lambdaClient.createFunction(functionRequest);
-    lambdaClient.waiter()
-      .waitUntilFunctionActive(builder -> builder.functionName(functionResponse.functionName()).build());
-    LOGGER.info("Lambda function for DMap port scan has been created: {}", functionResponse.functionName());
-    return functionResponse.functionName();
+    String functionName = functionResponse.functionName();
+
+    LOGGER.info("Waiting for creation: {}", functionName);
+    lambdaClient.waiter().waitUntilFunctionActive(builder -> builder.functionName(functionName).build());
+
+    // Register created lambda
+    registeredLambdas.add(new LambdaDetails(vpcConfig.getRegion(), functionName));
+
+    LOGGER.info("Lambda function for DMap port scan has been created: {}", functionName);
+    return functionName;
   }
 
   private void deleteLambda(LambdaClient lambdaClient, String lambdaName) {
     lambdaClient.deleteFunction(DeleteFunctionRequest.builder().functionName(lambdaName).build());
-    LOGGER.info("Lambda function: {} has been removed\n", lambdaName);
+    LOGGER.info("Lambda function: {} has been removed", lambdaName);
   }
 
   private InvokeRequest getLambdaRequest(String lambdaName, EC2Target ec2Target) {
@@ -360,6 +361,30 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       Thread.sleep(SYNC_TIMEOUT);
     } catch (InterruptedException e) {
       LOGGER.warn("Finalization has been interrupted");
+    }
+  }
+
+  private void release(Semaphore bulkheadSemaphore, EC2Target ec2Target) {
+    LOGGER.debug("Thread released of DMap scan for: {}", ec2Target);
+    bulkheadSemaphore.release();
+  }
+
+  private void acquire(Semaphore bulkheadSemaphore, EC2Target ec2Target) {
+    try {
+      LOGGER.debug("Waiting for thread for DMap scan of: {}", ec2Target);
+      bulkheadSemaphore.acquire(); // Acquiring semaphore for each ec2Target thread withing lambda execution
+      LOGGER.debug("Acquired thread for DMap scan of: {}", ec2Target);
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted thread of DMap Scan for following service: " + ec2Target);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void waitForCompletion(CountDownLatch countDownLatch) {
+    try {
+      countDownLatch.await();
+    } catch (InterruptedException e) {
+      LOGGER.warn("DMap scan process was interrupted");
     }
   }
 }
