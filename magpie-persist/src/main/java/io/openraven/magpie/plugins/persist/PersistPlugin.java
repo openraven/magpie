@@ -37,7 +37,6 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
     synchronized (SYNC) {
       AssetModel asset = MAPPER.map(env);
       assetsRepo.upsert(asset);
-
       logger.info("Saved asset with id: {}", asset.getAssetId());
     }
   }
