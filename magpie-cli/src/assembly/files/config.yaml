@@ -16,7 +16,7 @@ fifos:
 policies:
   root: ~/.magpie/policies
   repositories:
-    - https://github.com/openraven/aws-cis-1.2.git
+    - https://github.com/openraven/cspm-kb.git
 services:
   openraven.dmap.ml:
     url: https://api.openraven.com/dmap-ml/predict-annotated
@@ -38,6 +38,9 @@ plugins:
 #        - us-east-1
 #        - us-west-1
 #        - us-west-2
+      ignoredRegions:
+        - fips.*
+        - us-gov.*
   magpie.json:
     enabled: true
     config:
