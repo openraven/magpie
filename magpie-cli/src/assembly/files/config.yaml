@@ -17,6 +17,9 @@ policies:
   root: ~/.magpie/policies
   repositories:
     - https://github.com/openraven/aws-cis-1.2.git
+services:
+  openraven.dmap.ml:
+    url: https://api.openraven.com/dmap-ml/predict-annotated
 plugins:
   magpie.aws.discovery:
     enabled: true

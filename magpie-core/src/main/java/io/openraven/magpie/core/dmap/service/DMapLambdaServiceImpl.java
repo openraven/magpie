@@ -72,14 +72,17 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
 
   private final ObjectMapper mapper;
   private final DMapMLClient dMapMLClient;
+
   private final ExecutorService lambdaExecutorService;
   private final ExecutorService ec2targetExecutorService;
 
   private final List<LambdaDetails> registeredLambdas = new CopyOnWriteArrayList<>();
 
-  public DMapLambdaServiceImpl(int workers) {
-    mapper = new ObjectMapper();
-    dMapMLClient = new DMapMLClientImpl(mapper);
+  public DMapLambdaServiceImpl(DMapMLClient dMapMLClient,
+                               ObjectMapper mapper,
+                               int workers) {
+    this.mapper = mapper;
+    this.dMapMLClient = dMapMLClient;
     lambdaExecutorService = Executors.newFixedThreadPool(workers,
       new NamedThreadFactory(Executors.defaultThreadFactory(), "lamb-pool-thread"));
     ec2targetExecutorService = Executors.newFixedThreadPool(workers * THREADS_PER_LAMBDA,

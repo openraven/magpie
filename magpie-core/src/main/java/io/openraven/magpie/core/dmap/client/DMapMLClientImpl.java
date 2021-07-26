@@ -18,6 +18,7 @@ package io.openraven.magpie.core.dmap.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.dmap.client.dto.AppProbability;
 import io.openraven.magpie.core.dmap.client.dto.DMapMLRequest;
 import io.openraven.magpie.core.dmap.client.dto.DMapMLResponse;
@@ -34,18 +35,21 @@ import java.util.Map;
 public class DMapMLClientImpl implements DMapMLClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DMapMLClientImpl.class);
-  private static final String DMAP_ML_SERVICE_URL = "https://api.openraven.com/dmap-ml/predict-annotated";
+  private static final String DMAP_ML_PROP_NAME = "openraven.dmap.ml";
 
-  private final ObjectMapper objectMapper;
+  private final String dmapMLServiceURL;
 
-  public DMapMLClientImpl(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  private final ObjectMapper mapper;
+
+  public DMapMLClientImpl(ObjectMapper mapper, MagpieConfig config) {
+    this.mapper = mapper;
+    this.dmapMLServiceURL = getDmapMlUrl(config);
   }
 
   @Override
   public List<AppProbability> predict(Map<String, String> signature) {
     HttpRequest request = HttpRequest.newBuilder()
-      .uri(URI.create(DMAP_ML_SERVICE_URL))
+      .uri(URI.create(dmapMLServiceURL))
       .POST(HttpRequest.BodyPublishers.ofString(getRequestBody(signature)))
       .header("Content-Type", "application/json")
       .build();
@@ -53,7 +57,7 @@ public class DMapMLClientImpl implements DMapMLClient {
     try {
       HttpClient client = HttpClient.newHttpClient();
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-      DMapMLResponse dMapMLResponse = objectMapper.readValue(response.body(), DMapMLResponse.class);
+      DMapMLResponse dMapMLResponse = mapper.readValue(response.body(), DMapMLResponse.class);
       return dMapMLResponse.getPredictions();
     } catch (Exception e) {
       LOGGER.error("Unable to send request to OpenRaven DMAP ML service", e);
@@ -65,10 +69,14 @@ public class DMapMLClientImpl implements DMapMLClient {
     DMapMLRequest dMapMLRequest = new DMapMLRequest();
     dMapMLRequest.setSignature(signature);
     try {
-      return objectMapper.writeValueAsString(dMapMLRequest);
+      return mapper.writeValueAsString(dMapMLRequest);
     } catch (JsonProcessingException e) {
       LOGGER.error("Unable to serialize DMap ML request body: {}", dMapMLRequest, e);
       throw new RuntimeException(e);
     }
+  }
+
+  private String getDmapMlUrl(MagpieConfig config) {
+    return config.getServices().get(DMAP_ML_PROP_NAME).getUrl();
   }
 }
