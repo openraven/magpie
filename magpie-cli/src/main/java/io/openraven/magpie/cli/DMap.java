@@ -45,21 +45,27 @@ public class DMap {
   public static final int DEFAULT_WORKERS_COUNT = 5;
 
   public static void main(String[] args) throws IOException, ParseException {
-
+    // Arguments parsing
     var cmd = parseDMapOptions(args);
-
     var config = getConfig(cmd);
-    var dMapAssetService = new DMapAssetServiceImpl(config);
-    var vpcGroups = dMapAssetService.groupScanTargets();
-
     var workers = getWorkersCount(cmd);
+
+    // Services initialization
+    var dMapAssetService = new DMapAssetServiceImpl(config);
     var objectMapper = new ObjectMapper();
     var dmapMLClient = new DMapMLClientImpl(objectMapper, config);
     var dMapLambdaService = new DMapLambdaServiceImpl(dmapMLClient, objectMapper, workers);
     Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService));
 
+    // Execution
+    var vpcGroups = dMapAssetService.groupScanTargets();
+    if (vpcGroups.isEmpty()) {
+      LOGGER.info("There were no target EC2 services found. DMap scan skipped.");
+      return;
+    }
     var dMapScanResult = dMapLambdaService.startDMapScan(vpcGroups);
 
+    // Reporting
     var dMapReportService = new DMapReportServiceImpl();
     dMapReportService.generateReport(dMapScanResult);
 

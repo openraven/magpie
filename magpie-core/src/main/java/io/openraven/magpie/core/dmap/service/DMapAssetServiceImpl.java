@@ -60,7 +60,8 @@ public class DMapAssetServiceImpl implements DMapAssetService {
           List.of(rs.getString("security_group").split(","))))
       .list());
 
-    LOGGER.debug("Retrieved Scan Target Assets from DB : {}", scanTargets);
+    LOGGER.debug("Retrieved EC2 assets from DB: {}", scanTargets);
+    LOGGER.info("Total EC2 assets to scan: {}", scanTargets.size());
 
     return scanTargets
       .stream()
