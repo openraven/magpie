@@ -24,6 +24,7 @@ public class MagpieConfig {
   private Map<String, LayerConfig> layers = new HashMap<>();
   private Map<String, FifoConfig> fifos = new HashMap<>();
   private Map<String, PluginConfig> plugins = new HashMap<>();
+  private Map<String, ServiceConfig> services = new HashMap<>();
   private PolicyConfig policies = new PolicyConfig();
 
   public Map<String, FifoConfig> getFifos() {
@@ -56,5 +57,13 @@ public class MagpieConfig {
 
   public void setPolicies(PolicyConfig policies) {
     this.policies =  policies != null ? this.policies = policies : new PolicyConfig();
+  }
+
+  public Map<String, ServiceConfig> getServices() {
+    return services;
+  }
+
+  public void setServices(Map<String, ServiceConfig> services) {
+    this.services = services;
   }
 }

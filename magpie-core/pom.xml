@@ -14,6 +14,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <aws.sdk.version>2.15.69</aws.sdk.version>
   </properties>
 
   <dependencies>
@@ -53,6 +54,18 @@
       <artifactId>magpie-persist</artifactId>
       <version>0.1.0-SNAPSHOT</version>
       <scope>compile</scope>
+    </dependency>
+
+    <!-- TODO: design - are we able to avoid wiring AWS into the core package? magpie-aws / magpie-dmap plugin? -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>lambda</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>iam</artifactId>
+      <version>${aws.sdk.version}</version>
     </dependency>
 
     <!-- Test scope -->
