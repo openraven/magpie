@@ -18,12 +18,16 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AWSDiscovery {
 
@@ -36,6 +40,11 @@ public interface AWSDiscovery {
   }
 
   void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account);
+
+  default void discoverBackupJobs(String arn, Region region, MagpieResource data) {
+    final var backups = BackupUtils.listBackupJobs(arn, region);
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("awsBackupJobs", backups));
+  }
 
   default String fullService() {
     return AWSDiscoveryPlugin.ID + ":" + service();
