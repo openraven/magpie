@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
@@ -28,14 +29,15 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
-import software.amazon.awssdk.services.backup.model.BackupPlan;
 import software.amazon.awssdk.services.backup.model.BackupPlansListMember;
 import software.amazon.awssdk.services.backup.model.BackupVaultListMember;
 import software.amazon.awssdk.services.backup.model.GetBackupSelectionRequest;
+import software.amazon.awssdk.services.backup.model.GetBackupSelectionResponse;
 import software.amazon.awssdk.services.backup.model.ListBackupSelectionsRequest;
 import software.amazon.awssdk.services.backup.model.ListTagsRequest;
 import software.amazon.awssdk.services.backup.model.ListTagsResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,7 +61,7 @@ public class BackupDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(BackupClient.builder(), region);
-    discoverVaults(mapper, session, region, emitter, logger, account, client);
+    discoverVaults(mapper, session, region, emitter, account, client);
     discoverPlans(mapper, session, region, emitter, logger, account, client);
   }
 
@@ -76,19 +78,20 @@ public class BackupDiscovery implements AWSDiscovery {
         .withRegion(region.toString())
         .build();
 
-      discoverTags(client, backupPlan, data);
+      discoverTags(client, backupPlan, data, mapper);
 
+      var backupSelections = new ArrayList<GetBackupSelectionResponse.Builder>();
+      client.listBackupSelectionsPaginator(ListBackupSelectionsRequest.builder().backupPlanId(backupPlan.backupPlanId()).build()).forEach(listBackupSelectionsResp -> listBackupSelectionsResp.backupSelectionsList().forEach(backupSelection -> {
+        var backupSelectionResp = client.getBackupSelection(GetBackupSelectionRequest.builder().backupPlanId(backupSelection.backupPlanId()).selectionId(backupSelection.selectionId()).build());
+        backupSelections.add(backupSelectionResp.toBuilder());
+      }));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("selections", backupSelections));
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
-//      client.listBackupSelectionsPaginator(ListBackupSelectionsRequest.builder().backupPlanId(backupPlan.backupPlanId()).build()).forEach(listBackupSelectionsResp -> {
-//        listBackupSelectionsResp.backupSelectionsList().forEach(backupSelection -> {
-//          var backupSelectionResp = client.getBackupSelection(GetBackupSelectionRequest.builder().backupPlanId(backupSelection.backupPlanId()).selectionId(backupSelection.selectionId()).build());
-//        });
-//      });
     }));
 
   }
 
-  public void discoverVaults(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, BackupClient client) {
+  public void discoverVaults(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, BackupClient client) {
     final var RESOURCE_TYPE = "AWS::Backup::BackupVault";
     try {
       client.listBackupVaultsPaginator().stream()
@@ -125,14 +128,14 @@ public class BackupDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieResource data) {
+  private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieResource data, ObjectMapper mapper) {
     final String keyname = "tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupPlanArn()).build())
         .stream()
-        .map(ListTagsResponse::toBuilder)
-        .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+        .flatMap(r -> r.tags().entrySet().stream())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
+      (resp) -> data.tags = mapper.convertValue(resp, JsonNode.class),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
