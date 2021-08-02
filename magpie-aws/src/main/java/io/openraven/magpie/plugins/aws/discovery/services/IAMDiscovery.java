@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
@@ -85,7 +86,7 @@ public class IAMDiscovery implements AWSDiscovery {
           .build();
 
         discoverAttachedPolicies(client, data, role);
-        discoverInlinePolicies(client, data, role);
+        discoverInlinePolicies(mapper, client, data, role);
 
         AWSUtils.update(data.tags, Map.of("tags", mapper.convertValue(role.tags().stream().collect(
           Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)));
@@ -97,21 +98,29 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverInlinePolicies(IamClient client, MagpieResource data, Role role) {
-    List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
+  private void discoverInlinePolicies(ObjectMapper mapper, IamClient client, MagpieResource data, Role role) {
+    List<ImmutableMap<String, JsonNode>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
       () -> client.listRolePoliciesPaginator(ListRolePoliciesRequest.builder().roleName(role.roleName()).build()).policyNames().stream()
         .map(r -> client.getRolePolicy(GetRolePolicyRequest.builder().roleName(role.roleName()).policyName(r).build()))
         .collect(Collectors.toList()),
       (resp) -> resp.forEach(policy -> inlinePolicies.add(ImmutableMap.of(
-        "name", policy.policyName(),
-        "policyDocument", policy.policyDocument()))),
+        "name", mapper.valueToTree(policy.policyName()),
+        "policyDocument", parsePolicyDocument(mapper, policy.policyDocument())))),
       (noresp) -> {
       }
     );
 
     AWSUtils.update(data.supplementaryConfiguration, Map.of("inlinePolicies", inlinePolicies));
+  }
+
+  private JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
+    try {
+      return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Unable to parse inline policy document: " + policyDocument, e);
+    }
   }
 
   private void discoverAttachedPolicies(IamClient client, MagpieResource data, Role role) {
@@ -145,7 +154,7 @@ public class IAMDiscovery implements AWSDiscovery {
           .withRegion(region.toString())
           .build();
 
-        discoverPolicyDocument(client, data, policy);
+        discoverPolicyDocument(mapper, client, data, policy);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":policy"), data.toJsonNode()));
       });
@@ -154,7 +163,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverPolicyDocument(IamClient client, MagpieResource data, Policy policy) {
+  private void discoverPolicyDocument(ObjectMapper mapper, IamClient client, MagpieResource data, Policy policy) {
     getAwsResponse(
       () -> client.listPolicyVersionsPaginator(ListPolicyVersionsRequest.builder().policyArn(policy.arn()).build()),
       (resp) -> resp.forEach(policyVersionsResponse -> {
@@ -163,8 +172,13 @@ public class IAMDiscovery implements AWSDiscovery {
           .filter(PolicyVersion::isDefaultVersion)
           .findFirst();
         currentPolicy.ifPresent(policyVersion -> getAwsResponse(
-          () -> client.getPolicyVersion(GetPolicyVersionRequest.builder().policyArn(policy.arn()).versionId(policyVersion.versionId()).build()),
-          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", URLDecoder.decode(innerResp.policyVersion().document(), StandardCharsets.UTF_8)))),
+          () -> client.getPolicyVersion(builder -> builder
+            .policyArn(policy.arn())
+            .versionId(policyVersion.versionId())
+            .build()),
+          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration,
+            Map.of("attachedPolicies",
+              Map.of("policyDocument", parsePolicyDocument(mapper, innerResp.policyVersion().document())))),
           (innerNoresp) -> {
           }
         ));
