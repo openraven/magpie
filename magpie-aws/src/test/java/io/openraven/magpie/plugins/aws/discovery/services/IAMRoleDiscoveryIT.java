@@ -89,8 +89,8 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
 
     var inlinePolicy = inlinePolicies.get(0);
     assertEquals("inlinePolicy", inlinePolicy.get("name").asText());
-    assertEquals("{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"*\", \"Resource\": \"*\"}]}",
-      inlinePolicy.get("policyDocument").asText()
+    assertEquals("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}",
+      inlinePolicy.get("policyDocument").toString()
     );
   }
 }
