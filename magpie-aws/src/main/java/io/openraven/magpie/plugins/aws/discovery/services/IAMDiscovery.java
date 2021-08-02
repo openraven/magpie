@@ -73,7 +73,11 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = "AWS::IAM::Role";
 
     try {
-      client.listRolesPaginator().roles().forEach(role -> {
+      client.listRolesPaginator().roles().forEach(listedRole -> {
+        // Listed role doesn't contains all data :https://github.com/boto/boto3/issues/2297#issuecomment-593684575
+        // As workaround request each role to enrich the data
+        Role role = client.getRole(builder -> builder.roleName(listedRole.roleName()).build()).role();
+
         var data = new MagpieResource.MagpieResourceBuilder(mapper, role.arn())
           .withResourceName(role.roleName())
           .withResourceId(role.roleId())
