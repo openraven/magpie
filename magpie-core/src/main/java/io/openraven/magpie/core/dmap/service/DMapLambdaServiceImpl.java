@@ -291,13 +291,13 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     CreateFunctionResponse functionResponse = lambdaClient.createFunction(functionRequest);
     String functionName = functionResponse.functionName();
 
-    LOGGER.info("Waiting for creation: {}", functionName);
+    LOGGER.debug("Waiting for creation: {}", functionName);
     lambdaClient.waiter().waitUntilFunctionActive(builder -> builder.functionName(functionName).build());
 
     // Register created lambda
     registeredLambdas.add(new LambdaDetails(vpcConfig.getRegion(), functionName));
 
-    LOGGER.info("Lambda function for DMap port scan has been created: {}", functionName);
+    LOGGER.debug("Lambda function for DMap port scan has been created: {}", functionName);
     return functionName;
   }
 
