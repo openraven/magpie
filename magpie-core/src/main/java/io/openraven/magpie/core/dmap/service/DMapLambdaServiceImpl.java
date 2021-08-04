@@ -24,7 +24,6 @@ import io.openraven.magpie.core.dmap.dto.LambdaDetails;
 import io.openraven.magpie.core.dmap.exception.DMapProcessingException;
 import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.client.DMapMLClient;
-import io.openraven.magpie.core.dmap.client.DMapMLClientImpl;
 import io.openraven.magpie.core.dmap.client.dto.AppProbability;
 import io.openraven.magpie.core.dmap.dto.*;
 import io.openraven.magpie.core.dmap.model.VpcConfig;
@@ -64,6 +63,17 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
   private static final String ROLE_NAME = "openraven-dmap-scan-role";
   private static final String POLICY_NAME = "openraven-dmap-scan-policy";
   private static final String DMAP_LAMBDA_HANDLER = "io.openraven.dmap.lambda.Scan::handleRequest";
+
+  // Temporarily needed to improve the values of the original data set (before the new fields were added)
+  private static final Set<String> SQUEEZED_FIELDS = Set.of(
+    "tds_prelogin_response",
+    "tns_ping_response",
+    "mongo_db",
+    "db2_response",
+    "oracle_nosql",
+    "vertica",
+    "etcd"
+  );
 
   private static final int TIMEOUT = 900;
   private static final int MEMORY_SIZE = 512;
@@ -149,44 +159,47 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     List<FingerprintAnalysis> dmapAnalysis = new ArrayList<>();
 
     var lambdaCountDownLatch = new CountDownLatch(vpcGroups.size()); // Executions per VPC
-    vpcGroups.forEach((vpcConfig, ec2Targets) -> {
+    vpcGroups.forEach((vpcConfig, ec2Targets) -> lambdaExecutorService.submit(() -> {
 
-      lambdaExecutorService.submit(() -> {
+      try (SdkHttpClient httpClient = getSdkHttpClient();
+           LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
+        String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
+        Semaphore bulkheadSemaphore = new Semaphore(THREADS_PER_LAMBDA);
 
-        try (SdkHttpClient httpClient = getSdkHttpClient();
-             LambdaClient lambdaClient = getLambdaClient(httpClient, vpcConfig.getRegion())) {
-          String lambdaName = createLambda(lambdaClient, vpcConfig, lambdaRoleArn);
-          Semaphore bulkheadSemaphore = new Semaphore(THREADS_PER_LAMBDA);
+        var ec2TargetCountDownLatch = new CountDownLatch(ec2Targets.size()); // Overall executions required
+        ec2Targets.forEach(ec2Target -> {
 
-          var ec2TargetCountDownLatch = new CountDownLatch(ec2Targets.size()); // Overall executions required
-          ec2Targets.forEach(ec2Target -> {
+          acquire(bulkheadSemaphore, ec2Target); // Acquire semaphore before submitting thread, to limit submissions
+          ec2targetExecutorService.submit(() -> {
+            LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
 
-            acquire(bulkheadSemaphore, ec2Target); // Acquire semaphore before submitting thread, to limit submissions
-            ec2targetExecutorService.submit(() -> {
-              LOGGER.info("Starting lambda: {} for : {}", lambdaName, ec2Target);
+            InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
+            InvokeResponse response = lambdaClient.invoke(request);
 
-              InvokeRequest request = getLambdaRequest(lambdaName, ec2Target);
-              InvokeResponse response = lambdaClient.invoke(request);
+            DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
+            Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
+            LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
 
-              DMapLambdaResponse dMapLambdaResponse = processResponse(vpcConfig, response);
-              Map<String, DMapFingerprints> hosts = dMapLambdaResponse.getHosts();
-              LOGGER.debug("Response from lambda {} is {}", lambdaName, hosts);
-
-              hosts.values().forEach(fingerprint -> registerFingerprint(dmapAnalysis, vpcConfig, fingerprint));
-              release(bulkheadSemaphore, ec2Target); // Release semaphore once thread complete execution
-              ec2TargetCountDownLatch.countDown(); // EC2 finished
-            });
-
+            hosts.values().forEach(fingerprint -> registerFingerprint(dmapAnalysis, vpcConfig, fingerprint));
+            release(bulkheadSemaphore, ec2Target); // Release semaphore once thread complete execution
+            ec2TargetCountDownLatch.countDown(); // EC2 finished
           });
-          waitForCompletion(ec2TargetCountDownLatch); // Lambda thread should wait for all ec2Targets to be executed
-        }
-        lambdaCountDownLatch.countDown(); // Lambda finished
-      });
-    });
+
+        });
+        waitForCompletion(ec2TargetCountDownLatch); // Lambda thread should wait for all ec2Targets to be executed
+      }
+      lambdaCountDownLatch.countDown(); // Lambda finished
+    }));
     waitForCompletion(lambdaCountDownLatch); // Main thread wait for all lambdas to complete
     ec2targetExecutorService.shutdown();
     lambdaExecutorService.shutdown();
     return dmapAnalysis;
+  }
+
+  private Map<String, String> squeezeFeatures(Map<String, String> signature) {
+    final var response = signature.getOrDefault("banner_1", "");
+    SQUEEZED_FIELDS.stream().filter(f -> response.equals(signature.get(f))).forEach(signature::remove);
+    return signature;
   }
 
   private void registerFingerprint(List<FingerprintAnalysis> dmapAnalysis,
@@ -197,6 +210,11 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     fingerprintAnalysis.setRegion(vpcConfig.getRegion());
     fingerprintAnalysis.setAddress(fingerprint.getAddress());
     fingerprint.getSignatures().forEach((port, signature) -> {
+
+      // Until we can collect new signatures (or re-scan infrastructure) this is a temporary solution to help
+      // improve the detection on the original signatures.
+      signature = squeezeFeatures(signature);
+
       LOGGER.debug("Sending request to OpenRaven::DmapML service to analyze fingerprints by port: {}", port);
       List<AppProbability> predictions = dMapMLClient.predict(signature);
       fingerprintAnalysis.getPredictionsByPort().put(port, predictions);
@@ -291,13 +309,13 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
     CreateFunctionResponse functionResponse = lambdaClient.createFunction(functionRequest);
     String functionName = functionResponse.functionName();
 
-    LOGGER.info("Waiting for creation: {}", functionName);
+    LOGGER.debug("Waiting for creation: {}", functionName);
     lambdaClient.waiter().waitUntilFunctionActive(builder -> builder.functionName(functionName).build());
 
     // Register created lambda
     registeredLambdas.add(new LambdaDetails(vpcConfig.getRegion(), functionName));
 
-    LOGGER.info("Lambda function for DMap port scan has been created: {}", functionName);
+    LOGGER.debug("Lambda function for DMap port scan has been created: {}", functionName);
     return functionName;
   }
 

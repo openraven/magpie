@@ -35,19 +35,21 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.configure;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class S3Discovery implements AWSDiscovery {
 
   private static final String SERVICE = "s3";
+  private static final String DEFAULT_AWS_US_EAST_1_URI = "https://s3.us-east-1.amazonaws.com";
 
   // This is required due to the way S3 bucket data is implemented in the AWS SDK.  Finding the region for n-buckets
   // requires n+1 API calls, and you can't filter bucket lists by region.  Using this cache we perform this operation once
@@ -68,7 +70,8 @@ public class S3Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = configure(S3Client.builder(), region);
+    var client = configureS3Client(S3Client.builder(), region);
+
     final String RESOURCE_TYPE = "AWS::S3::Bucket";
 
     try {
@@ -112,6 +115,23 @@ public class S3Discovery implements AWSDiscovery {
     }
   }
 
+  /**
+   * https://github.com/aws/aws-sdk-cpp/issues/1339#issuecomment-598402493
+   * AWS S3 Api conduct US_EAST_1/AWS_GLOBAL as a default region and URI -> s3.amazonaws.com
+   * We are unable to query buckets from other regions with the default URI without region enrichment
+   */
+  private S3Client configureS3Client(S3ClientBuilder builder, Region region) {
+    // Remap magpie clients to local environment
+    String magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
+    if (magpieAwsEndpoint != null) {
+      builder.endpointOverride(URI.create(magpieAwsEndpoint));
+    } else if (Region.US_EAST_1.equals(region) || Region.AWS_GLOBAL.equals(region)) {
+      builder.endpointOverride(URI.create(DEFAULT_AWS_US_EAST_1_URI));
+    }
+    // Build for region only
+    return builder.region(region).build();
+  }
+
   private Optional<List<Bucket>> getBuckets(Session session, S3Client client, Region bucketRegion, Logger logger) {
     try {
       //
@@ -126,7 +146,9 @@ public class S3Discovery implements AWSDiscovery {
           final var location = resp.locationConstraint();
           // Thanks to https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/model/GetBucketLocationResponse.html#locationConstraint--
           // we need to be aware of both null and UNKNOWN_TO_SDK_VERSION values.
-          var region = Region.US_EAST_1.toString().equals(resp.locationConstraintAsString())
+          var region =
+            Region.US_EAST_1.toString().equals(resp.locationConstraintAsString())
+              || resp.locationConstraintAsString().isEmpty()
             ? Region.US_EAST_1
             : Region.of(location.toString());
           logger.debug("Associating {} to region {}", bucket.name(), region);
@@ -141,7 +163,6 @@ public class S3Discovery implements AWSDiscovery {
       throw new RuntimeException("S3 Discovery failed", ex);
     }
   }
-
 
   private void discoverPublic(S3Client client, Bucket resource, MagpieResource data) {
     boolean isPublicByACL = false;
@@ -170,10 +191,9 @@ public class S3Discovery implements AWSDiscovery {
           .bucket(resource.name())
           .build());
 
-      // TODO : Does Null check required if policy not setup (catch with test)
-      isPublicByPolicy = bucketPolicyStatus.policyStatus().isPublic() != null
-        ? bucketPolicyStatus.policyStatus().isPublic()
-        : false;
+      isPublicByPolicy = Optional.of(bucketPolicyStatus.policyStatus())
+        .map(PolicyStatus::isPublic)
+        .orElse(false);
     } catch (SdkServiceException ex) {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;

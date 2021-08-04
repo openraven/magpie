@@ -70,8 +70,8 @@ public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
   private void assertPolicyDocument(MagpieEnvelope envelope) {
     var supplementaryConfiguration = envelope.getContents().get("supplementaryConfiguration");
     var attachedPolicies = supplementaryConfiguration.get("attachedPolicies");
-    var policyDocument = attachedPolicies.get("policyDocument").asText();
-    assertEquals(getResourceAsString(POLICY_DYNAMODB_UPDATED_PATH), policyDocument);
+    var policyDocument = attachedPolicies.get("policyDocument").toPrettyString();
+    assertEquals(getResourceAsString(POLICY_DYNAMODB_UPDATED_PATH).trim(), policyDocument);
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {
