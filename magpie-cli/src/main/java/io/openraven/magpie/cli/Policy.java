@@ -80,7 +80,7 @@ public class Policy {
         ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
         reportService.generateReport(scanResults);
       } catch (Exception e) {
-        LOGGER.error("Analyze error: {}", e.getMessage());
+        LOGGER.error("Analyze error: {}", e.getMessage(), e);
       }
     }
 
