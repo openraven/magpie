@@ -70,7 +70,7 @@ Assuming you have read credentials set up, you can start discovery by running:
 ### DMAP
 Runing `magpie-dmap` requires that DMAP-Predictions be running locally.  The easiest way is through Docker:
 ```shell
-docker run -p 10234:10234 -d https://quay.io/openraven/dmap-predictions
+docker run -p 10234:10234 -d quay.io/openraven/dmap-predictions
 ```
 
 #### DMAP Requirements
