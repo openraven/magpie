@@ -1,25 +1,23 @@
 # Magpie
 #### [Open Raven's](https://openraven.com) Open Source Cloud Security Framework
-
-## Table of Contents
-<!--ts-->
-   * [What is Magpie?](#what-is-magpie)
-   * [Overview](#overview)
-      * [Magpie Architecture](#magpie-architecture)
-   * [Building Magpie](#building-magpie)
-      * [Clone and build Magpie](#clone-and-build-magpie)
-   * [Running Magpie](#running-magpie)
-      * [Configuration](#configuration)
-         * [Overriding config.yaml](#overriding-configyaml)
-         * [Multiple Overrides](#multiple-overrides)
-      * [Running via Docker](#running-via-docker)
-      * [Plugins](#plugins)
-      * [Community Contributed Plugins](#community-contributed-plugins)
-      * [Cloud Provider Status](#cloud-provider-status)
-         * [AWS](#aws)
-            * [Per region discovery](#per-region-discovery)
-      * [Saving data to PostgreSQL](#saving-data-to-postgresql)
-<!--te-->
+- [What is Magpie](#what-is-magpie)
+- [Overview](#overview)
+  * [Magpie Architecture](#magpie-architecture)
+- [Building Magpie](#building-magpie)
+  * [Clone and build Magpie](#clone-and-build-magpie)
+- [Running Magpie](#running-magpie)
+  * [DMAP](#dmap)
+    + [DMAP Requirements](#dmap-requirements)
+  * [Configuration](#configuration)
+    + [Overriding config.yaml](#overriding-configyaml)
+    + [Multiple Overrides](#multiple-overrides)
+  * [Running via Docker](#running-via-docker)
+  * [Plugins](#plugins)
+  * [Community Contributed Plugins](#community-contributed-plugins)
+  * [Cloud Provider Status](#cloud-provider-status)
+    + [AWS](#aws)
+      - [Per region discovery](#per-region-discovery)
+  * [Saving data to PostgreSQL](#saving-data-to-postgresql)
 
 ## What is Magpie?
 Magpie is a free, open-source framework and a collection of community developed plugins that can be used to build complete end-to-end security tools such as a CSPM or Cloud Security Posture Manager. The project was originally created and is maintained by Open Raven. We build commercial cloud native data security tools and in doing so have learned a great deal about how to discover AWS assets and their security settings at scale.
@@ -27,6 +25,8 @@ Magpie is a free, open-source framework and a collection of community developed 
 We also heard that many people were frustrated with their existing security tools that couldn't be extended  and couldn't work well with their other systems, so decided to create this Magpie framework and refactor and sync our core AWS commercial discovery code as the first plugin.
 
 We plan to actively contribute additional modules to make Magpie a credible free open source alternative to commercial CSPM’s and welcome the community to join us in adding to the framework and building plugins.
+
+Magpie also contains Open Raven's DMAP technology, which allows users to enumerate and identify *non native* services running on EC2 instances using a combination of port fingerprinting (think Nmap's OS fingerprinting, but on the application layer instead of the transport layer) and a little machine learning (decision trees).
 
 ## Overview
 
@@ -67,6 +67,17 @@ Assuming you have read credentials set up, you can start discovery by running:
 ```shell
 ./magpie
 ```
+### DMAP
+Runing `magpie-dmap` requires that DMAP-Predictions be running locally.  The easiest way is through Docker:
+```shell
+docker run -p 10234:10234 -d https://quay.io/openraven/dmap-predictions
+```
+
+#### DMAP Requirements
+- IAM roles for creating lambda roles and managing lambda functions
+- EC2 assets persisted into PostgreSQL (via the Magpie peristence plugin)
+- Locally running DMAP-Predictions service
+
 
 ### Configuration
 Magpie allows for complex configurations to be enabled via the YAML-based config file.  This file has 3 primary sections:
