@@ -19,7 +19,7 @@ policies:
     - https://github.com/openraven/cspm-kb.git
 services:
   openraven.dmap.ml:
-    url: https://api.openraven.com/dmap-ml/predict-annotated
+    url: http://localhost:10234/dmap-ml/predict-annotated
 plugins:
   magpie.aws.discovery:
     enabled: true
