@@ -72,6 +72,7 @@ public class EBDiscovery implements AWSDiscovery {
         discoverEnvironmentResources(client, environment, data);
         discoverEnvironmentManagedActions(client, environment, data);
         discoverTags(client, environment, data, mapper);
+        discoverBackupJobs(environment.environmentArn(), region, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":environment"), data.toJsonNode()));
       });
