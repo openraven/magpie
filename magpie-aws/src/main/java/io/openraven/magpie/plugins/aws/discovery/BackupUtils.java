@@ -39,6 +39,10 @@ public class BackupUtils {
     return CLIENTS.computeIfAbsent(region, r -> AWSUtils.configure(BackupClient.builder(), r));
   }
 
+  public static void init(Region region, BackupClient client) {
+    CLIENTS.put(region, client);
+  }
+
   public static List<BackupJob.Builder> listBackupJobs(String arn, Region region) {
     List<BackupJob.Builder> jobs = new LinkedList<>();
     String nextToken = null;

@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -13,13 +14,20 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.backup.BackupClient;
+import software.amazon.awssdk.services.backup.model.BackupJob;
+import software.amazon.awssdk.services.backup.model.ListBackupJobsRequest;
+import software.amazon.awssdk.services.backup.model.ListBackupJobsResponse;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class EC2DiscoveryIT extends BaseAWSServiceIT {
@@ -29,6 +37,9 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
   @Mock
   private Emitter emitter;
+
+  @Mock
+  private BackupClient backupClient;
 
   @Captor
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
@@ -40,6 +51,11 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
   @Test
   public void testEC2Discovery() {
+    // given
+    BackupUtils.init(BASE_REGION, backupClient);
+    when(backupClient.listBackupJobs(any(ListBackupJobsRequest.class)))
+      .thenReturn(ListBackupJobsResponse.builder().backupJobs(Collections.emptyList()).build());
+
     // when
     ec2Discovery.discover(
       MAPPER,
