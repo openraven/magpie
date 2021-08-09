@@ -38,6 +38,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
+
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
     new AthenaDiscovery(),
     new BatchDiscovery(),
@@ -73,6 +74,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new SecretsManagerDiscovery(),
     new SecurityHubDiscovery(),
     new SNSDiscovery(),
+    new SSMDiscovery(),
     new StorageGatewayDiscovery(),
     new RDSDiscovery(),
     new RedshiftDiscovery(),
