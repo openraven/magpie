@@ -113,6 +113,8 @@ public class RDSDiscovery implements AWSDiscovery {
           discoverInstanceDbSnapshots(client, db, data);
           discoverInstanceSize(db, data, logger);
 
+          discoverBackupJobs(db.dbInstanceArn(), region, data);
+
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {

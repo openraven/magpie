@@ -102,6 +102,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
           discoverContinuousBackups(client, table, data);
           discoverTags(client, table, data, mapper);
+          discoverBackupJobs(table.tableArn(), region, data);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode()));
       });

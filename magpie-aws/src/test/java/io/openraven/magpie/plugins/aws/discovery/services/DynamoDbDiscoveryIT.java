@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -12,9 +13,16 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.backup.BackupClient;
+import software.amazon.awssdk.services.backup.model.ListBackupJobsRequest;
+import software.amazon.awssdk.services.backup.model.ListBackupJobsResponse;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
@@ -26,6 +34,9 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
 
   @Mock
   private Emitter emitter;
+
+  @Mock
+  private BackupClient backupClient;
 
   @Captor
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
@@ -39,6 +50,9 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
   public void testDynamoDBDiscovery() {
     // given
     DynamoDbClient dynamoDbClient = AWSUtils.configure(DynamoDbClient.builder(), BASE_REGION);
+    BackupUtils.init(BASE_REGION, backupClient);
+    when(backupClient.listBackupJobs(any(ListBackupJobsRequest.class)))
+      .thenReturn(ListBackupJobsResponse.builder().backupJobs(Collections.emptyList()).build());
 
     // when
     dynamoDbDiscovery.discoverTables(
