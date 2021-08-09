@@ -29,4 +29,6 @@ public interface DMapLambdaService {
 
   void cleanupCreatedResources();
 
+  void validateEnvironment(boolean reuseResourcesAllowed);
+
 }

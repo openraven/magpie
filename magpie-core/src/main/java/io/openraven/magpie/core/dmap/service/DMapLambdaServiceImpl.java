@@ -234,11 +234,6 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
 
   private String createLambdaRole(IamClient iam) {
     try {
-      GetRoleResponse response = iam.getRole(builder -> builder.roleName(ROLE_NAME).build());
-      LOGGER.info("Required role: {} was found reusing its ARN: {}", ROLE_NAME, response.role().arn());
-      return response.role().arn();
-
-    } catch (NoSuchEntityException e) {
       LOGGER.info("Creating {}", ROLE_NAME);
       CreateRoleRequest request = CreateRoleRequest.builder()
         .roleName(ROLE_NAME)
@@ -247,6 +242,11 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
         .build();
       CreateRoleResponse response = iam.createRole(request);
       iam.waiter().waitUntilRoleExists(builder -> builder.roleName(ROLE_NAME).build());
+      return response.role().arn();
+
+    } catch (EntityAlreadyExistsException e) {
+      GetRoleResponse response = iam.getRole(builder -> builder.roleName(ROLE_NAME).build());
+      LOGGER.info("Required role: {} was found reusing its ARN: {}", ROLE_NAME, response.role().arn());
       return response.role().arn();
     }
   }
@@ -281,7 +281,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
         new DMapProcessingException("Incomplete state of Role: " + ROLE_NAME + " Policy: " + POLICY_NAME + " not found"));
   }
 
-  public String createLambda(LambdaClient lambdaClient,
+  private String createLambda(LambdaClient lambdaClient,
                              VpcConfig vpcConfig,
                              String roleArn) {
     LOGGER.info("Creating lambda function in VPC: {} ", vpcConfig);
@@ -406,6 +406,22 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       countDownLatch.await();
     } catch (InterruptedException e) {
       LOGGER.warn("DMap scan process was interrupted");
+    }
+  }
+
+  @Override
+  public void validateEnvironment(boolean reuseResourcesAllowed) {
+    try (IamClient iam = IamClient.builder().region(Region.AWS_GLOBAL).build()) {
+      Role role = iam.getRole(builder -> builder.roleName(ROLE_NAME).build()).role();
+      if (!reuseResourcesAllowed) {
+        LOGGER.error("Role: {} his alredy exist on environment. Another DMap scan probably running. " +
+            "\nTo skip this error and reuse existing roles and policies start magpie-dmap with -r=true argument, " +
+            "WARN existing role could be removed by another DMap execution and have impact on other simulteneous executions",
+          role.roleName());
+        throw new DMapProcessingException("Simultaneous DMap execution is disabled by default, due to contention for AWS Global resources");
+      }
+    } catch (NoSuchEntityException e) {
+      LOGGER.debug("Required role not found, assume env is ready for DMap scan");
     }
   }
 }

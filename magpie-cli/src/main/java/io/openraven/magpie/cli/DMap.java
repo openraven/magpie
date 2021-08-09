@@ -43,6 +43,7 @@ public class DMap {
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
   public static final int DEFAULT_WORKERS_COUNT = 5;
+  public static final boolean DEFAULT_RESOURCE_REUSE_FLAG = false;
 
   public static void main(String[] args) throws IOException, ParseException {
     // Arguments parsing
@@ -55,7 +56,6 @@ public class DMap {
     var objectMapper = new ObjectMapper();
     var dmapMLClient = new DMapMLClientImpl(objectMapper, config);
     var dMapLambdaService = new DMapLambdaServiceImpl(dmapMLClient, objectMapper, workers);
-    Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService));
 
     // Execution
     var vpcGroups = dMapAssetService.groupScanTargets();
@@ -63,6 +63,8 @@ public class DMap {
       LOGGER.info("There were no target EC2 services found. DMap scan skipped.");
       return;
     }
+    dMapLambdaService.validateEnvironment(isReuseResourceAllowed(cmd));
+    Runtime.getRuntime().addShutdownHook(new CleanupDmapLambdaResourcesHook(dMapLambdaService));
     var dMapScanResult = dMapLambdaService.startDMapScan(vpcGroups);
 
     // Reporting
@@ -74,7 +76,8 @@ public class DMap {
   private static CommandLine parseDMapOptions(String[] args) throws ParseException {
     final var options = new Options();
     options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
-    options.addOption(new Option("w", "workers", true, "Execution parallelism. Default workers: " + DEFAULT_WORKERS_COUNT + ")"));
+    options.addOption(new Option("w", "workers", true, "Execution parallelism. Default workers: " + DEFAULT_WORKERS_COUNT));
+    options.addOption(new Option("r", "reuse", true, "Reuse already created resources for DMAP Scan: (defaults to " + DEFAULT_RESOURCE_REUSE_FLAG + ")"));
 
     final var parser = new DefaultParser();
     return parser.parse(options, args);
@@ -103,6 +106,12 @@ public class DMap {
       .orElse(DEFAULT_WORKERS_COUNT);
     LOGGER.info("DMap will be executed within {} threads. Use -w arg to change this parameter", workers);
     return workers;
+  }
+
+  private static boolean isReuseResourceAllowed(CommandLine cmd) {
+    return Optional.ofNullable(cmd.getOptionValue("r"))
+      .map(Boolean::valueOf)
+      .orElse(DEFAULT_RESOURCE_REUSE_FLAG); // By default restrict created resource re-usage
   }
 
   private static class CleanupDmapLambdaResourcesHook extends Thread {
