@@ -221,6 +221,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Secrets Manager
 - [x] SecurityHub  
 - [x] SNS
+- [x] SSM
 - [x] Storage Gateway
 - [x] VPC
 
