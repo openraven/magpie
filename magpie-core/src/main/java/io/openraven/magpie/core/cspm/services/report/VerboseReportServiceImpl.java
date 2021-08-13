@@ -1,8 +1,9 @@
-package io.openraven.magpie.core.cspm.services;
+package io.openraven.magpie.core.cspm.services.report;
 
 import io.openraven.magpie.core.cspm.Rule;
 import io.openraven.magpie.core.cspm.ScanMetadata;
 import io.openraven.magpie.core.cspm.ScanResults;
+import io.openraven.magpie.core.cspm.services.ReportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,12 +11,12 @@ import java.time.Duration;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-public class ReportServiceImpl implements ReportService {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ReportServiceImpl.class);
+public class VerboseReportServiceImpl implements ReportService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(VerboseReportServiceImpl.class);
 
   private final ScanMetadata scanMetadata;
 
-  public ReportServiceImpl(ScanMetadata scanMetadata) {
+  public VerboseReportServiceImpl(ScanMetadata scanMetadata) {
     this.scanMetadata = scanMetadata;
   }
 
@@ -40,17 +41,16 @@ public class ReportServiceImpl implements ReportService {
       return trimmedValue;
     };
 
-
     System.out.println(BOLD_SET + "Scan Summary:" + BOLD_RESET);
     System.out.printf("%-30s%-40s\n", "Scan start time", this.scanMetadata.getStartDateTime().toString());
     System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(this.scanMetadata.getDuration()));
     System.out.printf("%-30s%-40d\n\n", "Total violations found", results.getNumOfViolations());
 
-    var ignoredPolicies = results.getPolicies().stream().filter(policy -> !policy.getPolicy().isEnabled()).collect(Collectors.toList());
-    if (!ignoredPolicies.isEmpty()) {
+    var disabledPolicies = results.getPolicies().stream().filter(policy -> !policy.getPolicy().isEnabled()).collect(Collectors.toList());
+    if (!disabledPolicies.isEmpty()) {
       System.out.println(BOLD_SET + "Disabled policies:" + BOLD_RESET);
       System.out.printf(BOLD_SET + "%-2s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n" + BOLD_RESET, "", "Policy GUID", "Policy name");
-      ignoredPolicies.forEach(policy -> {
+      disabledPolicies.forEach(policy -> {
         System.out.printf("%-2s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n", "", policy.getPolicy().getId(), policy.getPolicy().getPolicyName());
       });
       System.out.printf("\n");

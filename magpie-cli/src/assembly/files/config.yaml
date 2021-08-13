@@ -17,6 +17,10 @@ policies:
   root: ~/.magpie/policies
   repositories:
     - https://github.com/openraven/cspm-kb.git
+  output:
+    - verbose
+    - csv
+    - json
 services:
   openraven.dmap.ml:
     url: http://localhost:10234/dmap-ml/predict-annotated
