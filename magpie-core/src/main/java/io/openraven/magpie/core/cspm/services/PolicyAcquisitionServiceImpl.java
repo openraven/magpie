@@ -2,10 +2,12 @@ package io.openraven.magpie.core.cspm.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.openraven.magpie.api.cspm.Policy;
+import io.openraven.magpie.api.cspm.PolicyContext;
+import io.openraven.magpie.api.cspm.PolicyMetadata;
+import io.openraven.magpie.api.cspm.Rule;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PolicyConfig;
-import io.openraven.magpie.core.cspm.Policy;
-import io.openraven.magpie.core.cspm.Rule;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;

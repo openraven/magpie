@@ -1,29 +1,24 @@
-package io.openraven.magpie.core.cspm.services.report;
+package io.openraven.magpie.plugins.policy.output.impl;
 
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.ScanResults;
-import io.openraven.magpie.core.cspm.ScanResults.IgnoredReason;
-import io.openraven.magpie.core.cspm.Violation;
-import io.openraven.magpie.core.cspm.services.PolicyContext;
-import io.openraven.magpie.core.cspm.services.ReportService;
+import io.openraven.magpie.api.PolicyOutputPlugin;
+import io.openraven.magpie.api.cspm.PolicyContext;
+import io.openraven.magpie.api.cspm.Rule;
+import io.openraven.magpie.api.cspm.ScanResults;
+import io.openraven.magpie.api.cspm.ScanResults.IgnoredReason;
+import io.openraven.magpie.api.cspm.Violation;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-public class CsvReportService implements ReportService {
+public class CsvReportServiceImpl implements PolicyOutputPlugin<Void> {
 
-  private final ScanMetadata scanMetadata;
-
-  public CsvReportService(ScanMetadata scanMetadata) {
-    this.scanMetadata = scanMetadata;
-  }
+  public static final String ID = "magpie.policy.output.csv";
 
   @Override
   public void generateReport(ScanResults results) {
@@ -41,8 +36,8 @@ public class CsvReportService implements ReportService {
   private void generateReportMeta(CSVPrinter printer, ScanResults results) throws IOException {
     printer.printRecord("Scan Summary:");
     printer.printRecord("Scan start time", "Scan duration", "Total violations found");
-    printer.printRecord(scanMetadata.getStartDateTime().toString(),
-      humanReadableFormat(this.scanMetadata.getDuration()), results.getNumOfViolations());
+    printer.printRecord(results.getScanMetadata().getStartDateTime().toString(),
+      humanReadableFormat(results.getScanMetadata().getDuration()), results.getNumOfViolations());
     printer.println();
   }
 
@@ -98,7 +93,7 @@ public class CsvReportService implements ReportService {
     if (ignoredRules != null) {
       printer.printRecord("Ignored rules:");
       printer.printRecord( "Rule name", "Rule file name", "Reason");
-      for (Entry<Rule, IgnoredReason> entry : ignoredRules.entrySet()) {
+      for (Map.Entry<Rule, IgnoredReason> entry : ignoredRules.entrySet()) {
         Rule rule = entry.getKey();
         IgnoredReason reason = entry.getValue();
         printer.printRecord(
@@ -119,5 +114,20 @@ public class CsvReportService implements ReportService {
       .substring(2)
       .replaceAll("(\\d[HMS])(?!$)", "$1 ")
       .toLowerCase();
+  }
+
+  @Override
+  public String id() {
+    return ID;
+  }
+
+  @Override
+  public void init(Void unused, Logger logger) {
+    // Nothing here yet
+  }
+
+  @Override
+  public Class<Void> configType() {
+    return null;
   }
 }

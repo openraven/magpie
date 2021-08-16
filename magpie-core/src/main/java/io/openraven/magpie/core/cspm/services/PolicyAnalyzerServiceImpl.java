@@ -2,12 +2,9 @@ package io.openraven.magpie.core.cspm.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openraven.magpie.api.cspm.*;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.Policy;
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanResults;
-import io.openraven.magpie.core.cspm.Violation;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
 import org.jdbi.v3.core.Jdbi;

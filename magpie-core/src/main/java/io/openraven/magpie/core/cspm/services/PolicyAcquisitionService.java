@@ -1,5 +1,6 @@
 package io.openraven.magpie.core.cspm.services;
 
+import io.openraven.magpie.api.cspm.PolicyContext;
 import io.openraven.magpie.core.config.MagpieConfig;
 
 import java.io.IOException;

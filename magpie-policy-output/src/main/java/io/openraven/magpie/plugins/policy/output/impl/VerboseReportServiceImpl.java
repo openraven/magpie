@@ -1,24 +1,17 @@
-package io.openraven.magpie.core.cspm.services.report;
+package io.openraven.magpie.plugins.policy.output.impl;
 
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.ScanResults;
-import io.openraven.magpie.core.cspm.services.ReportService;
+import io.openraven.magpie.api.PolicyOutputPlugin;
+import io.openraven.magpie.api.cspm.Rule;
+import io.openraven.magpie.api.cspm.ScanResults;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-public class VerboseReportServiceImpl implements ReportService {
-  private static final Logger LOGGER = LoggerFactory.getLogger(VerboseReportServiceImpl.class);
+public class VerboseReportServiceImpl implements PolicyOutputPlugin<Void> {
 
-  private final ScanMetadata scanMetadata;
-
-  public VerboseReportServiceImpl(ScanMetadata scanMetadata) {
-    this.scanMetadata = scanMetadata;
-  }
+  private static final String ID = "magpie.policy.output.verbose";
 
   private String humanReadableFormat(Duration duration) {
     return duration.toString()
@@ -42,8 +35,8 @@ public class VerboseReportServiceImpl implements ReportService {
     };
 
     System.out.println(BOLD_SET + "Scan Summary:" + BOLD_RESET);
-    System.out.printf("%-30s%-40s\n", "Scan start time", this.scanMetadata.getStartDateTime().toString());
-    System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(this.scanMetadata.getDuration()));
+    System.out.printf("%-30s%-40s\n", "Scan start time", results.getScanMetadata().getStartDateTime().toString());
+    System.out.printf("%-30s%-40s\n", "Scan duration", humanReadableFormat(results.getScanMetadata().getDuration()));
     System.out.printf("%-30s%-40d\n\n", "Total violations found", results.getNumOfViolations());
 
     var disabledPolicies = results.getPolicies().stream().filter(policy -> !policy.getPolicy().isEnabled()).collect(Collectors.toList());
@@ -89,5 +82,20 @@ public class VerboseReportServiceImpl implements ReportService {
         System.out.printf("\n");
       });
     }
+  }
+
+  @Override
+  public String id() {
+    return ID;
+  }
+
+  @Override
+  public void init(Void unused, Logger logger) {
+    // Nothing here
+  }
+
+  @Override
+  public Class<Void> configType() {
+    return null;
   }
 }

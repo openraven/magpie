@@ -1,0 +1,3 @@
+io.openraven.magpie.plugins.policy.output.impl.CsvReportServiceImpl
+io.openraven.magpie.plugins.policy.output.impl.JsonReportServiceImpl
+io.openraven.magpie.plugins.policy.output.impl.VerboseReportServiceImpl

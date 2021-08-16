@@ -1,30 +1,29 @@
-package io.openraven.magpie.core.cspm.services.report;
+package io.openraven.magpie.plugins.policy.output.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.ScanResults;
-import io.openraven.magpie.core.cspm.services.ReportService;
+import io.openraven.magpie.api.PolicyOutputPlugin;
+import io.openraven.magpie.api.cspm.PolicyContext;
+import io.openraven.magpie.api.cspm.Rule;
+import io.openraven.magpie.api.cspm.ScanResults;
+import io.openraven.magpie.api.cspm.Violation;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public class JsonReportService implements ReportService {
+public class JsonReportServiceImpl implements PolicyOutputPlugin<Void> {
 
-  private final ScanMetadata scanMetadata;
+  private static final String ID = "magpie.policy.output.json";
 
   private static final ObjectMapper MAPPER = new ObjectMapper()
     .enable(SerializationFeature.INDENT_OUTPUT)
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
-
-  public JsonReportService(ScanMetadata scanMetadata) {
-    this.scanMetadata = scanMetadata;
-  }
 
   @Override
   public void generateReport(ScanResults results) {
@@ -32,7 +31,7 @@ public class JsonReportService implements ReportService {
     try {
       ObjectNode parentNode = MAPPER.createObjectNode();
 
-      generateReportMeta(parentNode);
+      generateReportMeta(results, parentNode);
       generateDisabledPolicies(results, parentNode);
       generatePolicyAnalysis(results, parentNode);
 
@@ -77,7 +76,7 @@ public class JsonReportService implements ReportService {
     }
   }
 
-  private void generateViolation(io.openraven.magpie.core.cspm.services.PolicyContext policy, java.util.List<io.openraven.magpie.core.cspm.Violation> policyViolations, ObjectNode policyNode) {
+  private void generateViolation(PolicyContext policy, List<Violation> policyViolations, ObjectNode policyNode) {
     ArrayNode violationsArray = MAPPER.createArrayNode();
     policyNode.set("violations", violationsArray);
 
@@ -115,11 +114,11 @@ public class JsonReportService implements ReportService {
     }
   }
 
-  private void generateReportMeta(ObjectNode parentNode) {
+  private void generateReportMeta(ScanResults results, ObjectNode parentNode) {
     ObjectNode metaNode = MAPPER.createObjectNode();
-    metaNode.put("startTime", scanMetadata.getStartDateTime().toString());
-    metaNode.put("duration", humanReadableFormat(scanMetadata.getDuration()));
-    parentNode.put("meta", metaNode);
+    metaNode.put("startTime", results.getScanMetadata().getStartDateTime().toString());
+    metaNode.put("duration", humanReadableFormat(results.getScanMetadata().getDuration()));
+    parentNode.set("meta", metaNode);
   }
 
   private String humanReadableFormat(Duration duration) {
@@ -127,5 +126,20 @@ public class JsonReportService implements ReportService {
       .substring(2)
       .replaceAll("(\\d[HMS])(?!$)", "$1 ")
       .toLowerCase();
+  }
+
+  @Override
+  public String id() {
+    return ID;
+  }
+
+  @Override
+  public void init(Void unused, Logger logger) {
+    // Nothing here yet
+  }
+
+  @Override
+  public Class<Void> configType() {
+    return null;
   }
 }

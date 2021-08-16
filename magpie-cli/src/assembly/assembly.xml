@@ -36,6 +36,13 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>${project.parent.basedir}/magpie-policy-output/target/</directory>
+      <outputDirectory>plugins/</outputDirectory>
+      <includes>
+        <include>magpie-policy-output-${project.version}.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>${project.basedir}/src/assembly/files/plugins</directory>
       <outputDirectory>plugins/</outputDirectory>
       <includes>

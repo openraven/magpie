@@ -15,15 +15,9 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <aws.sdk.version>2.15.69</aws.sdk.version>
-    <commons-csv.version>1.9.0</commons-csv.version>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-csv</artifactId>
-      <version>${commons-csv.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>
