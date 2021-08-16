@@ -16,7 +16,7 @@ fifos:
 policies:
   root: ~/.magpie/policies
   repositories:
-    - https://github.com/openraven/cspm-kb.git
+    - https://github.com/openraven/security-rules.git
 services:
   openraven.dmap.ml:
     url: http://localhost:10234/dmap-ml/predict-annotated
