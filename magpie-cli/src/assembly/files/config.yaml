@@ -18,8 +18,8 @@ policies:
   repositories:
     - https://github.com/openraven/cspm-kb.git
 services:
-  magpie.dmap.ml:
-    url: https://api.openraven.com/dmap-ml/predict-annotated
+  openraven.dmap.ml:
+    url: http://localhost:10234/dmap-ml/predict-annotated
 plugins:
   magpie.aws.discovery:
     enabled: true
@@ -45,10 +45,10 @@ plugins:
     enabled: true
     config:
   magpie.policy.output.json:
-    enabled: true
+    enabled: false
   magpie.policy.output.csv:
-    enabled: true
-  magpie.policy.output.verbose:
+    enabled: false
+  magpie.policy.output.text:
     enabled: true
   magpie.persist:
     enabled: false

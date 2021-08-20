@@ -15,7 +15,9 @@
     <module>magpie-aws</module>
     <module>magpie-json</module>
     <module>magpie-persist</module>
-    <module>magpie-policy-output</module>
+    <module>magpie-policy-output-text</module>
+    <module>magpie-policy-output-json</module>
+    <module>magpie-policy-output-csv</module>
   </modules>
 
   <properties>
@@ -29,7 +31,7 @@
       <dependency>
         <groupId>io.openraven.magpie</groupId>
         <artifactId>magpie-api</artifactId>
-        <version>0.2.2-SNAPSHOT</version>
+        <version>0.2.1</version>
       </dependency>
       <dependency>
         <groupId>io.openraven.magpie</groupId>

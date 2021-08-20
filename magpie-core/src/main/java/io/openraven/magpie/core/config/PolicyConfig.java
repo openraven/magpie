@@ -22,7 +22,6 @@ import java.util.List;
 public class PolicyConfig {
   private String root = "~/.magpie/policies";
   private List<String> repositories = List.of();
-  private List<String> output = List.of();
 
   public String getRoot() {
     return root;
@@ -38,13 +37,5 @@ public class PolicyConfig {
 
   public void setRepositories(List<String> repositories) {
     this.repositories = repositories == null ? List.of() : repositories;
-  }
-
-  public List<String> getOutput() {
-    return output;
-  }
-
-  public void setOutput(List<String> output) {
-    this.output = output;
   }
 }

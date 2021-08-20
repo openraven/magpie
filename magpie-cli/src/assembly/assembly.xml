@@ -36,10 +36,24 @@
       </includes>
     </fileSet>
     <fileSet>
-      <directory>${project.parent.basedir}/magpie-policy-output/target/</directory>
+      <directory>${project.parent.basedir}/magpie-policy-output-text/target/</directory>
       <outputDirectory>plugins/</outputDirectory>
       <includes>
-        <include>magpie-policy-output-${project.version}.jar</include>
+        <include>magpie-policy-output-text-${project.version}.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.parent.basedir}/magpie-policy-output-json/target/</directory>
+      <outputDirectory>plugins/</outputDirectory>
+      <includes>
+        <include>magpie-policy-output-json-${project.version}.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>${project.parent.basedir}/magpie-policy-output-csv/target/</directory>
+      <outputDirectory>plugins/</outputDirectory>
+      <includes>
+        <include>magpie-policy-output-csv-${project.version}.jar</include>
       </includes>
     </fileSet>
     <fileSet>
