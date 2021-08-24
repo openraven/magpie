@@ -17,6 +17,7 @@
   * [Cloud Provider Status](#cloud-provider-status)
     + [AWS](#aws)
       - [Per region discovery](#per-region-discovery)
+    + [GCP](#gcp)
   * [Saving data to PostgreSQL](#saving-data-to-postgresql)
 
 ## What is Magpie?
@@ -282,7 +283,7 @@ Magpie also supports GCP as a core plugin out of the box. Checked boxes are comp
 - [ ]  Firestore
 - [x]  Game Servers
 - [x]  Google Kubernetes Engine
-- [ ]  Identity and Access Management
+- [x]  Identity and Access Management
 - [x]  Iam
 - [x]  IoT Core
 - [ ]  Media Translation
