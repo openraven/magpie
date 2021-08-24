@@ -136,7 +136,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       violation.setPolicy(policy);
       violation.setRule(rule);
       violation.setAssetId(result.get("asset_id").toString());
-      violation.setInfo(policy.getDescription());
+      violation.setInfo(rule.getDescription());
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
       policyViolations.add(violation);
