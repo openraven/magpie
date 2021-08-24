@@ -81,7 +81,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   }
 
   private void assertSnapshot(List<ObjectNode> data) {
-    assertEquals(36, data.size());
+    assertTrue(30 < data.size()); // Avoid flaky tests with backups generation
     var contents = data.get(0);
 
     assertNotNull(contents.get("documentId"));
@@ -118,7 +118,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
     assertEquals(1, attachments.size());
     var attachment = attachments.get(0);
     assertNotNull(attachment.get("attachTime").asText());
-    assertNotNull("/dev/sda1", attachment.get("device").asText());
+    assertEquals("/dev/sda1", attachment.get("device").asText());
     assertTrue(attachment.get("instanceId").asText().startsWith("i-"));
     assertTrue(attachment.get("volumeId").asText().startsWith("vol-"));
     assertEquals("attached", attachment.get("state").asText());

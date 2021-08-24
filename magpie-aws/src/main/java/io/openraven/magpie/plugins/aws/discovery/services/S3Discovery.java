@@ -17,6 +17,7 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
@@ -39,6 +40,8 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -92,7 +95,6 @@ public class S3Discovery implements AWSDiscovery {
           .withRegion(region.toString())
           .build();
 
-
         discoverEncryption(client, bucket, data);
         discoverHosting(client, bucket, data);
         discoverACLS(client, bucket, data);
@@ -100,7 +102,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverLogging(client, bucket, data);
         discoverMetrics(client, bucket, data);
         discoverNotifications(client, bucket, data);
-        discoverBucketPolicy(client, bucket, data);
+        discoverBucketPolicy(client, bucket, data, mapper);
         discoverObjectLockConfiguration(client, bucket, data);
         discoverReplication(client, bucket, data);
         discoverPublic(client, bucket, data);
@@ -294,7 +296,7 @@ public class S3Discovery implements AWSDiscovery {
 
   }
 
-  private void discoverBucketPolicy(S3Client client, Bucket resource, MagpieResource data) {
+  private void discoverBucketPolicy(S3Client client, Bucket resource, MagpieResource data, ObjectMapper mapper) {
     final String keyname = "bucketPolicyStatus";
     getAwsResponse(
       () -> client.getBucketPolicyStatus(GetBucketPolicyStatusRequest.builder().bucket(resource.name()).build()).policyStatus(),
@@ -305,11 +307,9 @@ public class S3Discovery implements AWSDiscovery {
     final String keyname2 = "bucketPolicy";
     getAwsResponse(
       () -> client.getBucketPolicy(GetBucketPolicyRequest.builder().bucket(resource.name()).build()).policy(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, resp)),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, parsePolicyDocument(mapper, resp))),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, noresp))
     );
-
-
   }
 
   private void discoverReplication(S3Client client, Bucket resource, MagpieResource data) {
@@ -353,6 +353,14 @@ public class S3Discovery implements AWSDiscovery {
             "numberOfObjects", numberOfObjects.getValue0())));
 
       data.sizeInBytes = bucketSizeBytes.getValue0();
+    }
+  }
+
+  private JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
+    try {
+      return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Unable to parse inline policy document: " + policyDocument, e);
     }
   }
 }

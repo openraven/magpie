@@ -44,6 +44,12 @@ plugins:
   magpie.json:
     enabled: true
     config:
+  magpie.policy.output.json:
+    enabled: false
+  magpie.policy.output.csv:
+    enabled: false
+  magpie.policy.output.text:
+    enabled: true
   magpie.persist:
     enabled: false
     config:
