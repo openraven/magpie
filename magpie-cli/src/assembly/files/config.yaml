@@ -4,6 +4,7 @@ layers:
     queue: default
     plugins:
       - magpie.aws.discovery
+      - magpie.gcp.discovery
   output:
     type: terminal
     dequeue: default
@@ -41,6 +42,10 @@ plugins:
       ignoredRegions:
         - fips.*
         - us-gov.*
+  magpie.gcp.discovery:
+    enabled: false
+    config:
+      services:
   magpie.json:
     enabled: true
     config:
