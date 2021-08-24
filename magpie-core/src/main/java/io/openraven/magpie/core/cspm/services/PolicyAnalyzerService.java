@@ -1,8 +1,9 @@
 package io.openraven.magpie.core.cspm.services;
 
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanResults;
+import io.openraven.magpie.core.cspm.model.PolicyContext;
+import io.openraven.magpie.core.cspm.model.Rule;
+import io.openraven.magpie.core.cspm.analysis.ScanResults;
 
 import java.io.IOException;
 import java.util.List;
