@@ -44,7 +44,6 @@ public class PluginManager {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PluginManager.class);
-  private static final List<Class<? extends MagpiePlugin>> PLUGIN_CLASSES = List.of(OriginPlugin.class, IntermediatePlugin.class, TerminalPlugin.class);
 
   private final MagpieConfig config;
 
@@ -52,12 +51,11 @@ public class PluginManager {
 
   public PluginManager(MagpieConfig config) {
     this.config = config;
-    loadPlugins();
   }
 
-  private void loadPlugins() {
+  public void loadPlugins(List<Class<? extends MagpiePlugin>> pluginClasses) {
     final var pluginsFound = new AtomicLong();
-    PLUGIN_CLASSES.forEach(c -> {
+    pluginClasses.forEach(c -> {
       final var loader = ServiceLoader.load(c);
       var count = loader.stream().count();
       LOGGER.debug("Found {} {} plugin(s) via the classpath", c.getSimpleName(), count);

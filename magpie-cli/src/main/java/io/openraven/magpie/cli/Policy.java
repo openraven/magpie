@@ -20,9 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.ConfigUtils;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.ScanMetadata;
-import io.openraven.magpie.core.cspm.ScanResults;
 import io.openraven.magpie.core.cspm.services.*;
+import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -32,31 +31,30 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
 
 public class Policy {
   private static final Logger LOGGER = LoggerFactory.getLogger(Policy.class);
   private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
   private static final String DEFAULT_CONFIG_FILE = "config.yaml";
 
-  public static String humanReadableFormat(Duration duration) {
-    return duration.toString()
-      .substring(2)
-      .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-      .toLowerCase();
+  public static void main(String[] args) throws IOException, ParseException {
+
+    final var cmd = parsePolicyOptions(args);
+    final var config = getConfig(cmd);
+
+    CspmFacade cspmFacade = new CspmFacadeImpl();
+    cspmFacade.analyze(config);
   }
 
-  public static void main(String[] args) throws IOException, ParseException {
-    final var start = Instant.now();
-
+  private static CommandLine parsePolicyOptions(String[] args) throws ParseException {
     final var options = new Options();
     options.addOption(new Option("f", "configfile", true, "Config file location (defaults to " + DEFAULT_CONFIG_FILE + ")"));
 
     final var parser = new DefaultParser();
-    final var cmd = parser.parse(options, args);
+    return parser.parse(options, args);
+  }
 
+  private static MagpieConfig getConfig(CommandLine cmd) throws IOException {
     var configFile = cmd.getOptionValue("f");
     if (configFile == null) {
       configFile = DEFAULT_CONFIG_FILE;
@@ -65,25 +63,8 @@ public class Policy {
     }
 
     try (var is = new FileInputStream((configFile))) {
-      final var config = ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
       LOGGER.info("Policy. Classpath={}", System.getProperties().get("java.class.path"));
-
-      PolicyAcquisitionService policyAcquisitionService = new PolicyAcquisitionServiceImpl();
-      policyAcquisitionService.init(config);
-      var policies = policyAcquisitionService.loadPolicies();
-      PolicyAnalyzerService analyzerService = new PolicyAnalyzerServiceImpl();
-      analyzerService.init(config);
-      Duration scanDuration;
-      try {
-        ScanResults scanResults = analyzerService.analyze(policies);
-        scanDuration = Duration.between(start, Instant.now());
-        ReportService reportService = new ReportServiceImpl(new ScanMetadata(Date.from(start), scanDuration));
-        reportService.generateReport(scanResults);
-      } catch (Exception e) {
-        LOGGER.error("Analyze error: {}", e.getMessage(), e);
-      }
+      return ConfigUtils.merge(MAPPER.readValue(is, MagpieConfig.class), System.getenv());
     }
-
-    LOGGER.info("Policy analysis  completed in {}", humanReadableFormat(Duration.between(start, Instant.now())));
   }
 }

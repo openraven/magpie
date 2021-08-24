@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
-import io.openraven.magpie.core.cspm.Policy;
-import io.openraven.magpie.core.cspm.Rule;
-import io.openraven.magpie.core.cspm.ScanResults;
-import io.openraven.magpie.core.cspm.Violation;
+import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
+import io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason;
+import io.openraven.magpie.core.cspm.analysis.ScanResults;
+import io.openraven.magpie.core.cspm.analysis.Violation;
+import io.openraven.magpie.core.cspm.model.*;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
 import org.jdbi.v3.core.Jdbi;
@@ -20,6 +21,8 @@ import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*;
 
 public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAnalyzerServiceImpl.class);
@@ -47,46 +50,35 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   @Override
-  public ScanResults analyze(List<PolicyContext> policies) throws Exception {
-    Map<PolicyContext, List<Violation>> violations = new HashMap<>();
-    Map<PolicyContext, Map<Rule, ScanResults.IgnoredReason>> ignoredRules = new HashMap<>();
-    AtomicInteger numOfViolations = new AtomicInteger();
+  public ScanResults analyze(List<PolicyContext> policyContexts) throws Exception {
+    List<Violation> violations = new ArrayList<>();
+    List<IgnoredRule> ignoredRules = new ArrayList<>();
+    List<Policy> policies = new ArrayList<>();
 
-    policies.forEach(policyContext -> {
-      List<Violation> policyViolations = new ArrayList<>();
-      Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules = new HashMap<>();
+    policyContexts.forEach(policyContext -> {
       final var policy = policyContext.getPolicy();
-
-      processPolicy(policy, numOfViolations, policyViolations, policyIgnoredRules);
-
-      if (!policyViolations.isEmpty()) {
-        violations.put(policyContext, policyViolations);
-      }
-      if (!policyIgnoredRules.isEmpty()) {
-        ignoredRules.put(policyContext, policyIgnoredRules);
-      }
+      processPolicy(policy, violations, ignoredRules);
+      policies.add(policy);
     });
-    return new ScanResults(policies, violations, ignoredRules, numOfViolations.get());
+    return new ScanResults(policies, violations, ignoredRules);
   }
 
   private void processPolicy(Policy policy,
-                             AtomicInteger numOfViolations,
                              List<Violation> policyViolations,
-                             Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules) {
+                             List<IgnoredRule> policyIgnoredRules) {
     if (!policy.isEnabled()) { // Not enabled
       LOGGER.info("Policy '{}' disabled", policy.getPolicyName());
       return;
     }
 
     if (!cloudProviderAssetsAvailable(policy)) { // No cloud related assets
-      LOGGER.warn("There was no assets detected for cloudProvider: {}, policy: {}",
-        policy.getCloudProvider(), policy.getPolicyName());
+      LOGGER.warn("No assets found for cloudProvider: {}, policy: {}", policy.getCloudProvider(), policy.getPolicyName());
       return;
     }
 
     LOGGER.info("Analyzing policy - {}", policy.getPolicyName());
     policy.getRules().forEach(rule -> {
-      executeRule(numOfViolations, policyViolations, policyIgnoredRules, policy, rule);
+      executeRule(policyViolations, policyIgnoredRules, policy, rule);
     });
   }
 
@@ -95,26 +87,25 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       .mapTo(Boolean.class).findFirst().orElseThrow());
   }
 
-  private void executeRule(AtomicInteger numOfViolations,
-                           List<Violation> policyViolations,
-                           Map<Rule, ScanResults.IgnoredReason> policyIgnoredRules,
+  private void executeRule(List<Violation> policyViolations,
+                           List<IgnoredRule> policyIgnoredRules,
                            Policy policy,
                            Rule rule) {
     if (!rule.isEnabled()) {
-      policyIgnoredRules.put(rule, ScanResults.IgnoredReason.DISABLED);
+      policyIgnoredRules.add(new IgnoredRule(policy, rule, DISABLED));
       LOGGER.info("Rule '{}' disabled", rule.getRuleName());
       return;
     }
 
     if (rule.isManualControl()) {
-      policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MANUAL_CONTROL);
+      policyIgnoredRules.add(new IgnoredRule(policy, rule, MANUAL_CONTROL));
       LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getRuleName());
       return;
     }
 
     var missingAssets = checkForMissingAssets(jdbi, rule.getSql());
     if (!missingAssets.isEmpty()) { // Missing assets found
-      policyIgnoredRules.put(rule, ScanResults.IgnoredReason.MISSING_ASSET);
+      policyIgnoredRules.add(new IgnoredRule(policy, rule, MISSING_ASSET));
       LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getRuleName());
       return;
     }
@@ -136,16 +127,13 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     results.forEach(result -> {
       Violation violation = new Violation();
-      violation.setPolicyId(policy.getId());
-      violation.setRuleId(rule.getId());
+      violation.setPolicy(policy);
+      violation.setRule(rule);
       violation.setAssetId(result.get("asset_id").toString());
-      // TODO : Policy description or rule description
-      violation.setInfo(policy.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
+      violation.setInfo(rule.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
       policyViolations.add(violation);
-
-      numOfViolations.getAndIncrement();
     });
 
   }

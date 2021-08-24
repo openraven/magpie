@@ -16,7 +16,11 @@
 
 package io.openraven.magpie.core;
 
+import io.openraven.magpie.api.IntermediatePlugin;
+import io.openraven.magpie.api.MagpiePlugin;
+import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.api.TerminalPlugin;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.fifos.FifoManager;
 import io.openraven.magpie.core.layers.Layer;
@@ -27,12 +31,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class Orchestrator {
+
+  private static final List<Class<? extends MagpiePlugin>> DISCOVERY_PLUGIN_CLASSES =
+    List.of(OriginPlugin.class, IntermediatePlugin.class, TerminalPlugin.class);
 
   private class LayerCallable implements Callable<LayerType> {
 
@@ -79,7 +87,10 @@ public class Orchestrator {
 
   public void scan() {
     final var fifoManager = new FifoManager(config);
+
     final var pluginManager = new PluginManager(config);
+    pluginManager.loadPlugins(DISCOVERY_PLUGIN_CLASSES);
+
     final var layerManager = new LayerManager(session, config, fifoManager, pluginManager);
 
     final var layers = layerManager.getLayers();
