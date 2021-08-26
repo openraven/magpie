@@ -17,7 +17,6 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.iot.v1.LocationName;
 import com.google.cloud.tasks.v2.CloudTasksClient;
@@ -26,7 +25,7 @@ import com.google.cloud.tasks.v2.Task;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -93,7 +92,8 @@ public class TasksDiscovery implements GCPDiscovery {
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":queue"), data.toJsonNode()));
           }
-        } catch (InvalidArgumentException ignored) {
+        } catch (Exception ex) {
+          DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, ex);
         }
       });
     } catch (IOException e) {

@@ -83,7 +83,7 @@ public class EC2Discovery implements AWSDiscovery {
               .withTags(getConvertedTags(instance.tags(), mapper))
               .build();
 
-            massageInstanceTypeAndPublicIp(data, instance, mapper);
+            massageInstanceTypeAndPublicIp(data, instance, mapper, region, RESOURCE_TYPE);
             discoverBackupJobs(arn, region, data);
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
           })));
@@ -92,7 +92,11 @@ public class EC2Discovery implements AWSDiscovery {
     }
   }
 
-  public void massageInstanceTypeAndPublicIp(MagpieResource data, Instance instance, ObjectMapper mapper) {
+  public void massageInstanceTypeAndPublicIp(MagpieResource data,
+                                             Instance instance,
+                                             ObjectMapper mapper,
+                                             Region region,
+                                             String resourceType) {
     try {
       var instanceForUpdate = mapper.readerForUpdating(data.configuration);
 
@@ -104,7 +108,8 @@ public class EC2Discovery implements AWSDiscovery {
           Map.of("publicIp", instance.publicIpAddress()), JsonNode.class));
       }
 
-    } catch (IOException ignored) {
+    } catch (IOException ex) {
+      DiscoveryExceptions.onDiscoveryException(resourceType, null, region, ex);
     }
   }
 

@@ -139,7 +139,6 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       return policy;
     } catch (IOException yamlIOException) {
       LOGGER.error(yamlIOException.getMessage());
-
       return null;
     }
   }

@@ -105,7 +105,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverBucketPolicy(client, bucket, data, mapper);
         discoverObjectLockConfiguration(client, bucket, data);
         discoverReplication(client, bucket, data);
-        discoverPublic(client, bucket, data);
+        discoverPublic(client, bucket, data, logger);
         discoverVersioning(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data);
@@ -166,7 +166,7 @@ public class S3Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverPublic(S3Client client, Bucket resource, MagpieResource data) {
+  private void discoverPublic(S3Client client, Bucket resource, MagpieResource data, Logger logger) {
     boolean isPublicByACL = false;
     boolean isPublicByPolicy = false;
 
@@ -184,6 +184,7 @@ public class S3Discovery implements AWSDiscovery {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;
       }
+      logger.warn("Failure on S3 public access discovery, BucketName - {}", resource.name(), ex);
     }
 
     // wrap into a try/catch so that if there isn't an policy status response we catch it, default to false, and continue
@@ -200,6 +201,7 @@ public class S3Discovery implements AWSDiscovery {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;
       }
+      logger.warn("Failure on S3 public access discovery, BucketName - {}", resource.name(), ex);
     }
 
     AWSUtils.update(data.supplementaryConfiguration,

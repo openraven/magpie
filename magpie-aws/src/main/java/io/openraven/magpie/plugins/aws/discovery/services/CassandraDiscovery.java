@@ -116,8 +116,8 @@ public class CassandraDiscovery implements AWSDiscovery {
 
         discoverTables(cqlSession, keyspaceName, data);
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":keyspace"), data.toJsonNode()));
-      } catch (Exception e) {
-        logger.debug("Keyspaces discovery error in {}.", region, e);
+      } catch (Exception ex) {
+        DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
       }
     });
   }

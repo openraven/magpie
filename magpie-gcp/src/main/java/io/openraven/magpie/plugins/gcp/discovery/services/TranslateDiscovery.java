@@ -17,13 +17,12 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.cloud.translate.v3.LocationName;
 import com.google.cloud.translate.v3.TranslationServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gcp.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -58,7 +57,8 @@ public class TranslateDiscovery implements GCPDiscovery {
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":glossary"), data.toJsonNode()));
           }
         });
-      } catch (InvalidArgumentException ignored) {
+      } catch (Exception ex) {
+        DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, ex);
       }
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);

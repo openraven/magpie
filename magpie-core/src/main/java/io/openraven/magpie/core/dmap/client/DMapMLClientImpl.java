@@ -22,6 +22,7 @@ import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.dmap.client.dto.AppProbability;
 import io.openraven.magpie.core.dmap.client.dto.DMapMLRequest;
 import io.openraven.magpie.core.dmap.client.dto.DMapMLResponse;
+import io.openraven.magpie.core.dmap.exception.DMapClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,7 @@ public class DMapMLClientImpl implements DMapMLClient {
       return mapper.writeValueAsString(dMapMLRequest);
     } catch (JsonProcessingException e) {
       LOGGER.error("Unable to serialize DMap ML request body: {}", dMapMLRequest, e);
-      throw new RuntimeException(e);
+      throw new DMapClientException("DMap response deserialization failed", e);
     }
   }
 

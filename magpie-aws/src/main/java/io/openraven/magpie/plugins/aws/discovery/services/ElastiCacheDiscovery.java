@@ -74,7 +74,6 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
-
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }

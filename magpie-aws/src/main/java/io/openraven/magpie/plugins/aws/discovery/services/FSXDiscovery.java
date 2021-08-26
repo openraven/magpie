@@ -68,7 +68,7 @@ public class FSXDiscovery implements AWSDiscovery {
           .withRegion(region.toString())
           .build();
 
-        discoverSize(fileSystem, data, region);
+        discoverSize(fileSystem, data, region, logger);
         discoverBackupJobs(fileSystem.resourceARN(), region, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
@@ -78,7 +78,7 @@ public class FSXDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSize(FileSystem resource, MagpieResource data, Region region) {
+  private void discoverSize(FileSystem resource, MagpieResource data, Region region, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());
@@ -92,7 +92,9 @@ public class FSXDiscovery implements AWSDiscovery {
 
       AWSUtils.update(data.supplementaryConfiguration,
         Map.of("freeDataStorageCapacity", freeStorageCapacity.getValue0()));
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      logger.debug("Failure on FSX size discovery, Region - {}; ResourceArn - {}",
+        region, resource.resourceARN(), ex);
     }
   }
 }

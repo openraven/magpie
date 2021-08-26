@@ -75,7 +75,7 @@ public class ESDiscovery implements AWSDiscovery {
             .build();
 
           discoverTags(client, domain, data, mapper);
-          discoverSize(domain, data, region, account);
+          discoverSize(domain, data, region, account, logger);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode()));
         });
@@ -96,7 +96,7 @@ public class ESDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account) {
+  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DomainName").value(resource.domainName()).build());
@@ -115,7 +115,8 @@ public class ESDiscovery implements AWSDiscovery {
         data.maxSizeInBytes = Conversions.GibToBytes(numNodes * volSizeAsGB);
         data.sizeInBytes = Conversions.MibToBytes(clusterUsedSpace.getValue0().longValue());
       }
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      logger.debug("Failure on ES size discovery. Region - {}; ResourceArn - {}", region, resource.arn(),  ex);
     }
   }
 }
