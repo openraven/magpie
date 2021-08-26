@@ -7,6 +7,7 @@ import io.openraven.magpie.core.cspm.analysis.ScanResults;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface PolicyAnalyzerService {
 
@@ -24,5 +25,5 @@ public interface PolicyAnalyzerService {
    */
   ScanResults analyze(List<PolicyContext> policies) throws Exception;
 
-  String evaluate(Rule rule, Object resultSet) throws Exception;
+  List<Map<String, Object>> evaluate(Rule rule, Object resultSet) throws Exception;
 }

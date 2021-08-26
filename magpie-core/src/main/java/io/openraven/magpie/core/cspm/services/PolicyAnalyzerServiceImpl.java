@@ -5,22 +5,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
-import io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason;
 import io.openraven.magpie.core.cspm.analysis.ScanResults;
 import io.openraven.magpie.core.cspm.analysis.Violation;
-import io.openraven.magpie.core.cspm.model.*;
+import io.openraven.magpie.core.cspm.model.Policy;
+import io.openraven.magpie.core.cspm.model.PolicyContext;
+import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
+import org.python.core.PyDictionary;
+import org.python.core.PyList;
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*;
 
@@ -115,12 +121,12 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     var results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
 
-    StringWriter evalOut = new StringWriter();
     StringWriter evalErr = new StringWriter();
     if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
       try {
-        evalOut.append(evaluate(rule, results));
+        results = evaluate(rule, results);
       } catch (Exception e) {
+        LOGGER.warn("Couldn't run eval code", e);
         evalErr.append(e.getMessage());
       }
     }
@@ -130,12 +136,11 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       violation.setPolicy(policy);
       violation.setRule(rule);
       violation.setAssetId(result.get("asset_id").toString());
-      violation.setInfo(rule.getDescription() + (evalOut.toString().isEmpty() ? "" : "\nEvaluation output:\n" + evalOut));
+      violation.setInfo(rule.getDescription());
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
       policyViolations.add(violation);
     });
-
   }
 
   private List<String> checkForMissingAssets(Jdbi jdbi, String sql) {
@@ -171,20 +176,36 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   @Override
-  public String evaluate(Rule rule, Object resultSet) throws Exception {
+  public List<Map<String, Object>> evaluate(Rule rule, Object resultSet) throws Exception {
+
+    final var results = new ArrayList<Map<String, Object>>();
+
     StringWriter output = new StringWriter();
     try (PythonInterpreter pyInterp = new PythonInterpreter()) {
       pyInterp.setOut(output);
 
       // Define evaluate method
       pyInterp.exec(rule.getEval());
-
       // Prepare argument and execute evaluate()
       pyInterp.set("resultset", resultSet);
-      pyInterp.exec("evaluate(resultset)");
+      var v = pyInterp.eval("evaluate(resultset)");
+      if (v instanceof PyList) {
+        ((PyList)v).stream().forEach(item -> {
+          if (item instanceof PyDictionary) {
+            final var dict = (PyDictionary)item;
+            final var map = new HashMap<String, Object>();
+            dict.keySet().forEach(k -> map.put(k.toString(), dict.get(k)));
+            results.add(map);
+          } else {
+            LOGGER.warn("{} returned an invalid value, found {} but expected a dictionary", rule.getRuleName(), item.getClass().getName());
+          }
+        });
+      } else {
+        throw new RuntimeException("Eval block returned an illegal value. Expected a Python list but found " + v.getClass().getName());
+      }
     } catch (Exception e) {
       throw new Exception(e);
     }
-    return output.toString();
+    return results;
   }
 }
