@@ -25,4 +25,8 @@ public class DMapProcessingException extends RuntimeException {
   public DMapProcessingException(String message, Throwable cause) {
     super(message, cause);
   }
+
+  public DMapProcessingException(Throwable cause) {
+    super(cause);
+  }
 }

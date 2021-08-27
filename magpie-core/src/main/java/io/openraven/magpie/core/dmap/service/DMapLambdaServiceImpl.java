@@ -335,7 +335,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
         .build();
     } catch (JsonProcessingException e) {
       LOGGER.error("Unable to serialize host data", e);
-      throw new RuntimeException(e);
+      throw new DMapProcessingException(e);
     }
   }
 
@@ -353,7 +353,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       return mapper.readValue(payload, DMapLambdaResponse.class);
     } catch (JsonProcessingException e) {
       LOGGER.info("Unable to parse response data from lambda: {}", payload, e);
-      throw new RuntimeException(e);
+      throw new DMapProcessingException(e);
     }
   }
 
@@ -397,7 +397,7 @@ public class DMapLambdaServiceImpl implements DMapLambdaService {
       LOGGER.debug("Acquired thread for DMap scan of: {}", ec2Target);
     } catch (InterruptedException e) {
       LOGGER.error("Interrupted thread of DMap Scan for following service: " + ec2Target);
-      throw new RuntimeException(e);
+      throw new DMapProcessingException(e);
     }
   }
 

@@ -79,7 +79,7 @@ public class PluginManager {
             LOGGER.debug("Loaded {}", plugin.id());
           }
         } catch (Exception ex) {
-          throw new RuntimeException(ex);
+          throw new PluginLoaderException(ex);
         }
       });
     });

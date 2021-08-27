@@ -74,7 +74,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
           .build();
 
         discoverStorage(client, data);
-        discoverSize(cluster, data, region);
+        discoverSize(cluster, data, region, logger);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
@@ -93,7 +93,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Cluster resource, MagpieResource data, Region region) {
+  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());
@@ -113,7 +113,9 @@ public class RedshiftDiscovery implements AWSDiscovery {
         data.sizeInBytes = dataUsed.longValue();
         data.maxSizeInBytes = capacityAsBytes;
       }
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      logger.warn("Failure on Redshift disk space size discovery, Region - {}; ClusterIdentifier - {}",
+        region, resource.clusterIdentifier(), ex);
     }
   }
 }

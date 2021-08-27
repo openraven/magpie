@@ -16,10 +16,14 @@
 
 package io.openraven.magpie.plugins.aws.discovery;
 
+import io.openraven.magpie.plugins.aws.discovery.exception.AwsDiscoveryException;
+
 import java.io.IOException;
 import java.util.Properties;
 
 public class VersionProvider {
+  private static final String RESOURCE = "version.properties";
+
   private final String awsSdkVersion;
   private final String projectVersion;
 
@@ -27,8 +31,9 @@ public class VersionProvider {
 
     Properties properties = new Properties();
     try {
-      properties.load(getClass().getClassLoader().getResourceAsStream("version.properties"));
+      properties.load(getClass().getClassLoader().getResourceAsStream(RESOURCE));
     } catch (IOException e) {
+      throw new AwsDiscoveryException("Unable to parse properties from version.properties resource", e);
     }
 
     awsSdkVersion = properties.getProperty("aws.sdk.version");

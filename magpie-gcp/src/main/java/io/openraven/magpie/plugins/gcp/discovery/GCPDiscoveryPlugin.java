@@ -22,6 +22,7 @@ import com.google.cloud.resourcemanager.v3.ProjectsClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.services.*;
 import io.sentry.Sentry;
 import org.slf4j.Logger;

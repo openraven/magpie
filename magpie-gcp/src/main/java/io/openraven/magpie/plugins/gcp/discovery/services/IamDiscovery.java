@@ -55,7 +55,7 @@ public class IamDiscovery implements GCPDiscovery {
       discoverServiceAccounts(iamService, mapper, projectId, session, emitter);
       discoverRoles(iamService, mapper, projectId, session, emitter);
     } catch (GeneralSecurityException | IOException e) {
-      e.printStackTrace();
+      logger.error("Unable to finish IAM discovery, due to:", e);
     }
   }
 
