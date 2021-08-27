@@ -66,8 +66,9 @@ public class LambdaDiscoveryIT extends BaseIAMServiceIT {
   private void assertBase(MagpieEnvelope envelope) {
     var base = envelope.getContents();
     assertNotNull(base.get("documentId"));
-    assertTrue(base.get("assetId").asText().contains("arn:aws:lambda:us-west-1:000000000000:function:integration-stack"));
-    assertNotNull(base.get("resourceName").asText());
+    assertEquals("arn:aws:lambda:us-west-1:000000000000:function:cf-integration-test-lambda-function",
+      base.get("assetId").asText());
+    assertEquals("cf-integration-test-lambda-function", base.get("resourceName").asText());
     assertNotNull(base.get("resourceId").asText());
     assertEquals("AWS::Lambda::Function", base.get("resourceType").asText());
     assertEquals(ACCOUNT, base.get("accountId").asText());
@@ -76,14 +77,14 @@ public class LambdaDiscoveryIT extends BaseIAMServiceIT {
 
   private void assertConfiguration(MagpieEnvelope envelope) {
     var configuration = envelope.getContents().get("configuration");
-    assertTrue(configuration.get("functionName").asText().contains("lambda"));
-    assertTrue(configuration.get("functionArn").asText()
-      .contains("arn:aws:lambda:us-west-1:000000000000:function:integration-stack"));
+    assertEquals("cf-integration-test-lambda-function",
+      configuration.get("functionName").asText());
+    assertEquals("arn:aws:lambda:us-west-1:000000000000:function:cf-integration-test-lambda-function",
+      configuration.get("functionArn").asText());
     assertEquals("nodejs12.x", configuration.get("runtime").asText());
     assertEquals("arn:aws:iam::000000000000:role/lambda-role", configuration.get("role").asText());
     assertEquals("index.handler", configuration.get("handler").asText());
     assertEquals("$LATEST", configuration.get("version").asText());
     assertEquals("Zip", configuration.get("packageType").asText());
   }
-
 }
