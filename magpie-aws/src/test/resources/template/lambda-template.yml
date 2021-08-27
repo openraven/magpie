@@ -3,6 +3,7 @@ Resources:
   function:
     Type: AWS::Lambda::Function
     Properties:
+      FunctionName: cf-integration-test-lambda-function
       Handler: index.handler
       Role: arn:aws:iam::123456789012:role/lambda-role
       Code:
