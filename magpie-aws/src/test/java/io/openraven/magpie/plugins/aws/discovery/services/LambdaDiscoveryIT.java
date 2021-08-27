@@ -76,6 +76,7 @@ public class LambdaDiscoveryIT extends BaseIAMServiceIT {
 
   private void assertConfiguration(MagpieEnvelope envelope) {
     var configuration = envelope.getContents().get("configuration");
+    System.out.println("Lambda configuration: " + configuration.toString());
     assertTrue(configuration.get("functionName").asText().contains("lambda"));
     assertTrue(configuration.get("functionArn").asText()
       .contains("arn:aws:lambda:us-west-1:000000000000:function:integration-stack"));
