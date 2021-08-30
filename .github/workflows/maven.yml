@@ -60,5 +60,5 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: quay.io/openraven/magpie-cspm:latest
+          tags: quay.io/openraven/magpie:latest
 
