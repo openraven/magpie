@@ -29,8 +29,7 @@ public class Rule {
   private boolean manualControl = false;
   private String sql;
   private String eval;
-  private String remediation;
-  private List<String> remediationDocURLs = new ArrayList<>();
+  private String remediationDocURLs;
   private String version;
   private String fileName;
 
@@ -117,19 +116,11 @@ public class Rule {
     this.sql = sql;
   }
 
-  public String getRemediation() {
-    return remediation;
-  }
-
-  public void setRemediation(String remediation) {
-    this.remediation = remediation;
-  }
-
-  public List<String> getRemediationDocURLs() {
+  public String getRemediationDocURLs() {
     return remediationDocURLs;
   }
 
-  public void setRemediationDocURLs(List<String> remediationDocURLs) {
+  public void setRemediationDocURLs(String remediationDocURLs) {
     this.remediationDocURLs = remediationDocURLs;
   }
 
