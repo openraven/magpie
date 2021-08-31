@@ -73,7 +73,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
         yamlRule.setFileName(ruleFileName);
         rules.add(yamlRule);
-        LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
+        LOGGER.info("Successfully loaded rule {}", yamlRule.getRuleId());
       } catch (IOException yamlIOException) {
         LOGGER.error(yamlIOException.getMessage());
       }
@@ -134,7 +134,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     try {
       Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
-      LOGGER.info("Successfully loaded policy: {}", policy.getId());
+      LOGGER.info("Successfully loaded policy: {}", policy.getPolicyId());
 
       return policy;
     } catch (IOException yamlIOException) {
