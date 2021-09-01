@@ -88,6 +88,7 @@ public class DataCatalogDiscovery implements GCPDiscovery {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, entryGroup.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
+              .withRegion(location)
               .withConfiguration(GCPUtils.asJsonNode(entryGroup))
               .build();
 

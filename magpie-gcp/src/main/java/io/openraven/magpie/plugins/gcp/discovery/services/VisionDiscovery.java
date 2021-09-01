@@ -64,6 +64,7 @@ public class VisionDiscovery implements GCPDiscovery {
       var data = new MagpieResource.MagpieResourceBuilder(mapper, product.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
+        .withRegion(location)
         .withConfiguration(GCPUtils.asJsonNode(product))
         .build();
 
@@ -79,6 +80,7 @@ public class VisionDiscovery implements GCPDiscovery {
       var data = new MagpieResource.MagpieResourceBuilder(mapper, product.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
+        .withRegion(location)
         .withConfiguration(GCPUtils.asJsonNode(product))
         .build();
 

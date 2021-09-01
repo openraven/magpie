@@ -93,6 +93,7 @@ public class KMSDiscovery implements GCPDiscovery {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, keyRing.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
+            .withRegion(location)
             .withConfiguration(GCPUtils.asJsonNode(keyRing))
             .build();
 

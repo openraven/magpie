@@ -85,6 +85,7 @@ public class TasksDiscovery implements GCPDiscovery {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
+              .withRegion(location)
               .withConfiguration(GCPUtils.asJsonNode(element))
               .build();
 

@@ -75,6 +75,7 @@ public class SchedulerDiscovery implements GCPDiscovery {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, job.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
+              .withRegion(location)
               .withConfiguration(GCPUtils.asJsonNode(job))
               .build();
 

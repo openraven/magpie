@@ -89,6 +89,7 @@ public class DataprocDiscovery implements GCPDiscovery {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
+            .withRegion(location)
             .withConfiguration(GCPUtils.asJsonNode(cluster))
             .build();
 
@@ -115,6 +116,7 @@ public class DataprocDiscovery implements GCPDiscovery {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
+            .withRegion(location)
             .withConfiguration(GCPUtils.asJsonNode(job))
             .build();
 
