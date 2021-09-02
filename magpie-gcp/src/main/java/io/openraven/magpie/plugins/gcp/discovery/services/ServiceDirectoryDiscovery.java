@@ -88,6 +88,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
+              .withRegion(location)
               .withConfiguration(GCPUtils.asJsonNode(service.toBuilder()))
               .build();
 

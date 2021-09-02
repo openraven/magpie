@@ -51,6 +51,7 @@ public class TranslateDiscovery implements GCPDiscovery {
             var data = new MagpieResource.MagpieResourceBuilder(mapper, glossary.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
+              .withRegion(location)
               .withConfiguration(GCPUtils.asJsonNode(glossary))
               .build();
 

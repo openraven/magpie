@@ -90,6 +90,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, reservation.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
+          .withRegion(location)
           .withConfiguration(GCPUtils.asJsonNode(reservation))
           .build();
 
@@ -120,6 +121,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, capacityCommitment.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
+          .withRegion(location)
           .withConfiguration(GCPUtils.asJsonNode(capacityCommitment))
           .build();
 
