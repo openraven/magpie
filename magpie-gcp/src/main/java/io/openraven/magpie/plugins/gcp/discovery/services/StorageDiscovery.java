@@ -17,6 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.cloud.Policy;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.openraven.magpie.api.Emitter;
@@ -44,10 +47,19 @@ public class StorageDiscovery implements GCPDiscovery {
       var data = new MagpieResource.MagpieResourceBuilder(mapper, bucket.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
+        .withRegion(bucket.getLocation().toLowerCase())
         .withConfiguration(GCPUtils.asJsonNode(bucket))
         .build();
 
+      discoverBucketPolicy(data, bucket);
+
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
     });
+  }
+
+  private void discoverBucketPolicy(MagpieResource data, Bucket bucket) {
+    String fieldName = "iamPolicy";
+    Policy iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, iamPolicy));
   }
 }
