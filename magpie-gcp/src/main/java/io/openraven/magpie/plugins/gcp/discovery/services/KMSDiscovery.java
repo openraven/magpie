@@ -110,7 +110,7 @@ public class KMSDiscovery implements GCPDiscovery {
   private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, MagpieResource data) {
     final String fieldName = "keys";
 
-    ArrayList<CryptoKey.Builder> list = new ArrayList<>();
+    List<CryptoKey.Builder> list = new ArrayList<>();
     keyManagementServiceClient.listCryptoKeys(keyRing.getName()).iterateAll()
       .forEach(key -> list.add(key.toBuilder()));
 
