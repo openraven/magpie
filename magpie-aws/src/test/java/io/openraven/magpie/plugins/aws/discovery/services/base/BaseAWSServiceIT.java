@@ -37,7 +37,7 @@ public abstract class BaseAWSServiceIT {
     .findAndRegisterModules();
 
   protected static LocalStackContainer localStackContainer =
-    new LocalStackContainer(DockerImageName.parse("localstack/localstack:latest"))
+    new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.12.16"))
       .withExposedPorts(EXPOSED_EDGE_PORT)
       .withEnv("DEFAULT_REGION", BASE_REGION.id())
       .withEnv("DEBUG", "1")
