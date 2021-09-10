@@ -301,6 +301,7 @@ Magpie also supports GCP as a core plugin out of the box. Checked boxes are comp
 - [ ]  Speech-to-Text
 - [ ]  Text-to-Speech
 - [ ]  Video Intelligence API
+- [x]  VPC
 - [ ]  Web Risk
 - [x]  Web Security Scanner
 - [x]  reCAPTCHA Enterprise
