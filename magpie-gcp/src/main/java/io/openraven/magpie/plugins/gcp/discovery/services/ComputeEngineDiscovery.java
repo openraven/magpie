@@ -17,19 +17,18 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.compute.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
-import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+
+import static io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider.create;
 
 public class ComputeEngineDiscovery implements GCPDiscovery {
   private static final String SERVICE = "computeEngine";
@@ -40,56 +39,61 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverZones(mapper, projectId, session, emitter);
+    discoverInstances(mapper, projectId, session, emitter);
+    discoverDisks(mapper, projectId, session, emitter);
   }
 
-  private void discoverZones(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ComputeEngine::Zone";
+  private void discoverInstances(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+    final String RESOURCE_TYPE = "GCP::ComputeEngine::Instance";
 
-    try (var client = ZoneClient.create()) {
-      for (var zone : client.listZones(projectId).iterateAll()) {
-        String assetId = String.format("%s::%s", RESOURCE_TYPE, zone.getName());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
-          .withProjectId(projectId)
-          .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(GCPUtils.asJsonNode(zone))
-          .build();
+    try (var instancesClient = InstanceClient.create();
+         var zoneClient = ZoneClient.create()) {
+      // On2 - we are listing all instances in all zones
+      zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
 
-        discoverInstances(zone, projectId, data);
-        discoverDisks(zone, projectId, data);
+        instancesClient.listInstances(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
+          .forEach(instance -> {
+            String assetId = String.format("%s::%s", instance.getName(), instance.getId());
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
+              .withProjectId(projectId)
+              .withResourceType(RESOURCE_TYPE)
+              .withRegion(zone.getName())
+              .withConfiguration(GCPUtils.asJsonNode(instance))
+              .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":zone"), data.toJsonNode()));
-      }
+            emitter.emit(create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
+          });
+
+      });
     } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
+      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
     }
   }
 
-  private void discoverInstances(Zone zone, String projectId, MagpieResource data) {
-    final String fieldName = "instances";
+  private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+    final String RESOURCE_TYPE = "GCP::ComputeEngine::Disk";
 
-    try (var instancesClient = InstanceClient.create()) {
-      ArrayList<Instance.Builder> list = new ArrayList<>();
-      instancesClient.listInstances(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
-        .forEach(task -> list.add(task.toBuilder()));
+    try (var diskClient = DiskClient.create();
+         var zoneClient = ZoneClient.create()) {
+      // On2 - we are listing all disks in all zones
+      zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
 
-      GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
+        diskClient.listDisks(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
+          .forEach(disk -> {
+            String assetId = String.format("%s::%s", disk.getName(), disk.getId());
+            var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
+              .withProjectId(projectId)
+              .withResourceType(RESOURCE_TYPE)
+              .withRegion(zone.getName())
+              .withConfiguration(GCPUtils.asJsonNode(disk))
+              .build();
+
+            emitter.emit(create(session, List.of(fullService() + ":disk"), data.toJsonNode()));
+          });
+
+      });
     } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Zone::Instance", e);
-    }
-  }
-
-  private void discoverDisks(Zone zone, String projectId, MagpieResource data) {
-    final String fieldName = "disks";
-
-    try (var instancesClient = DiskClient.create()) {
-      ArrayList<Disk.Builder> list = new ArrayList<>();
-      instancesClient.listDisks(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
-        .forEach(task -> list.add(task.toBuilder()));
-
-      GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
-    } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Zone::Disk", e);
+      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
     }
   }
 }
