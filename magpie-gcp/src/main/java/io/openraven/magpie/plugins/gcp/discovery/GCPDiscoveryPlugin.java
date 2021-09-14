@@ -68,6 +68,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new MonitoringDiscovery(),
     new MonitoringDashboardDiscovery(),
     new NetworkDiscovery(),
+    new ProjectDiscovery(),
     new IamDiscovery(),
     new IoTDiscovery(),
     new LoggingDiscovery(),
