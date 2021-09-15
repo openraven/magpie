@@ -21,6 +21,7 @@ import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.kms.v1.CryptoKey;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.cloud.kms.v1.LocationName;
+import com.google.iam.v1.Policy;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
@@ -89,6 +90,7 @@ public class KMSDiscovery implements GCPDiscovery {
     try (KeyManagementServiceClient keyManagementServiceClient = KeyManagementServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();
+
         keyManagementServiceClient.listKeyRings(parent).iterateAll().forEach(keyRing -> {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, keyRing.getName())
             .withProjectId(projectId)
@@ -110,10 +112,31 @@ public class KMSDiscovery implements GCPDiscovery {
   private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, MagpieResource data) {
     final String fieldName = "keys";
 
-    ArrayList<CryptoKey.Builder> list = new ArrayList<>();
+    ArrayList<KeyDto> list = new ArrayList<>();
     keyManagementServiceClient.listCryptoKeys(keyRing.getName()).iterateAll()
-      .forEach(key -> list.add(key.toBuilder()));
+      .forEach(key -> {
+        Policy iamPolicy = keyManagementServiceClient.getIamPolicy(key.getName());
+        list.add(new KeyDto(key.toBuilder(), iamPolicy.toBuilder()));
+      });
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
+  }
+
+  static class KeyDto {
+    private final CryptoKey.Builder cryptoKey;
+    private final Policy.Builder policy;
+
+    public KeyDto(CryptoKey.Builder cryptoKey, Policy.Builder policy) {
+      this.cryptoKey = cryptoKey;
+      this.policy = policy;
+    }
+
+    public CryptoKey.Builder getCryptoKey() {
+      return cryptoKey;
+    }
+
+    public Policy.Builder getPolicy() {
+      return policy;
+    }
   }
 }
