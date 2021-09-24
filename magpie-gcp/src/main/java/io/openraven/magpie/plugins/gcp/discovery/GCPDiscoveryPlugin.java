@@ -100,6 +100,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
       .filter(service -> isEnabled(service.service()))
       .forEach(gcpDiscovery -> {
         try {
+          logger.debug("Discovering service: {}, class: {}", gcpDiscovery.service(), gcpDiscovery.getClass());
           gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger);
         } catch (PermissionDeniedException permissionDeniedException) {
           logger.error("{} While discovering {} service in {}", permissionDeniedException.getMessage(), gcpDiscovery.service(), project);
