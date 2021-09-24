@@ -17,8 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.Dataset;
+import com.google.cloud.bigquery.Table;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
@@ -26,6 +29,7 @@ import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BigQueryDiscovery implements GCPDiscovery {
@@ -41,14 +45,30 @@ public class BigQueryDiscovery implements GCPDiscovery {
 
     final String RESOURCE_TYPE = "GCP::BigQuery::Dataset";
     bigQuery.listDatasets(projectId).iterateAll()
-      .forEach(dataset -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, dataset.getGeneratedId())
+      .forEach(datasetProxy -> {
+        Dataset datasetModel = bigQuery.getDataset(datasetProxy.getDatasetId());
+        var data = new MagpieResource.MagpieResourceBuilder(mapper, datasetProxy.getGeneratedId())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(GCPUtils.asJsonNode(dataset))
+          .withConfiguration(GCPUtils.asJsonNode(datasetModel))
           .build();
+
+        discoverTables(bigQuery, datasetProxy, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dataset"), data.toJsonNode()));
       });
   }
+
+  private void discoverTables(BigQuery bigQuery, Dataset dataset, MagpieResource data) {
+    String fieldName = "tables";
+
+    List<Table> tables = new ArrayList<>();
+    bigQuery.listTables(dataset.getDatasetId()).iterateAll()
+      .forEach(tableProxy -> {
+        tables.add(bigQuery.getTable(tableProxy.getTableId()));
+      });
+
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, tables));
+  }
+
 }
