@@ -253,6 +253,11 @@
       <artifactId>google-api-services-iam</artifactId>
       <version>v1-rev20210519-1.31.5</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-sqladmin</artifactId>
+      <version>v1-rev20210913-1.32.1</version>
+    </dependency>
 
     <dependency>
       <groupId>com.google.appengine</groupId>
