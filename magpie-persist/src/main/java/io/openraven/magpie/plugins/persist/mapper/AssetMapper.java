@@ -53,4 +53,5 @@ public class AssetMapper {
 
     return assetModel;
   }
+
 }

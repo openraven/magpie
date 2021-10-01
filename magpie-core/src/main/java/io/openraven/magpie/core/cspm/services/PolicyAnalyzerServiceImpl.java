@@ -22,11 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*;
 
@@ -118,8 +114,13 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     LOGGER.info("Analyzing rule - {}", rule.getRuleName());
     LocalDateTime evaluatedAt = LocalDateTime.now();
-
-    var results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
+    List<Map<String, Object>> results;
+    try {
+      results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
+    } catch (Exception exc) {
+      LOGGER.error("Failed to execute rule: {} with exception: {}", rule.getRuleName(), exc.getMessage());
+      results = Collections.emptyList();
+    }
 
     StringWriter evalErr = new StringWriter();
     if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
