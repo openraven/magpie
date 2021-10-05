@@ -82,8 +82,8 @@ public class Violation {
   @Override
   public String toString() {
     return "Violation{" +
-      "policy=" + policy +
-      ", rule=" + rule +
+      "policy=" + policy.getPolicyId() +
+      ", rule=" + rule.getRuleId() +
       ", assetId='" + assetId + '\'' +
       ", info='" + info + '\'' +
       ", error='" + error + '\'' +

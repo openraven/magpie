@@ -9985,48 +9985,6 @@
       "keys" : [ {
         "keyAlgorithm" : "KEY_ALG_RSA_2048",
         "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "SYSTEM_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/a5d982ff3cb3fbb3b42af166e9316f43a6bd2c5d",
-        "validAfterTime" : "2021-09-23T15:47:12Z",
-        "validBeforeTime" : "2021-10-09T15:47:12Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "USER_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/7485a14020c533797687c4f6b9c8e4304269fcc8",
-        "validAfterTime" : "2021-06-04T12:52:07Z",
-        "validBeforeTime" : "9999-12-31T23:59:59Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "USER_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/7d87ee8f4f963e38a95817db4d0e334101faf3fe",
-        "validAfterTime" : "2021-06-14T14:27:40Z",
-        "validBeforeTime" : "9999-12-31T23:59:59Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "USER_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/2b01973cb73a9d4d5df5aa7916b236f2bd6b4cb0",
-        "validAfterTime" : "2021-06-15T10:41:27Z",
-        "validBeforeTime" : "9999-12-31T23:59:59Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "USER_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/f77242e3e9c06ddbe812cc620ed664c6ae0a5f80",
-        "validAfterTime" : "2021-06-15T12:43:36Z",
-        "validBeforeTime" : "9999-12-31T23:59:59Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
-        "keyType" : "USER_MANAGED",
-        "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/a0266844e253f2b8991024b7543c95b7abf6f760",
-        "validAfterTime" : "2021-06-25T19:08:58Z",
-        "validBeforeTime" : "9999-12-31T23:59:59Z"
-      }, {
-        "keyAlgorithm" : "KEY_ALG_RSA_2048",
-        "keyOrigin" : "GOOGLE_PROVIDED",
         "keyType" : "USER_MANAGED",
         "name" : "projects/oss-discovery-test/serviceAccounts/oss-discovery-test@appspot.gserviceaccount.com/keys/336cc195ed4ceeda3640e1132443a9376e1e4cc9",
         "validAfterTime" : "2021-07-08T16:34:25Z",

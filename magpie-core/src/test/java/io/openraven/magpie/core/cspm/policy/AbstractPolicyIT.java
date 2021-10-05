@@ -10,13 +10,18 @@ import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PluginConfig;
 import io.openraven.magpie.core.config.PolicyConfig;
+import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.ScanResults;
+import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.PolicyContext;
+import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.core.cspm.services.PolicyAcquisitionServiceImpl;
 import io.openraven.magpie.core.cspm.services.PolicyAnalyzerServiceImpl;
 import io.openraven.magpie.plugins.persist.*;
 import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
 import org.junit.jupiter.api.BeforeAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
@@ -29,21 +34,29 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class AbstractPolicyIT {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(GcpCisBenchmarkPolicyIT.class);
+
   private static final List<String> REPOSITORIES = List.of("https://github.com/openraven/security-rules.git");
+  private static final String GCP_ASSETS_PATH = "/json/gcp-assets.json";
+  private static final String AWS_ASSETS_PATH = "/json/aws-assets.json";
+
   protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
   private static PluginConfig<PersistConfig> pluginConfig;
   private static AssetsRepo assetsRepo;
 
   protected static Map<String, PolicyContext> policyMap;
 
-  @BeforeAll
-  static void setUp() {
+  // Before all extended
+  static {
     var postgreSQLContainerProvider = new PostgreSQLContainerProvider();
     var jdbcDatabaseContainer = postgreSQLContainerProvider.newInstance();
     jdbcDatabaseContainer.start();
 
     persistenceSetup(jdbcDatabaseContainer);
     policyMap = loadPolicies();
+
+    populateAssetData(GCP_ASSETS_PATH);
+    populateAssetData(AWS_ASSETS_PATH);
   }
 
   private static void persistenceSetup(JdbcDatabaseContainer jdbcDatabaseContainer) {
@@ -92,11 +105,16 @@ public abstract class AbstractPolicyIT {
     return scanResults;
   }
 
-  protected void populateAssetData(String assetsResourcePath) throws JsonProcessingException {
+  protected static void populateAssetData(String assetsResourcePath)  {
     AssetMapper assetMapper = new AssetMapper();
     String assetsJson = getResourceAsString(assetsResourcePath);
 
-    List<ObjectNode> resources = MAPPER.readValue(assetsJson, new TypeReference<List<ObjectNode>>(){});
+    List<ObjectNode> resources = null;
+    try {
+      resources = MAPPER.readValue(assetsJson, new TypeReference<List<ObjectNode>>(){});
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Unable to deserialize assets from file: " + assetsResourcePath);
+    }
 
     resources.forEach(asset -> {
       MagpieEnvelope envelope = new MagpieEnvelope();
@@ -116,6 +134,34 @@ public abstract class AbstractPolicyIT {
       Objects.requireNonNull(AbstractPolicyIT.class.getResourceAsStream(resourcePath)),
       StandardCharsets.UTF_8)
       .useDelimiter("\\A").next();
+  }
+
+  protected Set<String> getIgnoredRulesByType(List<IgnoredRule> ignoredRules, IgnoredRule.IgnoredReason reason) {
+    return ignoredRules
+      .stream()
+      .filter(ignoredRule -> reason.equals(ignoredRule.getIgnoredReason()))
+      .map(ignoredRule -> ignoredRule.getRule().getFileName())
+      .collect(Collectors.toSet());
+  }
+
+  protected Set<String> getMissedViolationRules(PolicyContext policyContext, Map<String, String> violatedAssetsPerRule) {
+    return policyContext.getPolicy().getRules()
+      .stream()
+      .filter(rule -> !rule.isManualControl())
+      .filter(Rule::isEnabled)
+      .map(Rule::getRuleId)
+      .filter(ruleId -> Objects.isNull(violatedAssetsPerRule.get(ruleId)))
+      .peek(ruleId -> LOGGER.info("Missing violation. RuleId: {}", ruleId))
+      .collect(Collectors.toSet());
+  }
+
+  protected Map<String, String> getViolatedAssetsByRule(List<Violation> violations) {
+    Map<String, String> violatedAssetsPerRule = new TreeMap<>();
+    for (Violation violation : violations) {
+      violatedAssetsPerRule.put(violation.getRule().getRuleId(), violation.getAssetId());
+    }
+    violatedAssetsPerRule.forEach((ruleId, asset) -> System.out.println(ruleId + ": \"" + asset + "\""));
+    return violatedAssetsPerRule;
   }
 
 }
