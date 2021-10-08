@@ -15,9 +15,6 @@
  */
 package io.openraven.magpie.core.cspm.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Rule {
   private final String type = "asset";
   private String id;

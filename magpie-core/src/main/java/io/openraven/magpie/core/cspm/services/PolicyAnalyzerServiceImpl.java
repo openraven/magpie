@@ -22,7 +22,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*;
 
@@ -89,7 +93,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       .mapTo(Boolean.class).findFirst().orElseThrow());
   }
 
-  private void executeRule(List<Violation> policyViolations,
+  protected void executeRule(List<Violation> policyViolations,
                            List<IgnoredRule> policyIgnoredRules,
                            Policy policy,
                            Rule rule) {
@@ -114,13 +118,8 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     LOGGER.info("Analyzing rule - {}", rule.getRuleName());
     LocalDateTime evaluatedAt = LocalDateTime.now();
-    List<Map<String, Object>> results;
-    try {
-      results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
-    } catch (Exception exc) {
-      LOGGER.error("Failed to execute rule: {} with exception: {}", rule.getRuleName(), exc.getMessage());
-      results = Collections.emptyList();
-    }
+
+    var results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
 
     StringWriter evalErr = new StringWriter();
     if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {

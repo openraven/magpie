@@ -215,7 +215,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .replace(".git", "");
   }
 
-  private Path getTargetProjectDirectoryPath(String repository) {
+  protected Path getTargetProjectDirectoryPath(String repository) {
     if (isGitRepository(repository)) {
       String[] tokens = repository
         .replace("git@", "")

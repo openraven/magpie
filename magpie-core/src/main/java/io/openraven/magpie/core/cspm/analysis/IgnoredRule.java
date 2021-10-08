@@ -45,8 +45,8 @@ public class IgnoredRule {
   @Override
   public String toString() {
     return "IgnoredRule{" +
-      "policy=" + policy.getPolicyId() +
-      ", rule=" + rule.getRuleId() +
+      "policy=" + policy +
+      ", rule=" + rule +
       ", ignoredReason=" + ignoredReason +
       '}';
   }
