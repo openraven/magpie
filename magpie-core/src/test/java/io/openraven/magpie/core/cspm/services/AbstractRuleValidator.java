@@ -15,14 +15,16 @@ import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.Policy;
 import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.Rule;
-import io.openraven.magpie.plugins.persist.*;
+import io.openraven.magpie.plugins.persist.AssetModel;
+import io.openraven.magpie.plugins.persist.AssetsRepo;
+import io.openraven.magpie.plugins.persist.FlywayMigrationService;
+import io.openraven.magpie.plugins.persist.PersistConfig;
+import io.openraven.magpie.plugins.persist.PersistPlugin;
 import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.junit.jupiter.api.AfterEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
@@ -37,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class AbstractRuleValidator {
 
-  private static final List<String> REPOSITORIES = List.of("https://github.com/openraven/security-rules.git");
+  private static final String DEFAULT_SECURITY_RULES_REPO = "https://github.com/openraven/security-rules.git";
+  private static final String REPOSITORY_PROPERTY = "repository";
   private static final AssetMapper ASSET_MAPPER = new AssetMapper();
   private static final PolicyAcquisitionServiceImpl policyAcquisitionService = new PolicyAcquisitionServiceImpl();
 
@@ -45,7 +48,6 @@ public abstract class AbstractRuleValidator {
   private static AssetsRepo assetsRepo;
   private static Jdbi jdbi;
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractRuleValidator.class);
   protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
   protected static Map<String, Rule> ruleMap;
 
@@ -85,7 +87,7 @@ public abstract class AbstractRuleValidator {
 
   protected static Map<String, Rule> loadRules() {
     PolicyConfig policyConfig = new PolicyConfig();
-    policyConfig.setRepositories(REPOSITORIES);
+    policyConfig.setRepositories(List.of(getSecurityRulesRepository()));
 
     MagpieConfig magpieConfig = new MagpieConfig();
     magpieConfig.setPolicies(policyConfig);
@@ -140,7 +142,15 @@ public abstract class AbstractRuleValidator {
   }
 
   protected static String getTargetProjectDirectoryPath() {
-    return policyAcquisitionService.getTargetProjectDirectoryPath(REPOSITORIES.get(0)).toString();
+    return policyAcquisitionService.getTargetProjectDirectoryPath(getSecurityRulesRepository()).toString();
+  }
+
+  private static String getSecurityRulesRepository() {
+    String repository = System.getProperty(REPOSITORY_PROPERTY);
+    if (repository == null) {
+      return DEFAULT_SECURITY_RULES_REPO;
+    }
+    return repository;
   }
 
   static class RuleTestResource {
