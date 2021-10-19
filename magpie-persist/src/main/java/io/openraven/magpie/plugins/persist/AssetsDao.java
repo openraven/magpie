@@ -24,8 +24,10 @@ import java.time.Instant;
 
 public interface AssetsDao {
 
-  @SqlUpdate("DELETE FROM assets WHERE asset_id = :id")
-  void removeRecord(@Bind("id") String assetId);
+  @SqlUpdate("DELETE FROM assets WHERE asset_id = :id AND resource_type = :resourceType AND account_id = :accountId")
+  void removeRecord(@Bind("id") String assetId,
+                    @Bind("resourceType") String resourceType,
+                    @Bind("accountId") String accountId);
 
   @SqlUpdate("" +
     "INSERT INTO assets (" +
