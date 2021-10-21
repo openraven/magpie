@@ -17,7 +17,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
-    <magpie.api.version>0.2.1</magpie.api.version>
+    <magpie.api.version>0.3.0</magpie.api.version>
   </properties>
 
   <dependencyManagement>
