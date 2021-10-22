@@ -52,8 +52,8 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(GlacierClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    final var client = clientCreator.apply(GlacierClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Glacier::Vault";
 
     try {

@@ -24,13 +24,21 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
-import software.amazon.awssdk.services.kms.model.*;
+import software.amazon.awssdk.services.kms.model.AliasListEntry;
+import software.amazon.awssdk.services.kms.model.GetKeyRotationStatusRequest;
+import software.amazon.awssdk.services.kms.model.KeyListEntry;
+import software.amazon.awssdk.services.kms.model.ListAliasesRequest;
+import software.amazon.awssdk.services.kms.model.ListGrantsRequest;
+import software.amazon.awssdk.services.kms.model.ListKeyPoliciesRequest;
+import software.amazon.awssdk.services.kms.model.ListResourceTagsRequest;
+import software.amazon.awssdk.services.kms.model.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -53,8 +61,8 @@ public class KMSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(KmsClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    final var client = clientCreator.apply(KmsClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Kms::Key";
 
     try {

@@ -19,6 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery;
 import java.util.List;
 
 public class AWSDiscoveryConfig {
+  private List<String> assumedRoles = List.of();
   private List<String> services = List.of();
   private List<String> regions = List.of();
   private List<String> ignoredRegions = List.of();
@@ -50,5 +51,13 @@ public class AWSDiscoveryConfig {
 
   public void setIgnoredRegions(List<String> ignoredRegions) {
     this.ignoredRegions = ignoredRegions;
+  }
+
+  public List<String> getAssumedRoles() {
+    return assumedRoles;
+  }
+
+  public void setAssumedRoles(List<String> assumedRoles) {
+    this.assumedRoles = assumedRoles;
   }
 }

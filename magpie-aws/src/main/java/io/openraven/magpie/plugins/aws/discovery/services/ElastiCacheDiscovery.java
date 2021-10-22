@@ -22,6 +22,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -37,7 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.*;
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchDoubleMetricMaximum;
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchMetricMaximum;
 
 public class ElastiCacheDiscovery implements AWSDiscovery {
 
@@ -54,8 +56,8 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(ElastiCacheClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    final var client = clientCreator.apply(ElastiCacheClient.builder()).build();
     final  String RESOURCE_TYPE = "AWS::ElastiCache::Cluster";
 
     try {
@@ -69,7 +71,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
           .withRegion(region.toString())
           .build();
 
-        discoverRedisSize(cacheCluster, data, region.id());
+        discoverRedisSize(cacheCluster, data, region.id(), clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cacheCluster"), data.toJsonNode()));
       });
@@ -78,15 +80,15 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverRedisSize(CacheCluster resource, MagpieResource data, String region) {
+  private void discoverRedisSize(CacheCluster resource, MagpieResource data, String region, MagpieAWSClientCreator clientCreator) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("CacheClusterId").value(resource.cacheClusterId()).build());
 
     Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
-      getCloudwatchMetricMaximum(region, "AWS/ElastiCache", "BytesUsedForCache", dimensions);
+      getCloudwatchMetricMaximum(region, "AWS/ElastiCache", "BytesUsedForCache", dimensions, clientCreator);
 
     Pair<Double, GetMetricStatisticsResponse> DatabaseMemoryUsagePercentage =
-      getCloudwatchDoubleMetricMaximum(region, "AWS/ElastiCache", "DatabaseMemoryUsagePercentage", dimensions);
+      getCloudwatchDoubleMetricMaximum(region, "AWS/ElastiCache", "DatabaseMemoryUsagePercentage", dimensions, clientCreator);
 
     if (volumeBytesUsed.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration, Map.of(

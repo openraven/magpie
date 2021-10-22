@@ -46,7 +46,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final var client = CloudWatchLogsClient.builder().region(region).build();
 
     discoverLogs(mapper, session, region, emitter, client, account);

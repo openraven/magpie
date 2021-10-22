@@ -23,19 +23,23 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.DescribeGlobalTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.ListTagsOfResourceRequest;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
+import software.amazon.awssdk.services.dynamodb.model.Tag;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.configure;
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
 public class DynamoDbDiscovery implements AWSDiscovery {
@@ -54,8 +58,8 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = configure(DynamoDbClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    final var client = clientCreator.apply(DynamoDbClient.builder()).build();
 
     discoverGlobalTables(mapper, session, region, emitter, client, account);
     discoverTables(mapper, session, region, emitter, client, account);

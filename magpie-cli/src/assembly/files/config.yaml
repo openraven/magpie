@@ -24,6 +24,10 @@ services:
 plugins:
   magpie.aws.discovery:
     enabled: true
+    assumedRoles:
+#      - <role arn 1>
+#      - <role arn 2>
+#      - etc...
     config:
       services:
 #      By default all AWS services are scanned. Uncomment the below lines to enable only select services.

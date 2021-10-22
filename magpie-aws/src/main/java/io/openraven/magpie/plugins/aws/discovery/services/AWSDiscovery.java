@@ -23,6 +23,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 
@@ -31,15 +32,28 @@ import java.util.Map;
 
 public interface AWSDiscovery {
 
-  String service();
+//  interface ClientFunction<R,B extends AwsClientBuilder,C extends SdkClient> extends BiFunction<R, B<B, C>,C> {
+//    default AwsClientBuilder apply() {
+//     return null;
+//    }
+//  }
 
-  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
+  String service();
+//  default <B extends AwsClientBuilder<B, C>,C extends SdkClient> void discoverWrapper(ObjectMapper mapper, Session session, Region region,
+//                                                                                      Emitter emitter, Logger logger, String account,
+//
+//                                                                                      BiFunction<Region, B, C> t) {
+//
+////    t.apply(Region.AP_EAST_1, )
+//  }
+
+  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     logger.debug("Starting {} discovery in {}", service(), region);
-    discover(mapper, session, region, emitter, logger, account);
+    discover(mapper, session, region, emitter, logger, account, MagpieAWSClientCreator clientCreator);
     logger.debug("Completed {} discovery in {}", service(), region);
   }
 
-  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account);
+  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator);
 
   default void discoverBackupJobs(String arn, Region region, MagpieResource data) {
     final var backups = BackupUtils.listBackupJobs(arn, region);

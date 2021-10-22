@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -32,7 +33,14 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.qldb.QldbClient;
-import software.amazon.awssdk.services.qldb.model.*;
+import software.amazon.awssdk.services.qldb.model.DescribeLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.DescribeLedgerResponse;
+import software.amazon.awssdk.services.qldb.model.ListJournalKinesisStreamsForLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.ListJournalKinesisStreamsForLedgerResponse;
+import software.amazon.awssdk.services.qldb.model.ListJournalS3ExportsForLedgerRequest;
+import software.amazon.awssdk.services.qldb.model.ListJournalS3ExportsForLedgerResponse;
+import software.amazon.awssdk.services.qldb.model.ListLedgersRequest;
+import software.amazon.awssdk.services.qldb.model.ListTagsForResourceRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,8 +65,8 @@ public class QLDBDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(QldbClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    final var client = clientCreator.apply(QldbClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Qldb::Ledger";
 
     try {
@@ -79,7 +87,7 @@ public class QLDBDiscovery implements AWSDiscovery {
             discoverStreams(client, ledger, data);
             discoverJournalS3Exports(client, ledger, data);
             discoverTags(client, ledger, data, mapper);
-            discoverSize(ledger, data, region);
+            discoverSize(ledger, data, region, clientCreator);
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":ledger"), data.toJsonNode()));
           }));
@@ -124,13 +132,13 @@ public class QLDBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DescribeLedgerResponse resource, MagpieResource data, Region region) {
+  private void discoverSize(DescribeLedgerResponse resource, MagpieResource data, Region region, MagpieAWSClientCreator clientCreator) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("LedgerName").value(resource.name()).build());
 
     Pair<Long, GetMetricStatisticsResponse> clusterSize =
-      getCloudwatchMetricMaximum(region.toString(), "AWS/QLDB", "JournalStorage", dimensions);
+      getCloudwatchMetricMaximum(region.toString(), "AWS/QLDB", "JournalStorage", dimensions, clientCreator);
 
     if (clusterSize.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration, Map.of("JournalStorage", clusterSize.getValue0()));
