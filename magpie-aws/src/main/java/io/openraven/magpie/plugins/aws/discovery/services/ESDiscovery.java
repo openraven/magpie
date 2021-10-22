@@ -75,7 +75,7 @@ public class ESDiscovery implements AWSDiscovery {
             .build();
 
           discoverTags(client, domain, data, mapper);
-          discoverSize(domain, data, region, account, logger);
+          discoverSize(domain, data, region, account, logger, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode()));
         });
@@ -96,14 +96,14 @@ public class ESDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger) {
+  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DomainName").value(resource.domainName()).build());
       dimensions.add(Dimension.builder().name("ClientId").value(account).build());
 
       Pair<Double, GetMetricStatisticsResponse> clusterUsedSpace =
-        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/ES", "ClusterUsedSpace", dimensions);
+        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/ES", "ClusterUsedSpace", dimensions, clientCreator);
 
       if (clusterUsedSpace.getSize() > 0) {
         final int numNodes = resource.elasticsearchClusterConfig().instanceCount();

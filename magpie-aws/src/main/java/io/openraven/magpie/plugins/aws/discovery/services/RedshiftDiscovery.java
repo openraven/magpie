@@ -75,7 +75,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
           .build();
 
         discoverStorage(client, data);
-        discoverSize(cluster, data, region, logger);
+        discoverSize(cluster, data, region, logger, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
@@ -94,12 +94,12 @@ public class RedshiftDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger) {
+  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());
       Pair<Double, GetMetricStatisticsResponse> percentageDiskSpaceUsed =
-        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/Redshift", "PercentageDiskSpaceUsed", dimensions);
+        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/Redshift", "PercentageDiskSpaceUsed", dimensions, clientCreator);
 
       AWSUtils.update(data.supplementaryConfiguration, Map.of("PercentageDiskSpaceUsed", percentageDiskSpaceUsed.getValue0()));
 

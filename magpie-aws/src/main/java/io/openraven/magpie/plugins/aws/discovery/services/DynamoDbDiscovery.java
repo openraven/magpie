@@ -62,7 +62,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     final var client = clientCreator.apply(DynamoDbClient.builder()).build();
 
     discoverGlobalTables(mapper, session, region, emitter, client, account);
-    discoverTables(mapper, session, region, emitter, client, account);
+    discoverTables(mapper, session, region, emitter, client, account, clientCreator);
   }
 
   protected void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
@@ -87,7 +87,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     }
   }
 
-  protected void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
+  protected void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
 
     try {
@@ -106,7 +106,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
           discoverContinuousBackups(client, table, data);
           discoverTags(client, table, data, mapper);
-          discoverBackupJobs(table.tableArn(), region, data);
+          discoverBackupJobs(table.tableArn(), region, data, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode()));
       });

@@ -35,19 +35,19 @@ public class BackupUtils {
 
   private static final Period HISTORY = Period.ofDays(45);
 
-  private static BackupClient getOrCreateClient(Region region) {
-    return CLIENTS.computeIfAbsent(region, r -> AWSUtils.configure(BackupClient.builder(), r));
+  private static BackupClient getOrCreateClient(Region region, MagpieAWSClientCreator clientCreator) {
+    return CLIENTS.computeIfAbsent(region, r -> clientCreator.apply(BackupClient.builder()).region(r).build());
   }
 
   public static void init(Region region, BackupClient client) {
     CLIENTS.put(region, client);
   }
 
-  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region) {
+  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
     List<BackupJob.Builder> jobs = new LinkedList<>();
     String nextToken = null;
     do {
-      final var result = getOrCreateClient(region).listBackupJobs(ListBackupJobsRequest.builder()
+      final var result = getOrCreateClient(region, clientCreator).listBackupJobs(ListBackupJobsRequest.builder()
         .byResourceArn(arn)
         .byCreatedAfter(Instant.now().minus(HISTORY))
         .byState(BackupJobState.COMPLETED)

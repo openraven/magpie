@@ -71,7 +71,7 @@ public class EFSDiscovery implements AWSDiscovery {
           .build();
 
         discoverMountTargets(client, fileSystem, data);
-        discoverBackupJobs(arn, region, data);
+        discoverBackupJobs(arn, region, data, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });

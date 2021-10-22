@@ -75,7 +75,7 @@ public class EC2Discovery implements AWSDiscovery {
 
     final var client = clientCreator.apply(Ec2Client.builder()).build();
 
-    discoverEc2Instances(mapper, session, client, region, emitter, account);
+    discoverEc2Instances(mapper, session, client, region, emitter, account, clientCreator);
     discoverEIPs(mapper, session, client, region, emitter, account);
     discoverSecurityGroups(mapper, session, client, region, emitter, account);
     discoverVolumes(mapper, session, client, region, emitter, account);
@@ -92,7 +92,7 @@ public class EC2Discovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::EC2::Instance";
     try {
       client.describeInstancesPaginator()
@@ -111,7 +111,7 @@ public class EC2Discovery implements AWSDiscovery {
               .build();
 
             massageInstanceTypeAndPublicIp(data, instance, mapper, region, RESOURCE_TYPE);
-            discoverBackupJobs(arn, region, data);
+            discoverBackupJobs(arn, region, data, clientCreator);
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
           })));
     } catch (SdkServiceException | SdkClientException ex) {
