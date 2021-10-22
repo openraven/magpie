@@ -318,9 +318,4 @@ class PolicyAnalyzerServiceIT {
       .collect(groupingBy(IgnoredRule::getPolicy));
   }
 
-  private Map<Policy, List<Violation>> remapViolations(ScanResults analyze) {
-    return analyze.getViolations().stream()
-      .collect(groupingBy(Violation::getPolicy, toList()));
-  }
-
 }
