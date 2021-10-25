@@ -124,7 +124,7 @@ public abstract class AbstractRuleValidator {
 
   protected void analyzeRule(List<Violation> violations,
                              List<IgnoredRule> ignoredRules,
-                             Rule rule) throws Exception {
+                             Rule rule) {
     MagpieConfig magpieConfig = new MagpieConfig();
     magpieConfig.setPlugins(Map.of(PersistPlugin.ID, pluginConfig));
 
@@ -156,10 +156,8 @@ public abstract class AbstractRuleValidator {
   static class RuleTestResource {
     private String ruleId;
     private String description;
-    private String violatedAssetId;
-    private String controlAssetId;
-    private String insecureAssetGroup;
-    private String secureAssetGroup;
+    private Map<String, String> insecureAssets;
+    private Map<String, String> secureAssets;
 
     public String getRuleId() {
       return ruleId;
@@ -177,36 +175,20 @@ public abstract class AbstractRuleValidator {
       this.description = description;
     }
 
-    public String getViolatedAssetId() {
-      return violatedAssetId;
+    public Map<String, String> getInsecureAssets() {
+      return insecureAssets;
     }
 
-    public void setViolatedAssetId(String violatedAssetId) {
-      this.violatedAssetId = violatedAssetId;
+    public void setInsecureAssets(Map<String, String> insecureAssets) {
+      this.insecureAssets = insecureAssets;
     }
 
-    public String getControlAssetId() {
-      return controlAssetId;
+    public Map<String, String> getSecureAssets() {
+      return secureAssets;
     }
 
-    public void setControlAssetId(String controlAssetId) {
-      this.controlAssetId = controlAssetId;
-    }
-
-    public String getInsecureAssetGroup() {
-      return insecureAssetGroup;
-    }
-
-    public void setInsecureAssetGroup(String insecureAssetGroup) {
-      this.insecureAssetGroup = insecureAssetGroup;
-    }
-
-    public String getSecureAssetGroup() {
-      return secureAssetGroup;
-    }
-
-    public void setSecureAssetGroup(String secureAssetGroup) {
-      this.secureAssetGroup = secureAssetGroup;
+    public void setSecureAssets(Map<String, String> secureAssets) {
+      this.secureAssets = secureAssets;
     }
   }
 
