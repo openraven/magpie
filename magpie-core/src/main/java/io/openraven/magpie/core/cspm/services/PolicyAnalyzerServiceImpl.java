@@ -93,7 +93,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       .mapTo(Boolean.class).findFirst().orElseThrow());
   }
 
-  private void executeRule(List<Violation> policyViolations,
+  protected void executeRule(List<Violation> policyViolations,
                            List<IgnoredRule> policyIgnoredRules,
                            Policy policy,
                            Rule rule) {

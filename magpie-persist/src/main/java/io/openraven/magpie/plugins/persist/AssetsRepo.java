@@ -34,7 +34,7 @@ public class AssetsRepo {
 
   public void upsert(AssetModel assetModel) {
     jdbi.useExtension(AssetsDao.class, dao -> {
-      dao.removeRecord(assetModel.getAssetId());
+      dao.removeRecord(assetModel.getAssetId(), assetModel.getResourceType(), assetModel.getAccountId());
       dao.insert(assetModel);
     });
   }
