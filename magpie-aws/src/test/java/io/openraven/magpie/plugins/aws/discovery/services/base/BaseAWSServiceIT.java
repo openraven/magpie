@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -67,7 +68,7 @@ public abstract class BaseAWSServiceIT {
   }
 
   protected static void initiateCloudFormationClient() {
-    cfClient = AWSUtils.configure(CloudFormationClient.builder(), BASE_REGION);
+    cfClient = ClientCreators.localClientCreator(BASE_REGION).apply(CloudFormationClient.builder()).build();
   }
 
   protected static void startStackWithResources(String templatePath) {

@@ -97,16 +97,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         final var regions = getRegionsForDiscovery(plugin);
         regions.forEach(region -> {
           try {
-            final var clientCreator = new MagpieAWSClientCreator(){
-              @Override
-              public <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> BuilderT apply(AwsClientBuilder<BuilderT, ClientT> builder) {
-                final var magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
-                if (magpieAwsEndpoint != null) {
-                  builder.endpointOverride(URI.create(magpieAwsEndpoint));
-                }
-                return builder.region(region);
-              }
-            };
+            final var clientCreator = ClientCreators.localClientCreator(region);
             plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
           } catch (Exception ex) {
             logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
