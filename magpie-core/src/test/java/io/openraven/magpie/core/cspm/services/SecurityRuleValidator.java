@@ -38,23 +38,28 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     assertTrue(filename.contains(ruleId), "ruleId is matching filename");
 
     // Insecure asset verification
-    String insecureAssetGroup = ruleTestResource.getInsecureAssetGroup();
-    List<Violation> violations = executeRule(insecureAssetGroup, rule);
-    assertEquals(1, violations.size(), () -> reportAssertion(filename, ruleId, "violated assets size"));
+    var insecureAssets = ruleTestResource.getInsecureAssets();
+    insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
 
-    Violation violation = violations.get(0);
-    assertEquals(ruleTestResource.getViolatedAssetId(), violation.getAssetId(),
-      () -> reportAssertion(filename, ruleId, "violated asset"));
-    assertNotEquals(ruleTestResource.getControlAssetId(), violation.getAssetId(),
-      () -> reportAssertion(filename, ruleId, "secure asset"));
+      List<Violation> violations = executeRule(insecureAssetGroup, rule);
+      assertEquals(1, violations.size(),
+        () -> reportAssertion(filename, ruleId, "violated assets size"));
 
-    cleanupAssets(); // Clean DB state before secure asset verification
+      Violation violation = violations.get(0);
+      assertEquals(targetAsset, violation.getAssetId(),
+        () -> reportAssertion(filename, ruleId, "violated asset"));
+
+      cleanupAssets(); // Clean DB state before secure asset verification
+    });
 
     // Secure asset verification
-    String secureAssetGroup = ruleTestResource.getSecureAssetGroup();
-    List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
-    assertEquals(0, secureSetupViolations.size(),
-      () -> reportAssertion(filename, ruleId, "secure setup violations"));
+    var secureAssets = ruleTestResource.getSecureAssets();
+    secureAssets.forEach((targetAsset, secureAssetGroup) -> {
+
+      List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
+      assertEquals(0, secureSetupViolations.size(),
+        () -> reportAssertion(filename, ruleId, "secure setup violations"));
+    });
   }
 
   private static Stream<Arguments> getResourceFiles() {
@@ -70,8 +75,8 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     return Stream.of(Arguments.of(testResourcePath));
   }
 
-  private List<Violation> executeRule(String assetGropupYml, Rule rule) throws Exception {
-    populateAssetData(assetGropupYml);
+  private List<Violation> executeRule(String assetGroup, Rule rule) {
+    populateAssetData(assetGroup);
 
     List<Violation> violations = new ArrayList<>();
     List<IgnoredRule> ignoredRules = new ArrayList<>();
