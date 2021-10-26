@@ -60,19 +60,6 @@ public class EC2Discovery implements AWSDiscovery {
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    ClientBuilder cb = null;
-
-    var c = cb.apply(Ec2Client.builder());
-
-
-
-//    var clientBuilder = new Function<BuilderT extends AwsClientBuilder<BuilderT, ClientT>, BuilderT extends AwsClientBuilder<BuilderT, ClientT>>() {
-//      public BuilderT apply(BuilderT foo) {
-//        return foo;
-//      }
-//    };
-
-
     final var client = clientCreator.apply(Ec2Client.builder()).build();
 
     discoverEc2Instances(mapper, session, client, region, emitter, account, clientCreator);
