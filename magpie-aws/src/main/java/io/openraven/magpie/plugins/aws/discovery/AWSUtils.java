@@ -200,19 +200,4 @@ public class AWSUtils {
       return client.getMetricStatistics(request);
     }
   }
-
-  public static String getAwsAccountId() {
-    return StsClient.create().getCallerIdentity().account();
-  }
-
-//  public static <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> ClientT configure(AwsClientBuilder<BuilderT, ClientT> builder, Region region) {
-//    // Remap magpie clients to local environment
-//    String magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
-//    if (magpieAwsEndpoint != null) {
-//      builder.endpointOverride(URI.create(magpieAwsEndpoint));
-//    }
-//    // Build for region only
-//    builder.region(region);
-//    return builder.build();
-//  }
 }
