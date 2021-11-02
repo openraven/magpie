@@ -104,19 +104,22 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         });
       });
     } else {
-      config.getAssumedRoles().forEach(role -> enabledPlugins.forEach(plugin -> {
-        final var regions = getRegionsForDiscovery(plugin);
-        regions.forEach(region -> {
-          try {
-            final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
-            final String account = clientCreator.apply(StsClient.builder()).build().getCallerIdentity().account();
-            plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
-          } catch (Exception ex) {
-            logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
-            logger.debug("Details", ex);
-          }
+      config.getAssumedRoles().forEach(role -> {
+        enabledPlugins.forEach(plugin -> {
+          final var regions = getRegionsForDiscovery(plugin);
+          regions.forEach(region -> {
+            try {
+              final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
+              final String account = clientCreator.apply(StsClient.builder()).build().getCallerIdentity().account();
+              logger.info("Discovering cross-account {}:{} using role {}", plugin.service(), region,   role);
+              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+            } catch (Exception ex) {
+              logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+              logger.debug("Details", ex);
+            }
+          });
         });
-      }));
+      });
     }
   }
 
