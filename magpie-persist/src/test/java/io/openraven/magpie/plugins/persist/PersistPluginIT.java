@@ -1,6 +1,5 @@
 package io.openraven.magpie.plugins.persist;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.MagpieEnvelope;
@@ -10,10 +9,6 @@ import org.jdbi.v3.postgres.PostgresPlugin;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
@@ -21,9 +16,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.persist.TestUtils.getResourceAsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(MockitoExtension.class)
 class PersistPluginIT {
 
   private static final String SELECT_TABLES_META =
@@ -34,9 +30,6 @@ class PersistPluginIT {
   private static PersistConfig persistConfig;
   private final PersistPlugin persistPlugin = new PersistPlugin();
   private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @Mock
-  private MagpieEnvelope magpieEnvelope;
 
   @BeforeAll
   static void setup() {
@@ -69,8 +62,7 @@ class PersistPluginIT {
 
     // then
     List<String> tablesAfter = jdbi.withHandle(this::selectTables);
-    assertEquals(2, tablesAfter.size());
-    assertTrue(tablesAfter.contains("flyway_schema_history"));
+    assertEquals(1, tablesAfter.size());
     assertTrue(tablesAfter.contains("assets"));
   }
 
@@ -88,7 +80,8 @@ class PersistPluginIT {
     persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
     ObjectNode contents = objectMapper.readValue(
       getResourceAsString("/documents/envelope-content.json"), ObjectNode.class);
-    Mockito.when(magpieEnvelope.getContents()).thenReturn(contents);
+    MagpieEnvelope magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(contents);
 
     // when
     persistPlugin.accept(magpieEnvelope);
@@ -97,6 +90,37 @@ class PersistPluginIT {
     List<AssetModel> assets = jdbi.withHandle(this::queryAssetTable);
     assertEquals(1, assets.size());
     assertAsset(assets.get(0));
+  }
+
+  @Test
+  void whenProcessEnvelopeDataShouldBeSavedWithUpsert() throws Exception {
+    // given
+    persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
+
+    ObjectNode content = objectMapper.readValue(
+      getResourceAsString("/documents/envelope-content.json"), ObjectNode.class);
+    MagpieEnvelope magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(content);
+
+    ObjectNode updatedContent = objectMapper.readValue(
+      getResourceAsString("/documents/outdated-envelope-content.json"), ObjectNode.class);
+    MagpieEnvelope outdatedMagpieEnvelope = new MagpieEnvelope();
+    outdatedMagpieEnvelope.setContents(updatedContent);
+
+    // when
+    persistPlugin.accept(outdatedMagpieEnvelope);
+
+    // then
+    List<AssetModel> assets = jdbi.withHandle(this::queryAssetTable);
+    assertEquals(1, assets.size());
+    assertEquals("outdated-resource", assets.get(0).resourceName);
+
+    persistPlugin.accept(magpieEnvelope);
+    // then
+    List<AssetModel> updatedAssets = jdbi.withHandle(this::queryAssetTable);
+    assertEquals(1, updatedAssets.size());
+    assertAsset(updatedAssets.get(0));
+
   }
 
   private void assertAsset(AssetModel assetModel) {

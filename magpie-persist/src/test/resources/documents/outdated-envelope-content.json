@@ -1,0 +1,42 @@
+{
+  "documentId":"4jUz_CPXMG-Z7f8oqQWERfs",
+  "assetId":"arn:aws:iam::000000000000:group/Accountants",
+  "resourceName":"outdated-resource",
+  "resourceId":"y9xomssf3o582439fxep",
+  "resourceType":"AWS::IAM::Group",
+  "region":"us-west-1",
+  "accountId":"account",
+  "projectId":null,
+  "createdIso":null,
+  "updatedIso":"2021-06-23T09:44:50.397706Z",
+  "discoverySessionId":null,
+  "maxSizeInBytes":null,
+  "sizeInBytes":null,
+  "configuration":{
+    "path":"/",
+    "groupName":"Accountants",
+    "groupId":"y9xomssf3o582439fxep",
+    "arn":"arn:aws:iam::000000000000:group/Accountants",
+    "createDate":null
+  },
+  "supplementaryConfiguration":{
+    "inlinePolicies":[
+      {
+        "name":"inlineDataAccess",
+        "policyDocument":"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Deny\",\"Action\":[\"dynamodb:DeleteItem\",\"dynamodb:GetItem\"],\"Resource\":\"*\"}]}"
+      }
+    ],
+    "attachedPolicies":[
+      {
+        "name":"managedDataAccess",
+        "arn":"arn:aws:iam::000000000000:policy/managedDataAccess"
+      }
+    ]
+  },
+  "tags":{
+
+  },
+  "discoveryMeta":{
+
+  }
+}

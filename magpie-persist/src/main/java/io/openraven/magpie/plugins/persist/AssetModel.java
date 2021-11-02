@@ -16,29 +16,70 @@
 
 package io.openraven.magpie.plugins.persist;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.time.Instant;
 
+@Entity
+@Table(name = "assets")
 public class AssetModel {
 
+  @Id
+  @Column(name = "document_id", nullable = false, unique = true)
   public String documentId;
+
+  @Column(name = "asset_id")
   public String assetId;
+
+  @Column(name = "resource_name")
   public String resourceName;
+
+  @Column(name = "resource_id")
   public String resourceId;
+
+  @Column(name = "resource_type")
   public String resourceType;
+
+  @Column(name = "region")
   public String region;
+
+  @Column(name = "project_id")
   public String projectId;
+
+  @Column(name = "account_id")
   public String accountId;
+
+  @Column(name = "created_iso")
   public Instant createdIso;
+
+  @Column(name = "updated_iso")
   public Instant updatedIso = Instant.now();
+
+  @Column(name = "discovery_session_id")
   public String discoverySessionId;
 
+  @Column(name = "max_size_in_bytes")
   public Long maxSizeInBytes = null;
+
+  @Column(name = "size_in_bytes")
   public Long sizeInBytes = null;
 
+  @Column(name = "configuration", columnDefinition = "JSONB")
   public String configuration;
+
+  @Column(name = "supplementary_configuration", columnDefinition = "JSONB")
   public String supplementaryConfiguration;
+
+  @Column(name = "tags", columnDefinition = "JSONB")
   public String tags;
+
+  @Column(name = "discovery_meta", columnDefinition = "JSONB")
   public String discoveryMeta;
+
+  public AssetModel() {
+  }
 
   public String getDocumentId() {
     return documentId;

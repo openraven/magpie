@@ -50,7 +50,6 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   public void init(PersistConfig config, Logger logger) {
     this.logger = logger;
     assetsRepo = new AssetsRepo(config);
-    FlywayMigrationService.initiateDBMigration(config);
   }
 
   @Override
