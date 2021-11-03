@@ -1,1 +1,1 @@
-# All documentaiotn is moved to a docs system @WIP
+# All documention is moved to a docs system @WIP
