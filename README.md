@@ -1,1 +1,1 @@
-# All documention is moved to a docs system @WIP
+# All documention is being moved to a docs system. Its a @WIP expected to be complete by mid November. In the meantime you can see the unorganized content in the https://github.com/openraven/docs repo. Please bear with us. 
