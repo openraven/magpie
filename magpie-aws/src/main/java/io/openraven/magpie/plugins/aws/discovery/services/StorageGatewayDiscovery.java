@@ -53,10 +53,9 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(StorageGatewayClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::StorageGateway::Gateway";
 
-    try {
+    try (final var client = clientCreator.apply(StorageGatewayClient.builder()).build()) {
       client.listGatewaysPaginator().gateways().stream().forEach(gateway -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, gateway.gatewayARN())
           .withResourceName(gateway.gatewayName())

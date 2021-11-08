@@ -43,7 +43,6 @@ public class ELBV2Discovery implements AWSDiscovery {
 
   private static final String SERVICE = "elbv2";
 
-
   @Override
   public String service() {
     return SERVICE;
@@ -56,10 +55,9 @@ public class ELBV2Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(ElasticLoadBalancingV2Client.builder()).build();
     final String RESOURCE_TYPE = "AWS::ElasticLoadBalancingV2::LoadBalancer";
 
-    try {
+    try (final var client = clientCreator.apply(ElasticLoadBalancingV2Client.builder()).build()){
       client.describeLoadBalancers().loadBalancers().forEach(loadBalancerV2 -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancerV2.loadBalancerArn())
           .withResourceName(loadBalancerV2.dnsName())

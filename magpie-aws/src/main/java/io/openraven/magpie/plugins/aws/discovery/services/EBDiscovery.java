@@ -61,10 +61,9 @@ public class EBDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(ElasticBeanstalkClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::ElasticBeanstalk";
 
-    try {
+    try (final var client = clientCreator.apply(ElasticBeanstalkClient.builder()).build()) {
       client.describeEnvironments().environments().forEach(environment -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, environment.environmentArn())
           .withResourceName(environment.environmentName())

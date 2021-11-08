@@ -56,10 +56,9 @@ public class Route53Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(Route53Client.builder()).build();
     final  String RESOURCE_TYPE = "AWS::Route53::HostedZone";
 
-    try {
+    try (final var client = clientCreator.apply(Route53Client.builder()).build()) {
       client.listHostedZonesPaginator().hostedZones().stream().forEach(hostedZone -> {
         String arn = String.format("arn:aws:route53:::hostedZone/%s", hostedZone.id());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)

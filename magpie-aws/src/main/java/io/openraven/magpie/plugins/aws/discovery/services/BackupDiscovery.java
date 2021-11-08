@@ -61,9 +61,10 @@ public class BackupDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(BackupClient.builder()).build();
-    discoverVaults(mapper, session, region, emitter, account, client);
-    discoverPlans(mapper, session, region, emitter, logger, account, client);
+    try (final var client = clientCreator.apply(BackupClient.builder()).build()) {
+      discoverVaults(mapper, session, region, emitter, account, client);
+      discoverPlans(mapper, session, region, emitter, logger, account, client);
+    }
   }
 
   public void discoverPlans(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, BackupClient client) {

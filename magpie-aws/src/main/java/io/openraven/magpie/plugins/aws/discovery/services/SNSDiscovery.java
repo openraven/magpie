@@ -50,10 +50,10 @@ public class SNSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(SnsClient.builder()).build();
-
-    discoverTopics(client, mapper, session, region, emitter);
-    discoverSubscriptions(client, mapper, session, region, emitter);
+    try (final var client = clientCreator.apply(SnsClient.builder()).build()) {
+      discoverTopics(client, mapper, session, region, emitter);
+      discoverSubscriptions(client, mapper, session, region, emitter);
+    }
   }
 
   private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {

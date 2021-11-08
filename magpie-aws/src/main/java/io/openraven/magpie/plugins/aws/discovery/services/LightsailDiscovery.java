@@ -58,11 +58,12 @@ public class LightsailDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(LightsailClient.builder()).build();
 
-    discoverDatabases(mapper, session, region, emitter, client, account);
-    discoverInstances(mapper, session, region, emitter, client, account);
-    discoverLoadBalancers(mapper, session, region, emitter, client, account);
+    try (final var client = clientCreator.apply(LightsailClient.builder()).build()) {
+      discoverDatabases(mapper, session, region, emitter, client, account);
+      discoverInstances(mapper, session, region, emitter, client, account);
+      discoverLoadBalancers(mapper, session, region, emitter, client, account);
+    }
   }
 
   private void discoverDatabases(ObjectMapper mapper, Session session, Region region, Emitter emitter, LightsailClient client, String account) {

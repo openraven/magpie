@@ -58,10 +58,9 @@ public class ESDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(ElasticsearchClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Elasticsearch::Domain";
 
-    try {
+    try (final var client = clientCreator.apply(ElasticsearchClient.builder()).build()) {
       client.listDomainNames().domainNames().stream()
         .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus())
         .forEach(domain -> {
@@ -112,7 +111,7 @@ public class ESDiscovery implements AWSDiscovery {
         AWSUtils.update(data.supplementaryConfiguration,
           Map.of("clusterUsedSpace", clusterUsedSpace.getValue0()));
 
-        data.maxSizeInBytes = Conversions.GibToBytes(numNodes * volSizeAsGB);
+        data.maxSizeInBytes = Conversions.GibToBytes((long) numNodes * volSizeAsGB);
         data.sizeInBytes = Conversions.MibToBytes(clusterUsedSpace.getValue0().longValue());
       }
     } catch (Exception ex) {

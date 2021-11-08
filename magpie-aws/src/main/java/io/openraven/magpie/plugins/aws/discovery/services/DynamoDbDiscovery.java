@@ -59,10 +59,10 @@ public class DynamoDbDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(DynamoDbClient.builder()).build();
-
-    discoverGlobalTables(mapper, session, region, emitter, client, account);
-    discoverTables(mapper, session, region, emitter, client, account, clientCreator);
+    try (final var client = clientCreator.apply(DynamoDbClient.builder()).build()) {
+      discoverGlobalTables(mapper, session, region, emitter, client, account);
+      discoverTables(mapper, session, region, emitter, client, account, clientCreator);
+    }
   }
 
   protected void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {

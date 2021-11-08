@@ -37,7 +37,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.Bucket;
 import software.amazon.awssdk.services.s3.model.GetBucketAclRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketAclResponse;
@@ -97,11 +96,10 @@ public class S3Discovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    var client = configureS3Client(clientCreator, region);
 
     final String RESOURCE_TYPE = "AWS::S3::Bucket";
 
-    try {
+    try(final var client = configureS3Client(clientCreator, region)) {
       final var bucketOpt = getBuckets(session, client, region, logger);
       if (bucketOpt.isEmpty()) {
         logger.debug("No buckets found for {}", region);

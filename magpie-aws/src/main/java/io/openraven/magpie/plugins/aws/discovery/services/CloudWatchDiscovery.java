@@ -55,10 +55,10 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(CloudWatchClient.builder()).build();
-
-    discoverAlarms(mapper, session, region, emitter, client, account);
-    discoverDashboards(mapper, session, region, emitter, client, account);
+    try (final var client = clientCreator.apply(CloudWatchClient.builder()).build()) {
+      discoverAlarms(mapper, session, region, emitter, client, account);
+      discoverDashboards(mapper, session, region, emitter, client, account);
+    }
   }
 
   private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchClient client, String account) {

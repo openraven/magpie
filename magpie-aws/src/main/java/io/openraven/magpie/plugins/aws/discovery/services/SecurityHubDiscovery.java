@@ -48,11 +48,9 @@ public class SecurityHubDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(SecurityHubClient.builder()).build();
-
     final String RESOURCE_TYPE = "AWS::SecurityHub::StandardsSubscription";
 
-    try {
+    try (final var client = clientCreator.apply(SecurityHubClient.builder()).build()) {
       client.getEnabledStandardsPaginator(GetEnabledStandardsRequest.builder().build())
         .forEach(resp -> resp.standardsSubscriptions().forEach(sub -> {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, sub.standardsSubscriptionArn())

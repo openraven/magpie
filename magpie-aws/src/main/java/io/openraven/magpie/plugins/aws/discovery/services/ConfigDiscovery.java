@@ -53,10 +53,9 @@ public class ConfigDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = ConfigClient.builder().region(region).build();
     final String RESOURCE_TYPE = "AWS::Config::ConfigurationRecorder";
 
-    try {
+    try (final var client = clientCreator.apply(ConfigClient.builder()).build()) {
       client.describeConfigurationRecorders().configurationRecorders()
         .forEach(configurationRecorder -> {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, configurationRecorder.roleARN())

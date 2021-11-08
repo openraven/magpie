@@ -64,10 +64,11 @@ public class RDSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(RdsClient.builder()).build();
 
-    discoverDbSnapshot(mapper, session, region, emitter, account, client);
-    discoverDbInstances(mapper, session, region, emitter, logger, account, clientCreator);
+    try (final var client = clientCreator.apply(RdsClient.builder()).build()) {
+      discoverDbSnapshot(mapper, session, region, emitter, account, client);
+      discoverDbInstances(mapper, session, region, emitter, logger, account, client, clientCreator);
+    }
   }
 
   private void discoverDbSnapshot(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, RdsClient client) {
@@ -93,9 +94,8 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
-    final var client = clientCreator.apply(RdsClient.builder()).build();
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {

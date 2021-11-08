@@ -57,10 +57,9 @@ public class CloudSearchDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(CloudSearchClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::CloudSearch::Domain";
 
-    try {
+    try (final var client = clientCreator.apply(CloudSearchClient.builder()).build()){
       client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build()).domainStatusList()
         .forEach(domain -> {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, domain.arn())

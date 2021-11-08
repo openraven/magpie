@@ -48,10 +48,11 @@ public class VPCDiscovery implements AWSDiscovery {
   private static final String SERVICE = "vpc";
 
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(Ec2Client.builder()).build();
 
-    discoverVpcs(mapper, session, client, region, emitter, account);
-    discoverVpcPeeringConnections(mapper, session, client, region, emitter, account);
+    try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
+      discoverVpcs(mapper, session, client, region, emitter, account);
+      discoverVpcPeeringConnections(mapper, session, client, region, emitter, account);
+    }
   }
 
   @Override

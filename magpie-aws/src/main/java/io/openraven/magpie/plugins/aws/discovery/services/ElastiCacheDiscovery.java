@@ -57,10 +57,9 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(ElastiCacheClient.builder()).build();
     final  String RESOURCE_TYPE = "AWS::ElastiCache::Cluster";
 
-    try {
+    try (final var client = clientCreator.apply(ElastiCacheClient.builder()).build()) {
       client.describeCacheClusters().cacheClusters().forEach(cacheCluster -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, cacheCluster.arn())
           .withResourceName(cacheCluster.cacheClusterId())

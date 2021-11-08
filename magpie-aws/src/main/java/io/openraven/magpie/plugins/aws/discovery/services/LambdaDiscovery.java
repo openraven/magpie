@@ -59,10 +59,9 @@ public class LambdaDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(LambdaClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Lambda::Function";
 
-    try {
+    try (final var client = clientCreator.apply(LambdaClient.builder()).build()) {
       client.listFunctionsPaginator().functions().forEach(function -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, function.functionArn())
           .withResourceName(function.functionName())

@@ -53,10 +53,9 @@ public class EFSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(EfsClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::EFS::FileSystem";
 
-    try {
+    try (final var client = clientCreator.apply(EfsClient.builder()).build()) {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
         String arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)

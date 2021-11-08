@@ -80,13 +80,14 @@ public class LocationDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = LocationClient.builder().region(region).build();
 
-    discoverTrackers(mapper, session, region, emitter, account, client);
-    discoverMaps(mapper, session, region, emitter, account, client);
-    discoverGeofenceCollections(mapper, session, region, emitter, account, client);
-    discoverPlaceIndex(mapper, session, region, emitter, account, client);
-    discoverRouteCalculators(mapper, session, region, emitter, account, client);
+    try (final var client = clientCreator.apply(LocationClient.builder()).build()) {
+      discoverTrackers(mapper, session, region, emitter, account, client);
+      discoverMaps(mapper, session, region, emitter, account, client);
+      discoverGeofenceCollections(mapper, session, region, emitter, account, client);
+      discoverPlaceIndex(mapper, session, region, emitter, account, client);
+      discoverRouteCalculators(mapper, session, region, emitter, account, client);
+    }
   }
 
   private void discoverTrackers(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {

@@ -181,7 +181,7 @@ public class AWSUtils {
 
   public static GetMetricStatisticsResponse getCloudwatchMetricStatistics( String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
 
-    try (final CloudWatchClient client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
+    try (final var client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
 
       // The start time is t-minus 2 days (48 hours) because an asset is considered "active" if it's been updated within
       // 48hrs, otherwise it is considered "terminated/deleted", so start capturing at the longest possible period

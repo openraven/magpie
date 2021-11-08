@@ -49,10 +49,9 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(SecretsManagerClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::SecretsManager";
 
-    try {
+    try (final var client = clientCreator.apply(SecretsManagerClient.builder()).build()) {
       client.listSecretsPaginator(ListSecretsRequest.builder().build()).stream()
         .forEach(secretsPaginatedResponse -> secretsPaginatedResponse.secretList()
           .stream()

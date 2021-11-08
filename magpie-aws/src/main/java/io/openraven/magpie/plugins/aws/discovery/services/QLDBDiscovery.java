@@ -66,10 +66,9 @@ public class QLDBDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(QldbClient.builder()).build();
     final String RESOURCE_TYPE = "AWS::Qldb::Ledger";
 
-    try {
+    try (final var client = clientCreator.apply(QldbClient.builder()).build()) {
       client.listLedgersPaginator(ListLedgersRequest.builder().build()).stream()
         .forEach(ledgerList -> ledgerList.ledgers()
           .stream()

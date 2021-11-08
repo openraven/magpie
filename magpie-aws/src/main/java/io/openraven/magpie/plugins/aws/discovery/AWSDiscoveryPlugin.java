@@ -89,7 +89,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
 
-    if (config.getAssumedRoles().isEmpty()) {
+    if (config.getAssumedRoles() == null || config.getAssumedRoles().isEmpty()) {
       final var account = StsClient.create().getCallerIdentity().account();
       enabledPlugins.forEach(plugin -> {
         final var regions = getRegionsForDiscovery(plugin);
@@ -108,9 +108,9 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         enabledPlugins.forEach(plugin -> {
           final var regions = getRegionsForDiscovery(plugin);
           regions.forEach(region -> {
-            try {
-              final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
-              final String account = clientCreator.apply(StsClient.builder()).build().getCallerIdentity().account();
+            final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
+            try (final var client = clientCreator.apply(StsClient.builder()).build()) {
+              final String account = client.getCallerIdentity().account();
               logger.info("Discovering cross-account {}:{} using role {}", plugin.service(), region,   role);
               plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
             } catch (Exception ex) {

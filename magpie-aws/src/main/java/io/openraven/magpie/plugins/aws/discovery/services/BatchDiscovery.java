@@ -48,11 +48,11 @@ public class BatchDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final var client = clientCreator.apply(BatchClient.builder()).build();
-
-    discoverComputeEnvironments(mapper, session, client, region, emitter, account);
-    discoverJobQueues(mapper, session, client, region, emitter, account);
-    discoverJobDefinitions(mapper, session, client, region, emitter, account);
+    try (final var client = clientCreator.apply(BatchClient.builder()).build()) {
+      discoverComputeEnvironments(mapper, session, client, region, emitter, account);
+      discoverJobQueues(mapper, session, client, region, emitter, account);
+      discoverJobDefinitions(mapper, session, client, region, emitter, account);
+    }
   }
 
   private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
