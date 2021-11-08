@@ -6,14 +6,15 @@ import ch.qos.logback.classic.LoggerContext;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.ScanResults;
 import io.openraven.magpie.core.cspm.analysis.Violation;
-import io.openraven.magpie.core.cspm.model.*;
+import io.openraven.magpie.core.cspm.model.Policy;
+import io.openraven.magpie.core.cspm.model.PolicyContext;
+import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.plugins.persist.FlywayMigrationService;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.postgres.PostgresPlugin;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.slf4j.LoggerFactory;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PluginConfig;
@@ -35,8 +36,8 @@ import java.util.Scanner;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.DISABLED;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 

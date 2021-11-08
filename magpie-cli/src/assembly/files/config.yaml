@@ -47,7 +47,7 @@ plugins:
     config:
       services:
   magpie.json:
-    enabled: true
+    enabled: false
     config:
   magpie.policy.output.json:
     enabled: false

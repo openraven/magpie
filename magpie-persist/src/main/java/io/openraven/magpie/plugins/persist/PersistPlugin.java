@@ -16,15 +16,19 @@
 
 package io.openraven.magpie.plugins.persist;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
-import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
+import io.openraven.magpie.data.aws.AWSResource;
 import org.slf4j.Logger;
 
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
-  private final AssetMapper MAPPER = new AssetMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper()
+    .registerModule(new JavaTimeModule());
 
   public static final String ID = "magpie.persist";
 
@@ -35,9 +39,13 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
-      AssetModel asset = MAPPER.map(env);
-      assetsRepo.upsert(asset);
-      logger.info("Saved asset with id: {}", asset.getAssetId());
+      try {
+        AWSResource asset = objectMapper.treeToValue(env.getContents(), AWSResource.class);
+        assetsRepo.upsert(asset);
+        logger.info("Saved asset with id: {}", asset.arn);
+      } catch (JsonProcessingException e) {
+        throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env));
+      }
     }
   }
 
