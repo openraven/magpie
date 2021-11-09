@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -63,12 +63,12 @@ public class AthenaDiscovery implements AWSDiscovery {
       client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary()
         .forEach(dataCatalog -> {
           var arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region, account, dataCatalog.catalogName());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(dataCatalog.catalogName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(dataCatalog.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverDatabases(client, dataCatalog, data);
@@ -80,7 +80,7 @@ public class AthenaDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, MagpieResource data) {
+  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, MagpieAwsResource data) {
     final String keyname = "databases";
 
     getAwsResponse(

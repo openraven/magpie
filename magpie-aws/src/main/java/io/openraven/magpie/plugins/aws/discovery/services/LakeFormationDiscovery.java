@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -61,11 +61,11 @@ public class LakeFormationDiscovery implements AWSDiscovery {
       client.listResourcesPaginator(ListResourcesRequest.builder().build()).stream()
         .forEach(list -> list.resourceInfoList()
           .forEach(resourceInfo -> {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, resourceInfo.resourceArn())
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, resourceInfo.resourceArn())
               .withResourceType(RESOURCE_TYPE)
               .withConfiguration(mapper.valueToTree(resourceInfo.toBuilder()))
               .withAccountId(account)
-              .withRegion(region.toString())
+              .withAwsRegion(region.toString())
               .build();
 
             discoverDataLakeSettings(client, data);
@@ -78,7 +78,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDataLakeSettings(LakeFormationClient client, MagpieResource data) {
+  private void discoverDataLakeSettings(LakeFormationClient client, MagpieAwsResource data) {
     final String keyname = "dataLakeSettings";
 
     getAwsResponse(
@@ -88,7 +88,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverPermissions(LakeFormationClient client, ResourceInfo resource, MagpieResource data) {
+  private void discoverPermissions(LakeFormationClient client, ResourceInfo resource, MagpieAwsResource data) {
     final String keyname = "permissions";
 
     getAwsResponse(

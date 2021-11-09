@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.dataproc.v1.*;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -86,7 +86,7 @@ public class DataprocDiscovery implements GCPDiscovery {
       try (var client = ClusterControllerClient.create(clusterControllerConfig)){
         for (var cluster : client.listClusters(projectId, location).iterateAll()) {
           String assetId = String.format("%s::%s", RESOURCE_TYPE, cluster.getClusterName());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(location)
@@ -113,7 +113,7 @@ public class DataprocDiscovery implements GCPDiscovery {
       try (var client = JobControllerClient.create(clusterControllerConfig)){
         for (var job : client.listJobs(projectId, location).iterateAll()) {
           String assetId = String.format("%s::%s", RESOURCE_TYPE, job.getReference().getJobId());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, assetId)
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(location)

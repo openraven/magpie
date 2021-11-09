@@ -21,7 +21,7 @@ import com.google.cloud.functions.v1.CloudFunctionsServiceClient;
 import com.google.cloud.functions.v1.ListFunctionsRequest;
 import com.google.cloud.functions.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -50,7 +50,7 @@ public class FunctionsDiscovery implements GCPDiscovery {
 
       response.iterateAll()
         .forEach(function -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, function.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, function.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(GCPUtils.asJsonNode(function))

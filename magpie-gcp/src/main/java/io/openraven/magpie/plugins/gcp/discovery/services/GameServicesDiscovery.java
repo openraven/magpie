@@ -21,7 +21,7 @@ import com.google.api.gax.rpc.UnimplementedException;
 import com.google.cloud.gaming.v1alpha.GameServerDeploymentsServiceClient;
 import com.google.cloud.gaming.v1alpha.RealmsServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -46,7 +46,7 @@ public class GameServicesDiscovery implements GCPDiscovery {
       String formattedParent = GameServerDeploymentsServiceClient.formatLocationName(projectId, "global");
 
       for (var realm : realmsServiceClient.listRealms(formattedParent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, realm.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, realm.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(realm))

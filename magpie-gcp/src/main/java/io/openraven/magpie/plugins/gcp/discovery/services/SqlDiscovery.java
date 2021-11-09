@@ -9,7 +9,7 @@ import com.google.api.services.sqladmin.model.InstancesListResponse;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -45,7 +45,7 @@ public class SqlDiscovery implements GCPDiscovery {
           continue;
         }
         for (var sqlInstance : response.getItems()) {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, sqlInstance.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, sqlInstance.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(sqlInstance.getRegion())

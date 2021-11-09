@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -60,12 +60,12 @@ public class EKSDiscovery implements AWSDiscovery {
         .stream()
         .map(clusterName -> client.describeCluster(DescribeClusterRequest.builder().name(clusterName).build()))
         .forEach(cluster -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.cluster().arn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cluster.cluster().arn())
             .withResourceName(cluster.cluster().name())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverFargateProfiles(client, cluster.cluster(), data);
@@ -79,7 +79,7 @@ public class EKSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverFargateProfiles(EksClient client, Cluster cluster, MagpieResource data) {
+  private void discoverFargateProfiles(EksClient client, Cluster cluster, MagpieAwsResource data) {
     final String keyname = "fargateProfiles";
 
     getAwsResponse(
@@ -94,7 +94,7 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverNodegroups(EksClient client, Cluster cluster, MagpieResource data) {
+  private void discoverNodegroups(EksClient client, Cluster cluster, MagpieAwsResource data) {
     final String keyname = "nodegroups";
 
     getAwsResponse(
@@ -109,7 +109,7 @@ public class EKSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverUpdates(EksClient client, Cluster cluster, MagpieResource data) {
+  private void discoverUpdates(EksClient client, Cluster cluster, MagpieAwsResource data) {
     final String keyname = "updates";
 
     getAwsResponse(

@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -62,13 +62,13 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     try {
       client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build()).domainStatusList()
         .forEach(domain -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, domain.arn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, domain.arn())
             .withResourceName(domain.domainName())
             .withResourceId(domain.domainId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(domain.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverSuggesters(client, domain, data);
@@ -84,7 +84,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieResource data) {
+  private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
     final String keyname = "suggesters";
 
     getAwsResponse(
@@ -94,7 +94,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverServiceAccessPolicies(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieResource data) {
+  private void discoverServiceAccessPolicies(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
     final String keyname = "serviceAccessPolicies";
 
     getAwsResponse(
@@ -104,7 +104,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverIndexFields(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieResource data) {
+  private void discoverIndexFields(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
     final String keyname = "indexFields";
 
     getAwsResponse(
@@ -114,7 +114,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverExpressions(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieResource data) {
+  private void discoverExpressions(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
     final String keyname = "expressions";
 
     getAwsResponse(
@@ -124,17 +124,17 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DomainStatus domainStatus, MagpieResource data, String account) {
+  private void discoverSize(DomainStatus domainStatus, MagpieAwsResource data, String account) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("DomainName").value(domainStatus.domainName()).build());
     dimensions.add(Dimension.builder().name("ClientId").value(account).build());
 
     Pair<Double, GetMetricStatisticsResponse> IndexUtilization =
-      getCloudwatchDoubleMetricMaximum(data.region, "AWS/CloudSearch", "IndexUtilization", dimensions);
+      getCloudwatchDoubleMetricMaximum(data.awsRegion, "AWS/CloudSearch", "IndexUtilization", dimensions);
 
     Pair<Long, GetMetricStatisticsResponse> SearchableDocuments =
-      getCloudwatchMetricMaximum(data.region, "AWS/CloudSearch", "SearchableDocuments", dimensions);
+      getCloudwatchMetricMaximum(data.awsRegion, "AWS/CloudSearch", "SearchableDocuments", dimensions);
 
 
     if (IndexUtilization.getValue0() != null && SearchableDocuments.getValue0() != null) {

@@ -18,7 +18,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -58,11 +59,11 @@ public class ConfigDiscovery implements AWSDiscovery {
     try {
       client.describeConfigurationRecorders().configurationRecorders()
         .forEach(configurationRecorder -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, configurationRecorder.roleARN())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, configurationRecorder.roleARN())
             .withResourceName(configurationRecorder.name())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(configurationRecorder.toBuilder()))
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .withAccountId(account)
             .build();
 
@@ -75,7 +76,7 @@ public class ConfigDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverConfigurationRecorderStatus(ConfigClient client, ConfigurationRecorder resource, MagpieResource data) {
+  private void discoverConfigurationRecorderStatus(ConfigClient client, ConfigurationRecorder resource, MagpieAwsResource data) {
     final String keyname = "status";
 
     var request =

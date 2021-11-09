@@ -22,7 +22,7 @@ import com.google.cloud.bigquery.datatransfer.v1.DataTransferServiceClient;
 import com.google.cloud.bigquery.datatransfer.v1.LocationName;
 import com.google.cloud.bigquery.datatransfer.v1.TransferRun;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -77,7 +77,7 @@ public class BigQueryDataTransferDiscovery implements GCPDiscovery {
       AVAILABLE_LOCATIONS.forEach(location -> {
         LocationName parent = LocationName.of(projectId, location);
         for (var dataSource : client.listTransferConfigs(parent).iterateAll()) {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, dataSource.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, dataSource.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(location)
@@ -94,7 +94,7 @@ public class BigQueryDataTransferDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverTransferRuns(DataTransferServiceClient client, com.google.cloud.bigquery.datatransfer.v1.TransferConfig dataSource, MagpieResource data) {
+  private void discoverTransferRuns(DataTransferServiceClient client, com.google.cloud.bigquery.datatransfer.v1.TransferConfig dataSource, MagpieGcpResource data) {
     final String fieldName = "transferRuns";
 
     ArrayList<TransferRun.Builder> list = new ArrayList<>();

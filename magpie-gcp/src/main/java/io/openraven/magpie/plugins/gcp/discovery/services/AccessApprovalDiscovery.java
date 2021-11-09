@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.accessapproval.v1.AccessApprovalAdminClient;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -43,7 +43,7 @@ public class AccessApprovalDiscovery implements GCPDiscovery {
 
     try (var accessApprovalAdminClient = AccessApprovalAdminClient.create()) {
       for (var approvalRequest : accessApprovalAdminClient.listApprovalRequests(ProjectName.of(projectId).toString()).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, approvalRequest.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, approvalRequest.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(approvalRequest))

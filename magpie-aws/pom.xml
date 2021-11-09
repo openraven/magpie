@@ -19,7 +19,7 @@
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
-    <magpie.api.version>0.3.0</magpie.api.version>
+    <magpie.api.version>0.4.0-SNAPSHOT</magpie.api.version>
     <sentry.version>1.7.28</sentry.version>
     <mockito.version>3.10.0</mockito.version>
     <testcontainer.version>1.15.3</testcontainer.version>

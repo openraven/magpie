@@ -23,7 +23,7 @@ import com.google.cloud.automl.v1.Dataset;
 import com.google.cloud.automl.v1.Model;
 import com.google.cloud.memcache.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -61,7 +61,7 @@ public class AutoMLDiscovery implements GCPDiscovery {
 
     try {
       for (Dataset element : client.listDatasets(parent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withRegion(location)
@@ -82,7 +82,7 @@ public class AutoMLDiscovery implements GCPDiscovery {
 
     try {
       for (Model element : client.listModels(parent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withRegion(location)

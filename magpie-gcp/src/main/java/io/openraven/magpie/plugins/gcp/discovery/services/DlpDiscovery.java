@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.dlp.v2.DlpServiceClient;
 import com.google.privacy.dlp.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -51,7 +51,7 @@ public class DlpDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::Dlp::JobTrigger";
 
     for (var jobTrigger : dlpServiceClient.listJobTriggers(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, jobTrigger.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, jobTrigger.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(jobTrigger))
@@ -65,7 +65,7 @@ public class DlpDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::Dlp::DlpJob";
 
     for (var dlpJob : dlpServiceClient.listDlpJobs(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, dlpJob.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, dlpJob.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(dlpJob))

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.talent.v4.ProjectName;
 import com.google.cloud.talent.v4.TenantServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -43,7 +43,7 @@ public class TalentDiscovery implements GCPDiscovery {
 
     try (var tenantServiceClient = TenantServiceClient.create()) {
       for (var tenant : tenantServiceClient.listTenants(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, tenant.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, tenant.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(tenant))

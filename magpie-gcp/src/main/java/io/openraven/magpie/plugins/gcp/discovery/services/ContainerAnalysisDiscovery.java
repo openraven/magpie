@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.devtools.containeranalysis.v1beta1.GrafeasV1Beta1Client;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -51,7 +51,7 @@ public class ContainerAnalysisDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::ContainerAnalysis::Occurrence";
 
     for (var occurrence : client.listOccurrences(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, occurrence.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, occurrence.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(occurrence))
@@ -64,7 +64,7 @@ public class ContainerAnalysisDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::ContainerAnalysis::Note";
 
     for (var note : client.listNotes(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, note.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, note.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(note))

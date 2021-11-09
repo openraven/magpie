@@ -23,7 +23,7 @@ import com.google.cloud.bigtable.admin.v2.models.Cluster;
 import com.google.cloud.bigtable.admin.v2.models.Instance;
 import com.google.cloud.bigtable.admin.v2.models.PartialListInstancesException;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -55,7 +55,7 @@ public class BigTableDiscovery implements GCPDiscovery {
       }
 
       instances.listIterator().forEachRemaining(instance -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.getId())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, instance.getId())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(instance))
@@ -70,7 +70,7 @@ public class BigTableDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverClusters(BigtableInstanceAdminClient client, Instance instance, MagpieResource data) {
+  private void discoverClusters(BigtableInstanceAdminClient client, Instance instance, MagpieGcpResource data) {
     final String fieldName = "clusters";
 
     ArrayList<Cluster> list = new ArrayList<>();

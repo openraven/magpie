@@ -21,7 +21,7 @@ import com.google.cloud.errorreporting.v1beta1.ErrorStatsServiceClient;
 import com.google.devtools.clouderrorreporting.v1beta1.ProjectName;
 import com.google.devtools.clouderrorreporting.v1beta1.QueryTimeRange;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -45,7 +45,7 @@ public class ErrorReportingDiscovery implements GCPDiscovery {
     try (var client = ErrorStatsServiceClient.create()) {
       client.listGroupStats(ProjectName.of(projectId), QueryTimeRange.newBuilder().build()).iterateAll()
         .forEach(groupStat -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, groupStat.getGroup().getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, groupStat.getGroup().getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(GCPUtils.asJsonNode(groupStat))

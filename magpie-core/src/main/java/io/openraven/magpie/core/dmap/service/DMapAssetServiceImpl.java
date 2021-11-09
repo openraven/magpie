@@ -39,6 +39,8 @@ import static java.util.stream.Collectors.*;
 public class DMapAssetServiceImpl implements DMapAssetService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DMapAssetServiceImpl.class);
+  private static final String GROUP_ASSET_SQL_PATH = "/sql/dmap-asset-grouping.sql";
+  private static final String QUERY = Util.getResourceAsString(GROUP_ASSET_SQL_PATH);
 
   private final ObjectMapper mapper = new ObjectMapper();
   private final Jdbi jdbi;
@@ -49,8 +51,7 @@ public class DMapAssetServiceImpl implements DMapAssetService {
 
   @Override
   public Map<VpcConfig, List<EC2Target>> groupScanTargets() {
-    String query = Util.getResourceAsString("/sql/dmap-asset-grouping.sql");
-    List<DMapTarget> scanTargets = jdbi.withHandle(handle -> handle.createQuery(query)
+    List<DMapTarget> scanTargets = jdbi.withHandle(handle -> handle.createQuery(QUERY)
       .map((rs, ctx) ->
         new DMapTarget(
           rs.getString("resource_id"),

@@ -22,7 +22,7 @@ import com.google.recaptchaenterprise.v1.Key;
 import com.google.recaptchaenterprise.v1.ListKeysRequest;
 import com.google.recaptchaenterprise.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -50,7 +50,7 @@ public class RecaptchaEnterpriseDiscovery implements GCPDiscovery {
           .setParent(ProjectName.of(projectId).toString())
           .build();
       for (Key key : recaptchaEnterpriseServiceClient.listKeys(request).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, key.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, key.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(key))

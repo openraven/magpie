@@ -21,7 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -79,14 +79,14 @@ public class IAMDiscovery implements AWSDiscovery {
         // As workaround request each role to enrich the data
         Role role = client.getRole(builder -> builder.roleName(listedRole.roleName()).build()).role();
 
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, role.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, role.arn())
           .withResourceName(role.roleName())
           .withResourceId(role.roleId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(role.toBuilder()))
           .withCreatedIso(role.createDate())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverAttachedPolicies(client, data, role);
@@ -102,7 +102,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverInlinePolicies(ObjectMapper mapper, IamClient client, MagpieResource data, Role role) {
+  private void discoverInlinePolicies(ObjectMapper mapper, IamClient client, MagpieAwsResource data, Role role) {
     List<ImmutableMap<String, JsonNode>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -127,7 +127,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverAttachedPolicies(IamClient client, MagpieResource data, Role role) {
+  private void discoverAttachedPolicies(IamClient client, MagpieAwsResource data, Role role) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -148,14 +148,14 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       client.listPoliciesPaginator().policies().forEach(policy -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, policy.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, policy.arn())
           .withResourceName(policy.policyName())
           .withResourceId(policy.policyId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(policy.toBuilder()))
           .withCreatedIso(policy.createDate())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverPolicyDocument(mapper, client, data, policy);
@@ -167,7 +167,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverPolicyDocument(ObjectMapper mapper, IamClient client, MagpieResource data, Policy policy) {
+  private void discoverPolicyDocument(ObjectMapper mapper, IamClient client, MagpieAwsResource data, Policy policy) {
     getAwsResponse(
       () -> client.listPolicyVersionsPaginator(ListPolicyVersionsRequest.builder().policyArn(policy.arn()).build()),
       (resp) -> resp.forEach(policyVersionsResponse -> {
@@ -198,14 +198,14 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       client.listUsersPaginator().users().forEach(user -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, user.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, user.arn())
           .withResourceName(user.userName())
           .withResourceId(user.userId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(user.toBuilder()))
           .withCreatedIso(user.createDate())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverGroupsForUser(client, data, user);
@@ -222,7 +222,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverGroupsForUser(IamClient client, MagpieResource data, User user) {
+  private void discoverGroupsForUser(IamClient client, MagpieAwsResource data, User user) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -238,7 +238,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("groups", attachedPolicies));
   }
 
-  private void discoverAttachedUserPolicies(IamClient client, MagpieResource data, User user) {
+  private void discoverAttachedUserPolicies(IamClient client, MagpieAwsResource data, User user) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -254,7 +254,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", attachedPolicies));
   }
 
-  private void discoverUserPolicies(IamClient client, MagpieResource data, User user) {
+  private void discoverUserPolicies(IamClient client, MagpieAwsResource data, User user) {
     List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -274,7 +274,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("userPolicies", inlinePolicies));
   }
 
-  private void discoverUserMFADevices(IamClient client, MagpieResource data, User user) {
+  private void discoverUserMFADevices(IamClient client, MagpieAwsResource data, User user) {
     String keyname = "mfaDevices";
 
     getAwsResponse(
@@ -293,14 +293,14 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       client.listGroups().groups().forEach(group -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, group.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, group.arn())
           .withResourceName(group.groupName())
           .withResourceId(group.groupId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(group.toBuilder()))
           .withCreatedIso(group.createDate())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverGroupInlinePolicies(client, data, group);
@@ -313,7 +313,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverGroupInlinePolicies(IamClient client, MagpieResource data, Group group) {
+  private void discoverGroupInlinePolicies(IamClient client, MagpieAwsResource data, Group group) {
     List<ImmutableMap<String, String>> inlinePolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -330,7 +330,7 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("inlinePolicies", inlinePolicies));
   }
 
-  private void discoverGroupAttachedPolicies(IamClient client, MagpieResource data, Group group) {
+  private void discoverGroupAttachedPolicies(IamClient client, MagpieAwsResource data, Group group) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
 
     getAwsResponse(
@@ -352,10 +352,10 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       var accountSummary = client.getAccountSummary();
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, RESOURCE_TYPE)
+      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, RESOURCE_TYPE)
         .withResourceType(RESOURCE_TYPE)
         .withAccountId(account)
-        .withRegion(region.toString())
+        .withAwsRegion(region.toString())
         .withConfiguration(mapper.valueToTree(accountSummary.summaryMapAsStrings()))
         .build();
 
@@ -369,7 +369,7 @@ public class IAMDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverAccountAlias(IamClient client, MagpieResource data) {
+  private void discoverAccountAlias(IamClient client, MagpieAwsResource data) {
     getAwsResponse(
       () -> client.listAccountAliases().accountAliases().stream().findFirst().orElse(null),
       (resp) -> data.resourceName = resp,
@@ -378,7 +378,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAccountPasswordPolicy(IamClient client, MagpieResource data) {
+  private void discoverAccountPasswordPolicy(IamClient client, MagpieAwsResource data) {
     final String keyname = "PasswordPolicy";
 
     getAwsResponse(
@@ -388,7 +388,7 @@ public class IAMDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverVirtualMFADevices(IamClient client, MagpieResource data) {
+  private void discoverVirtualMFADevices(IamClient client, MagpieAwsResource data) {
     final String keyname = "virtualMFADevices";
 
     getAwsResponse(
@@ -444,13 +444,13 @@ public class IAMDiscovery implements AWSDiscovery {
     for (int i = 1; i < reportLines.length; i++) {
       var credential = new IAMCredential(reportLines[i]);
 
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, credential.arn)
+      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, credential.arn)
         .withResourceName(credential.user)
         .withResourceId(credential.arn)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(mapper.valueToTree(credential))
         .withAccountId(account)
-        .withRegion(region.toString())
+        .withAwsRegion(region.toString())
         .build();
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":credentialsReport"), data.toJsonNode()));

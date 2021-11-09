@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -66,12 +66,12 @@ public class LightsailDiscovery implements AWSDiscovery {
     try {
       client.getRelationalDatabases(GetRelationalDatabasesRequest.builder().build()).relationalDatabases()
         .forEach(relationalDatabase -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, relationalDatabase.arn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, relationalDatabase.arn())
             .withResourceName(relationalDatabase.name())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(relationalDatabase.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverSize(client, relationalDatabase, data);
@@ -83,7 +83,7 @@ public class LightsailDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSize(LightsailClient client, RelationalDatabase resource, MagpieResource data) {
+  private void discoverSize(LightsailClient client, RelationalDatabase resource, MagpieAwsResource data) {
     var request = GetRelationalDatabaseMetricDataRequest.builder().
       relationalDatabaseName(resource.name()).
       metricName("FreeStorageSpace").
@@ -112,12 +112,12 @@ public class LightsailDiscovery implements AWSDiscovery {
 
     try {
       client.getInstances(GetInstancesRequest.builder().build()).instances().forEach(instance -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, instance.arn())
           .withResourceName(instance.name())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(instance.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
@@ -132,12 +132,12 @@ public class LightsailDiscovery implements AWSDiscovery {
 
     try {
       client.getLoadBalancers().loadBalancers().forEach(loadBalancer -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancer.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, loadBalancer.arn())
           .withResourceName(loadBalancer.name())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(loadBalancer.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancer"), data.toJsonNode()));

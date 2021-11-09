@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
@@ -58,14 +58,14 @@ public class FSXDiscovery implements AWSDiscovery {
 
     try {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, fileSystem.resourceARN())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, fileSystem.resourceARN())
           .withResourceName(fileSystem.fileSystemId())
           .withResourceId(fileSystem.fileSystemId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(fileSystem.toBuilder()))
           .withCreatedIso(fileSystem.creationTime())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverSize(fileSystem, data, region, logger);
@@ -78,7 +78,7 @@ public class FSXDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSize(FileSystem resource, MagpieResource data, Region region, Logger logger) {
+  private void discoverSize(FileSystem resource, MagpieAwsResource data, Region region, Logger logger) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());

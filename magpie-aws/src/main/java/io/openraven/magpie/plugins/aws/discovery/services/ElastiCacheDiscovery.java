@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -60,13 +60,13 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
     try {
       client.describeCacheClusters().cacheClusters().forEach(cacheCluster -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, cacheCluster.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cacheCluster.arn())
           .withResourceName(cacheCluster.cacheClusterId())
           .withResourceId(cacheCluster.cacheClusterId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(cacheCluster.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverRedisSize(cacheCluster, data, region.id());
@@ -78,7 +78,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverRedisSize(CacheCluster resource, MagpieResource data, String region) {
+  private void discoverRedisSize(CacheCluster resource, MagpieAwsResource data, String region) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("CacheClusterId").value(resource.cacheClusterId()).build());
 

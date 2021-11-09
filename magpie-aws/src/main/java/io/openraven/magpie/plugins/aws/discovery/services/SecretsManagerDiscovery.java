@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -58,13 +58,13 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
           .stream()
           .map(secretListEntry -> client.describeSecret(DescribeSecretRequest.builder().secretId(secretListEntry.arn()).build()))
           .forEach(secret -> {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.arn())
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, secret.arn())
               .withResourceName(secret.name())
               .withResourceType(RESOURCE_TYPE)
               .withConfiguration(mapper.valueToTree(secret.toBuilder()))
               .withCreatedIso(secret.createdDate())
               .withAccountId(account)
-              .withRegion(region.toString())
+              .withAwsRegion(region.toString())
               .build();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));

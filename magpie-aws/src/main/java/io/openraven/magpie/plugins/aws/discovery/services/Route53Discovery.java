@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -61,13 +61,13 @@ public class Route53Discovery implements AWSDiscovery {
     try {
       client.listHostedZonesPaginator().hostedZones().stream().forEach(hostedZone -> {
         String arn = String.format("arn:aws:route53:::hostedZone/%s", hostedZone.id());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(hostedZone.name())
           .withResourceId(hostedZone.id())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(hostedZone.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverRecordSets(client, hostedZone, data);
@@ -80,7 +80,7 @@ public class Route53Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverRecordSets(Route53Client client, HostedZone resource, MagpieResource data) {
+  private void discoverRecordSets(Route53Client client, HostedZone resource, MagpieAwsResource data) {
     final String keyname = "recordSets";
 
     getAwsResponse(
@@ -93,7 +93,7 @@ public class Route53Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTrafficPolicyInstances(Route53Client client, HostedZone resource, MagpieResource data) {
+  private void discoverTrafficPolicyInstances(Route53Client client, HostedZone resource, MagpieAwsResource data) {
     final String keyname = "trafficPolicyInstances";
 
     getAwsResponse(

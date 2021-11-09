@@ -23,7 +23,7 @@ import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.cloud.kms.v1.LocationName;
 import com.google.iam.v1.Policy;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -92,7 +92,7 @@ public class KMSDiscovery implements GCPDiscovery {
         String parent = LocationName.of(projectId, location).toString();
 
         keyManagementServiceClient.listKeyRings(parent).iterateAll().forEach(keyRing -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, keyRing.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, keyRing.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(location)
@@ -109,7 +109,7 @@ public class KMSDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, MagpieResource data) {
+  private void discoverKeys(KeyManagementServiceClient keyManagementServiceClient, com.google.cloud.kms.v1.KeyRing keyRing, MagpieGcpResource data) {
     final String fieldName = "keys";
 
     ArrayList<KeyDto> list = new ArrayList<>();

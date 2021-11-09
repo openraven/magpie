@@ -22,7 +22,7 @@ import com.google.cloud.billing.v1.BillingAccount;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.ProjectBillingInfo;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -46,7 +46,7 @@ public class BillingDiscovery implements GCPDiscovery {
 
     try (var client = CloudBillingClient.create()) {
       for (var billingAccount : client.listBillingAccounts().iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, billingAccount.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, billingAccount.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(billingAccount))
@@ -61,7 +61,7 @@ public class BillingDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverProjectBillingInfo(CloudBillingClient client, BillingAccount billingAccount, MagpieResource data) {
+  private void discoverProjectBillingInfo(CloudBillingClient client, BillingAccount billingAccount, MagpieGcpResource data) {
     final String fieldName = "projectBillingInfo";
 
     ArrayList<ProjectBillingInfo.Builder> list = new ArrayList<>();

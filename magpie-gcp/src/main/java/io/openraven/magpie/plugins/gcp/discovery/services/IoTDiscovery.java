@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.iot.v1.*;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -50,7 +50,7 @@ public class IoTDiscovery implements GCPDiscovery {
 
         deviceManagerClient.listDeviceRegistries(parent).iterateAll()
           .forEach(deviceRegistry -> {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, deviceRegistry.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, deviceRegistry.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)
@@ -69,7 +69,7 @@ public class IoTDiscovery implements GCPDiscovery {
 
   private void discoverDevices(DeviceManagerClient deviceManagerClient,
                                DeviceRegistry deviceRegistry,
-                               MagpieResource data) {
+                               MagpieGcpResource data) {
     final String fieldName = "devices";
 
     ArrayList<Device.Builder> list = new ArrayList<>();

@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.devtools.cloudbuild.v1.CloudBuildClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -50,7 +50,7 @@ public class CloudBuildDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::CloudBuild::BuildTrigger";
 
     for (var element : cloudBuildClient.listBuildTriggers(projectId).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))
@@ -64,7 +64,7 @@ public class CloudBuildDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::CloudBuild::Build";
 
     for (var element : cloudBuildClient.listBuilds(projectId, "").iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))

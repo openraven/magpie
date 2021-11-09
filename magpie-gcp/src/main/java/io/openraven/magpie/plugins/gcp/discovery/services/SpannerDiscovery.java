@@ -25,7 +25,7 @@ import com.google.spanner.admin.database.v1.Database;
 import com.google.spanner.admin.instance.v1.Instance;
 import com.google.spanner.admin.instance.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -51,7 +51,7 @@ public class SpannerDiscovery implements GCPDiscovery {
       ProjectName projectName = ProjectName.of(projectId);
 
       client.listInstances(projectName).iterateAll().forEach(instance -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, instance.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, instance.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(instance))
@@ -71,7 +71,7 @@ public class SpannerDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverBackups(Instance instance, MagpieResource data, DatabaseAdminClient databaseAdminClient) {
+  private void discoverBackups(Instance instance, MagpieGcpResource data, DatabaseAdminClient databaseAdminClient) {
     final String fieldName = "backups";
 
     ArrayList<Backup.Builder> list = new ArrayList<>();
@@ -82,7 +82,7 @@ public class SpannerDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverDatabases(Instance instance, MagpieResource data, DatabaseAdminClient databaseAdminClient) {
+  private void discoverDatabases(Instance instance, MagpieGcpResource data, DatabaseAdminClient databaseAdminClient) {
     final String fieldName = "databases";
 
     ArrayList<Database.Builder> list = new ArrayList<>();

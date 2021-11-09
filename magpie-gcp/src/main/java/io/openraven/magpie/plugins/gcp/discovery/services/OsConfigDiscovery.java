@@ -22,7 +22,7 @@ import com.google.cloud.osconfig.v1.OsConfigServiceClient;
 import com.google.cloud.osconfig.v1.PatchJobs;
 import com.google.cloud.osconfig.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -55,7 +55,7 @@ public class OsConfigDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::OsConfig::PatchJob";
 
     for (var patchJob : client.listPatchJobs(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, patchJob.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, patchJob.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(patchJob))
@@ -67,7 +67,7 @@ public class OsConfigDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverPatchJobInstanceDetails(OsConfigServiceClient client, PatchJobs.PatchJob patchJob, MagpieResource data) {
+  private void discoverPatchJobInstanceDetails(OsConfigServiceClient client, PatchJobs.PatchJob patchJob, MagpieGcpResource data) {
     final String fieldName = "instanceDetails";
 
     ArrayList<PatchJobs.PatchJobInstanceDetails.Builder> list = new ArrayList<>();
@@ -81,7 +81,7 @@ public class OsConfigDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::OsConfig::PatchDeployment";
 
     for (var patchDeployment : client.listPatchDeployments(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, patchDeployment.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, patchDeployment.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(patchDeployment))

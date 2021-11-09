@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.scheduler.v1beta1.CloudSchedulerClient;
 import com.google.cloud.scheduler.v1beta1.LocationName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -72,7 +72,7 @@ public class SchedulerDiscovery implements GCPDiscovery {
         try {
           var parent = LocationName.of(projectId, location);
           for (var job : cloudSchedulerClient.listJobs(parent.toString()).iterateAll()) {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, job.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, job.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)

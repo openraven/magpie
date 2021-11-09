@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -60,12 +60,12 @@ public class BatchDiscovery implements AWSDiscovery {
     try {
       client.describeComputeEnvironmentsPaginator().computeEnvironments()
         .forEach( computeEnvironment -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, computeEnvironment.computeEnvironmentArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, computeEnvironment.computeEnvironmentArn())
             .withResourceName(computeEnvironment.computeEnvironmentName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(computeEnvironment.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode()));
@@ -80,12 +80,12 @@ public class BatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeJobQueuesPaginator().jobQueues().forEach(jobQueue -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobQueue.jobQueueArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, jobQueue.jobQueueArn())
           .withResourceName(jobQueue.jobQueueName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(jobQueue.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode()));
@@ -100,12 +100,12 @@ public class BatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeJobDefinitionsPaginator().jobDefinitions().forEach(jobDefinition -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobDefinition.jobDefinitionArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, jobDefinition.jobDefinitionArn())
           .withResourceName(jobDefinition.jobDefinitionName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(jobDefinition.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode()));

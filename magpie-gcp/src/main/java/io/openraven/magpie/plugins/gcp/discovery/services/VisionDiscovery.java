@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.vision.v1.LocationName;
 import com.google.cloud.vision.v1.ProductSearchClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -61,7 +61,7 @@ public class VisionDiscovery implements GCPDiscovery {
 
     LocationName parent = LocationName.of(projectId, location);
     for (var product : productSearchClient.listProducts(parent).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, product.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, product.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withRegion(location)
@@ -77,7 +77,7 @@ public class VisionDiscovery implements GCPDiscovery {
 
     LocationName parent = LocationName.of(projectId, location);
     for (var product : productSearchClient.listProductSets(parent).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, product.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, product.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withRegion(location)

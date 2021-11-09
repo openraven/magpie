@@ -23,7 +23,7 @@ import com.google.cloud.bigquery.reservation.v1.LocationName;
 import com.google.cloud.bigquery.reservation.v1.Reservation;
 import com.google.cloud.bigquery.reservation.v1.ReservationServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -87,7 +87,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
       String parent = LocationName.of(projectId, location).toString();
 
       for (var reservation : client.listReservations(parent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, reservation.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, reservation.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withRegion(location)
@@ -101,7 +101,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
     });
   }
 
-  private void discoverAssignments(ReservationServiceClient client, Reservation reservation, MagpieResource data) {
+  private void discoverAssignments(ReservationServiceClient client, Reservation reservation, MagpieGcpResource data) {
     final String fieldName = "assignments";
 
     ArrayList<Assignment.Builder> list = new ArrayList<>();
@@ -112,13 +112,13 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
   }
 
   private void discoverCapacityCommitments(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::BigQueryReservation::CapacityCommitment";
+    final String RESOURCE_TYPE = "`GCP::BigQueryReservation::CapacityCommitment`";
 
     AVAILABLE_LOCATIONS.forEach(location -> {
       String parent = LocationName.of(projectId, location).toString();
 
       for (var capacityCommitment : client.listCapacityCommitments(parent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, capacityCommitment.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, capacityCommitment.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withRegion(location)

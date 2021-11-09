@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.compute.v1.Project;
 import com.google.cloud.compute.v1.ProjectClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -30,7 +30,7 @@ public class ProjectDiscovery implements GCPDiscovery {
       Project project = projectClient.getProject(projectId);
 
       String assetId = "project::%s";
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, String.format(assetId, project.getName()))
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, String.format(assetId, project.getName()))
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(project))

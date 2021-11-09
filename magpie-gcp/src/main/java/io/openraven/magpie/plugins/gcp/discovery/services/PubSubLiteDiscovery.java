@@ -21,7 +21,7 @@ import com.google.api.gax.rpc.UnimplementedException;
 import com.google.cloud.pubsublite.proto.LocationName;
 import com.google.cloud.pubsublite.v1.AdminServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -55,7 +55,7 @@ public class PubSubLiteDiscovery implements GCPDiscovery {
 
     var parent = LocationName.of(projectId, "-");
     for (var element : client.listSubscriptions(parent.toString()).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))
@@ -70,7 +70,7 @@ public class PubSubLiteDiscovery implements GCPDiscovery {
 
     var parent = LocationName.of(projectId, "-");
     for (var element : client.listTopics(parent.toString()).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))

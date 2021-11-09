@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -57,14 +57,14 @@ public class EMRDiscovery implements AWSDiscovery {
 
     try {
       client.listClustersPaginator().clusters().stream().forEach(cluster -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.clusterArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cluster.clusterArn())
           .withResourceName(cluster.name())
           .withResourceId(cluster.id())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
           .withCreatedIso(cluster.status().timeline().creationDateTime())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverSteps(client, cluster, data);
@@ -79,7 +79,7 @@ public class EMRDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSteps(EmrClient client, ClusterSummary resource, MagpieResource data) {
+  private void discoverSteps(EmrClient client, ClusterSummary resource, MagpieAwsResource data) {
     final String keyname = "steps";
 
     getAwsResponse(
@@ -92,7 +92,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstances(EmrClient client, ClusterSummary resource, MagpieResource data) {
+  private void discoverInstances(EmrClient client, ClusterSummary resource, MagpieAwsResource data) {
     final String keyname = "instances";
 
     getAwsResponse(
@@ -105,7 +105,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, MagpieResource data) {
+  private void discoverInstanceFleets(EmrClient client, ClusterSummary resource, MagpieAwsResource data) {
     final String keyname = "instancesFleet";
 
     getAwsResponse(
@@ -118,7 +118,7 @@ public class EMRDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, MagpieResource data) {
+  private void discoverInstanceGroups(EmrClient client, ClusterSummary resource, MagpieAwsResource data) {
     final String keyname = "instancesGroups";
 
     getAwsResponse(

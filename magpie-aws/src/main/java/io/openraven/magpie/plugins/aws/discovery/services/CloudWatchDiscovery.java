@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -65,12 +65,12 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
     try {
       client.describeAlarmsPaginator().metricAlarms().stream().forEach(alarm -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, alarm.alarmArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, alarm.alarmArn())
           .withResourceName(alarm.alarmName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(alarm.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverAlarmHistory(client, alarm, data);
@@ -83,7 +83,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, MagpieResource data) {
+  private void discoverAlarmHistory(CloudWatchClient client, MetricAlarm resource, MagpieAwsResource data) {
     final String keyname = "alarmHistory";
 
     getAwsResponse(
@@ -96,7 +96,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverAlarmTags(CloudWatchClient client, MetricAlarm resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceARN(resource.alarmArn()).build()),
       (resp) -> {
@@ -114,12 +114,12 @@ public class CloudWatchDiscovery implements AWSDiscovery {
     try {
       client.listDashboardsPaginator(ListDashboardsRequest.builder().build()).dashboardEntries().stream()
         .forEach(dashboard -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, dashboard.dashboardArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, dashboard.dashboardArn())
           .withResourceName(dashboard.dashboardName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(dashboard.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dashboard"), data.toJsonNode()));

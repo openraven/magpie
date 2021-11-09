@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -80,13 +80,13 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeTracker(DescribeTrackerRequest.builder().trackerName(responseEntry.trackerName()).build()))
         .forEach(tracker -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, tracker.trackerArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, tracker.trackerArn())
             .withResourceName(tracker.trackerName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(tracker.toBuilder()))
             .withCreatedIso(tracker.createTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverDevicePositions(client, tracker, data);
@@ -100,7 +100,7 @@ public class LocationDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDevicePositions(LocationClient client, DescribeTrackerResponse tracker, MagpieResource data) {
+  private void discoverDevicePositions(LocationClient client, DescribeTrackerResponse tracker, MagpieAwsResource data) {
     final String keyname = "devicePositions";
 
     getAwsResponse(
@@ -113,7 +113,7 @@ public class LocationDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTrackerConsumers(LocationClient client, DescribeTrackerResponse tracker, MagpieResource data) {
+  private void discoverTrackerConsumers(LocationClient client, DescribeTrackerResponse tracker, MagpieAwsResource data) {
     final String keyname = "trackerConsumers";
 
     getAwsResponse(
@@ -134,13 +134,13 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeMap(DescribeMapRequest.builder().mapName(responseEntry.mapName()).build()))
         .forEach(map -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, map.mapArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, map.mapArn())
             .withResourceName(map.mapName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(map.toBuilder()))
             .withCreatedIso(map.createTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverTags(client, map.mapArn(), data, mapper);
@@ -161,13 +161,13 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeGeofenceCollection(DescribeGeofenceCollectionRequest.builder().collectionName(responseEntry.collectionName()).build()))
         .forEach(geofenceCollection -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, geofenceCollection.collectionArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, geofenceCollection.collectionArn())
             .withResourceName(geofenceCollection.collectionName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(geofenceCollection.toBuilder()))
             .withCreatedIso(geofenceCollection.createTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverGeofences(client, geofenceCollection, data);
@@ -180,7 +180,7 @@ public class LocationDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverGeofences(LocationClient client, DescribeGeofenceCollectionResponse geofenceCollection, MagpieResource data) {
+  private void discoverGeofences(LocationClient client, DescribeGeofenceCollectionResponse geofenceCollection, MagpieAwsResource data) {
     final String keyname = "geofences";
 
     getAwsResponse(
@@ -202,13 +202,13 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describePlaceIndex(DescribePlaceIndexRequest.builder().indexName(responseEntry.indexName()).build()))
         .forEach(placeIndex -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, placeIndex.indexArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, placeIndex.indexArn())
             .withResourceName(placeIndex.indexName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(placeIndex.toBuilder()))
             .withCreatedIso(placeIndex.createTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverTags(client, placeIndex.indexArn(), data, mapper);
@@ -229,13 +229,13 @@ public class LocationDiscovery implements AWSDiscovery {
         .stream()
         .map(responseEntry -> client.describeRouteCalculator(DescribeRouteCalculatorRequest.builder().calculatorName(responseEntry.calculatorName()).build()))
         .forEach(routeCalculator -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, routeCalculator.calculatorArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, routeCalculator.calculatorArn())
             .withResourceName(routeCalculator.calculatorName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(routeCalculator.toBuilder()))
             .withCreatedIso(routeCalculator.createTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverTags(client, routeCalculator.calculatorArn(), data, mapper);
@@ -247,7 +247,7 @@ public class LocationDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTags(LocationClient client, String arn, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(LocationClient client, String arn, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(arn).build()),
       (resp) -> data.tags = mapper.valueToTree(resp.tags()),

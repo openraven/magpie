@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.container.v1.ClusterManagerClient;
 import com.google.container.v1.ListClustersResponse;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -47,7 +47,7 @@ public class ClusterDiscovery implements GCPDiscovery {
 
       response.getClustersList()
         .forEach(cluster -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, cluster.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(GCPUtils.asJsonNode(cluster))

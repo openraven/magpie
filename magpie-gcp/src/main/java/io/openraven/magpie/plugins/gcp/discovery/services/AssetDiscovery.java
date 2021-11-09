@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.asset.v1.AssetServiceClient;
 import com.google.cloud.asset.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -51,7 +51,7 @@ public class AssetDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::Asset::Feed";
 
     for (var element : assetServiceClient.listFeeds(ProjectName.of(projectId).toString()).getFeedsList()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))
@@ -65,7 +65,7 @@ public class AssetDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = "GCP::Asset::Asset";
 
     for (var element : assetServiceClient.listAssets(ProjectName.of(projectId).toString()).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))

@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -68,12 +68,12 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         .map(globalTable -> client.describeGlobalTable(
           DescribeGlobalTableRequest.builder().globalTableName(globalTable.globalTableName()).build()).globalTableDescription())
         .forEach(globalTable -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, globalTable.globalTableArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, globalTable.globalTableArn())
             .withResourceName(globalTable.globalTableName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(globalTable.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data.toJsonNode()));
@@ -90,14 +90,14 @@ public class DynamoDbDiscovery implements AWSDiscovery {
       client.listTablesPaginator().tableNames().stream()
         .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table())
         .forEach(table -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, table.tableArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, table.tableArn())
             .withResourceName(table.tableName())
             .withResourceId(table.tableId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(table.toBuilder()))
             .withCreatedIso(table.creationDateTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverContinuousBackups(client, table, data);
@@ -111,7 +111,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieResource data) {
+  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieAwsResource data) {
     final String keyname = "continuousBackups";
 
     getAwsResponse(
@@ -121,7 +121,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(DynamoDbClient client, TableDescription resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(DynamoDbClient client, TableDescription resource, MagpieAwsResource data, ObjectMapper mapper) {
     final String keyname = "tags";
 
     getAwsResponse(

@@ -22,7 +22,7 @@ import com.google.cloud.logging.v2.MetricsClient;
 import com.google.logging.v2.LocationName;
 import com.google.logging.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -51,7 +51,7 @@ public class LoggingDiscovery implements GCPDiscovery {
     try (MetricsClient metricsClient = MetricsClient.create()) {
       String parent = ProjectName.of(projectId).toString();
       for (var metric : metricsClient.listLogMetrics(parent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, metric.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, metric.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(metric))
@@ -79,7 +79,7 @@ public class LoggingDiscovery implements GCPDiscovery {
 
     ProjectName parent = ProjectName.of(projectId);
     for (var sink : configClient.listSinks(parent).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, sink.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, sink.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(sink))
@@ -94,7 +94,7 @@ public class LoggingDiscovery implements GCPDiscovery {
 
     var parent = LocationName.of(projectId, "-");
     for (var bucket : configClient.listBuckets(parent).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, bucket.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, bucket.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(bucket))
@@ -109,7 +109,7 @@ public class LoggingDiscovery implements GCPDiscovery {
 
     var parent = ProjectName.of(projectId);
     for (var exclusion : configClient.listExclusions(parent).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, exclusion.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, exclusion.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(exclusion))

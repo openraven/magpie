@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.dns.*;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -43,7 +43,7 @@ public class DnsDiscovery implements GCPDiscovery {
     var dnsInstance = DnsOptions.getDefaultInstance().getService();
 
     dnsInstance.listZones().iterateAll().forEach(zone -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, zone.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, zone.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(zone))
@@ -56,7 +56,7 @@ public class DnsDiscovery implements GCPDiscovery {
       });
   }
 
-  private void discoverChangeRequests(Dns dnsInstance, Zone zone, MagpieResource data) {
+  private void discoverChangeRequests(Dns dnsInstance, Zone zone, MagpieGcpResource data) {
     final String fieldName = "changeRequests";
 
     ArrayList<ChangeRequest.Builder> list = new ArrayList<>();
@@ -66,7 +66,7 @@ public class DnsDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, list));
   }
 
-  private void discoverRecordSets(Dns dnsInstance, Zone zone, MagpieResource data) {
+  private void discoverRecordSets(Dns dnsInstance, Zone zone, MagpieGcpResource data) {
     final String fieldName = "recordSets";
 
     ArrayList<RecordSet.Builder> list = new ArrayList<>();

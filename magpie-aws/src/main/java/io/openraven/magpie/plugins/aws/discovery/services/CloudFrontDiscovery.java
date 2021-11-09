@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -60,13 +60,13 @@ public class CloudFrontDiscovery implements AWSDiscovery {
 
     try {
       client.listDistributions().distributionList().items().forEach(distribution -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, distribution.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, distribution.arn())
           .withResourceName(distribution.domainName())
           .withResourceId(distribution.id())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(distribution.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverTags(client, distribution, data, mapper);
@@ -78,7 +78,7 @@ public class CloudFrontDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTags(CloudFrontClient client, DistributionSummary resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(CloudFrontClient client, DistributionSummary resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resource(resource.arn()).build()),
       (resp) -> {

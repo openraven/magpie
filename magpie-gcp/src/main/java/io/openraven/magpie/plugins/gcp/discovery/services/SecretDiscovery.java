@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
@@ -46,7 +46,7 @@ public class SecretDiscovery implements GCPDiscovery {
 
       client.listSecrets(projectName).iterateAll()
         .forEach(secret -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, secret.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, secret.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(GCPUtils.asJsonNode(secret))

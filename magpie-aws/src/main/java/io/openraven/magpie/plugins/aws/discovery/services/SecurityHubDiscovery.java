@@ -18,7 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -55,13 +55,13 @@ public class SecurityHubDiscovery implements AWSDiscovery {
     try {
       client.getEnabledStandardsPaginator(GetEnabledStandardsRequest.builder().build())
         .forEach(resp -> resp.standardsSubscriptions().forEach(sub -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, sub.standardsSubscriptionArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, sub.standardsSubscriptionArn())
             .withResourceName(sub.standardsSubscriptionArn())
             .withResourceId(sub.standardsSubscriptionArn())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(sub.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":standardsSubscription"), data.toJsonNode()));
         }));

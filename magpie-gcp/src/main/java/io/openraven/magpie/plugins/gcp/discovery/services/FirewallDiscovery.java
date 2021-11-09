@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.compute.v1.FirewallClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -43,7 +43,7 @@ public class FirewallDiscovery implements GCPDiscovery {
 
     try (FirewallClient firewallClient = FirewallClient.create()) {
       firewallClient.listFirewalls(projectId).iterateAll().forEach(firewall -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, firewall.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, firewall.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(firewall))

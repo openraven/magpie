@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -59,12 +59,12 @@ public class EBDiscovery implements AWSDiscovery {
 
     try {
       client.describeEnvironments().environments().forEach(environment -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, environment.environmentArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, environment.environmentArn())
           .withResourceName(environment.environmentName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(environment.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverApplication(client, environment, data);
@@ -81,7 +81,7 @@ public class EBDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
+  private void discoverApplication(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieAwsResource data) {
     final String keyname = "application";
 
     getAwsResponse(
@@ -92,7 +92,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
+  private void discoverConfigurationSettings(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieAwsResource data) {
     final String keyname = "configurationSettings";
 
     getAwsResponse(
@@ -106,7 +106,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
+  private void discoverEnvironmentResources(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieAwsResource data) {
     final String keyname = "environmentResources";
 
     getAwsResponse(
@@ -117,7 +117,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data) {
+  private void discoverEnvironmentManagedActions(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieAwsResource data) {
     final String keyname = "environmentManagedActions";
 
     getAwsResponse(
@@ -128,7 +128,7 @@ public class EBDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticBeanstalkClient client, EnvironmentDescription resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.environmentArn()).build()),
       (resp) -> {

@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -60,14 +60,14 @@ public class ELBV2Discovery implements AWSDiscovery {
 
     try {
       client.describeLoadBalancers().loadBalancers().forEach(loadBalancerV2 -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, loadBalancerV2.loadBalancerArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, loadBalancerV2.loadBalancerArn())
           .withResourceName(loadBalancerV2.dnsName())
           .withResourceId(loadBalancerV2.loadBalancerName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(loadBalancerV2.toBuilder()))
           .withCreatedIso(loadBalancerV2.createdTime())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverTags(client, loadBalancerV2, data, mapper);
@@ -79,7 +79,7 @@ public class ELBV2Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.describeTags(DescribeTagsRequest.builder().resourceArns(resource.loadBalancerArn()).build()).tagDescriptions(),
       (resp) -> {
