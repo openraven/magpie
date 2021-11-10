@@ -17,15 +17,10 @@ import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
-import io.openraven.magpie.plugins.persist.FlywayMigrationService;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
-import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
@@ -38,17 +33,14 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Disabled
 public abstract class AbstractRuleValidator {
 
   private static final String DEFAULT_SECURITY_RULES_REPO = "https://github.com/openraven/security-rules.git";
   private static final String REPOSITORY_PROPERTY = "repository";
-  private static final AssetMapper ASSET_MAPPER = new AssetMapper();
   private static final PolicyAcquisitionServiceImpl policyAcquisitionService = new PolicyAcquisitionServiceImpl();
 
   private static PluginConfig<PersistConfig> pluginConfig;
   private static AssetsRepo assetsRepo;
-  private static Jdbi jdbi;
 
   protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
   protected static Map<String, Rule> ruleMap;
@@ -59,7 +51,6 @@ public abstract class AbstractRuleValidator {
     var jdbcDatabaseContainer = postgreSQLContainerProvider.newInstance();
     jdbcDatabaseContainer.start();
 
-    jdbiSetuo(jdbcDatabaseContainer);
     persistenceSetup(jdbcDatabaseContainer);
     ruleMap = loadRules();
   }
@@ -71,20 +62,10 @@ public abstract class AbstractRuleValidator {
     persistConfig.setPort(String.valueOf(jdbcDatabaseContainer.getFirstMappedPort()));
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
     persistConfig.setPassword(jdbcDatabaseContainer.getUsername());
-    assetsRepo = new AssetsRepo(persistConfig);
+    assetsRepo = new HibernateAssetsRepoImpl(persistConfig);
 
     pluginConfig = new PluginConfig<>();
     pluginConfig.setConfig(persistConfig);
-
-    FlywayMigrationService.initiateDBMigration(persistConfig);
-  }
-
-  private static void jdbiSetuo(JdbcDatabaseContainer jdbcDatabaseContainer) {
-    jdbi = Jdbi.create(jdbcDatabaseContainer.getJdbcUrl(),
-      jdbcDatabaseContainer.getUsername(),
-      jdbcDatabaseContainer.getPassword())
-      .installPlugin(new PostgresPlugin())
-      .installPlugin(new SqlObjectPlugin());
   }
 
   protected static Map<String, Rule> loadRules() {
@@ -119,8 +100,13 @@ public abstract class AbstractRuleValidator {
       MagpieEnvelope envelope = new MagpieEnvelope();
       envelope.setContents(asset);
 
-      AssetModel assetModel = ASSET_MAPPER.map(envelope);
-//      assetsRepo.upsert(assetModel); TODO: fix to use Hibernate only
+      AssetModel assetModel = null;
+      try {
+        assetModel = MAPPER.treeToValue(envelope.getContents(), AssetModel.class);
+        assetsRepo.upsert(assetModel);
+      } catch (JsonProcessingException e) {
+        throw new IllegalArgumentException(e);
+      }
     });
   }
 
@@ -137,10 +123,8 @@ public abstract class AbstractRuleValidator {
 
   @AfterEach
   protected void cleanupAssets() {
-    jdbi.withHandle(handle -> handle.execute("DELETE FROM assets"));
-    assertEquals(0,
-      jdbi.withHandle(handle -> handle.createQuery("SELECT count(*) FROM assets")
-        .mapTo(Integer.class).one()).intValue());
+    assetsRepo.executeNative("DELETE FROM assets");
+    assertEquals("0", assetsRepo.queryNative("SELECT count(*) FROM assets").get(0).get("count").toString());
   }
 
   protected static String getTargetProjectDirectoryPath() {

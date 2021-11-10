@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.plugins.persist;
+package io.openraven.magpie.plugins.persist.config;
 
 import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.plugins.persist.AssetModel;
+import io.openraven.magpie.plugins.persist.PersistConfig;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -44,6 +46,7 @@ public class PostgresPersistenceProvider {
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
+    configuration.addAnnotatedClass(AssetModel.class);
 
     getSubClasses(AWSResource.class).forEach(configuration::addAnnotatedClass);
 

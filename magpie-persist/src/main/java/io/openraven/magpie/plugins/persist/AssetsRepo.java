@@ -18,23 +18,18 @@ package io.openraven.magpie.plugins.persist;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-import javax.persistence.EntityManager;
+import java.util.List;
+import java.util.Map;
 
-public class AssetsRepo {
+public interface AssetsRepo {
 
-  private final EntityManager entityManager;
+  void upsert(AWSResource awsResource);
 
-  public AssetsRepo(PersistConfig persistConfig) {
-    this.entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
-  }
+  void upsert(AssetModel assetModel);
 
-  public void upsert(AWSResource awsResource) {
-    entityManager.getTransaction().begin();
+  void executeNative(String query);
 
-    AWSResource merge = entityManager.merge(awsResource);
+  List<Map<String, Object>> queryNative(String query);
 
-    entityManager.flush();
-    entityManager.getTransaction().commit();
-    entityManager.clear();
-  }
+  Long getAssetCount(String resourceType);
 }

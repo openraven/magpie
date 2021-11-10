@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.accounts.IamGroup;
+import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class PersistPluginIT {
 
   private static final String SELECT_GROUP_TABLE = "SELECT a FROM IamGroup a";
+  private static final String SELECT_ASSETS_TABLE = "SELECT a FROM AssetModel a";
 
   private static EntityManager entityManager;
   private static PersistConfig persistConfig;
@@ -59,6 +61,9 @@ class PersistPluginIT {
     List<IamGroup> assets = queryIamGroupTable();
     assertEquals (1, assets.size());
     assertAsset(assets.get(0));
+
+    List<AssetModel> assetModels = queryAssetsTable();
+    assertEquals(1, assetModels.size());
   }
 
   @Test
@@ -90,6 +95,8 @@ class PersistPluginIT {
     assertEquals(1, updatedAssets.size());
     assertAsset(updatedAssets.get(0));
 
+    List<AssetModel> assetModels = queryAssetsTable();
+    assertEquals(1, assetModels.size());
   }
 
   private void assertAsset(AWSResource awsResource) {
@@ -116,6 +123,12 @@ class PersistPluginIT {
   private List<IamGroup> queryIamGroupTable() {
     entityManager.clear();
     return entityManager.createQuery(SELECT_GROUP_TABLE, IamGroup.class)
+      .getResultList();
+  }
+
+  private List<AssetModel> queryAssetsTable() {
+    entityManager.clear();
+    return entityManager.createQuery(SELECT_ASSETS_TABLE, AssetModel.class)
       .getResultList();
   }
 }

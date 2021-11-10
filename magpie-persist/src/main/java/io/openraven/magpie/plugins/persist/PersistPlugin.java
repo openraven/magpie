@@ -22,6 +22,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
 import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.slf4j.Logger;
 
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
@@ -42,9 +43,13 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
       try {
         AWSResource asset = objectMapper.treeToValue(env.getContents(), AWSResource.class);
         assetsRepo.upsert(asset);
+
+        AssetModel assetModel = objectMapper.treeToValue(env.getContents(), AssetModel.class);
+        assetsRepo.upsert(assetModel); // Keeping old structure for backward compatibility with existing rules
+
         logger.info("Saved asset with id: {}", asset.arn);
       } catch (JsonProcessingException e) {
-        throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env));
+        throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env), e);
       }
     }
   }
@@ -57,7 +62,7 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void init(PersistConfig config, Logger logger) {
     this.logger = logger;
-    assetsRepo = new AssetsRepo(config);
+    assetsRepo = new HibernateAssetsRepoImpl(config);
   }
 
   @Override

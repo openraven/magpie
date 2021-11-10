@@ -10,10 +10,10 @@ import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.Policy;
 import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.Rule;
+import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.python.core.PyDictionary;
 import org.python.core.PyList;
 import org.python.util.PythonInterpreter;
@@ -33,9 +33,9 @@ import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*
 public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAnalyzerServiceImpl.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String EXIST_ASSETS_PER_CLOUD =
-    "SELECT EXISTS(SELECT 1 FROM assets WHERE resource_type like '%s%%')";
-  private Jdbi jdbi;
+  private static final String EXIST_ASSETS_PER_CLOUD = // TODO rewrite logic to check cloud tables content
+    "SELECT EXISTS(SELECT 1 FROM assets WHERE resource_type like '%s%%') as exists";
+  private AssetsRepo assetsRepo;
 
   @Override
   public void init(MagpieConfig config) {
@@ -46,10 +46,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     try {
       final PersistConfig persistConfig = MAPPER.treeToValue(MAPPER.valueToTree(rawPersistConfig.getConfig()), PersistConfig.class);
-
-      String url = String.format("jdbc:postgresql://%s:%s/%s", persistConfig.getHostname(), persistConfig.getPort(), persistConfig.getDatabaseName());
-      jdbi = Jdbi.create(url, persistConfig.getUser(), persistConfig.getPassword())
-        .installPlugin(new PostgresPlugin());
+      assetsRepo = new HibernateAssetsRepoImpl(persistConfig);
     } catch (JsonProcessingException e) {
       throw new ConfigException("Cannot instantiate PersistConfig while initializing PolicyAnalyzerService", e);
     }
@@ -89,8 +86,8 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   private boolean cloudProviderAssetsAvailable(Policy policy) {
-    return jdbi.withHandle(handle -> handle.createQuery(String.format(EXIST_ASSETS_PER_CLOUD, policy.getCloudProvider()))
-      .mapTo(Boolean.class).findFirst().orElseThrow());
+    List<Map<String, Object>> data = assetsRepo.queryNative(String.format(EXIST_ASSETS_PER_CLOUD, policy.getCloudProvider()));
+    return Boolean.parseBoolean(data.get(0).get("exists").toString());
   }
 
   protected void executeRule(List<Violation> policyViolations,
@@ -109,7 +106,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       return;
     }
 
-    var missingAssets = checkForMissingAssets(jdbi, rule.getSql());
+    var missingAssets = checkForMissingAssets(rule.getSql());
     if (!missingAssets.isEmpty()) { // Missing assets found
       policyIgnoredRules.add(new IgnoredRule(policy, rule, MISSING_ASSET));
       LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getRuleName());
@@ -119,7 +116,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
     LOGGER.info("Analyzing rule - {}", rule.getRuleName());
     LocalDateTime evaluatedAt = LocalDateTime.now();
 
-    var results = jdbi.withHandle(handle -> handle.createQuery(rule.getSql()).mapToMap().list());
+    List<Map<String, Object>> results = assetsRepo.queryNative(rule.getSql());
 
     StringWriter evalErr = new StringWriter();
     if (!Optional.ofNullable(rule.getEval()).orElse("").isEmpty()) {
@@ -135,7 +132,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       Violation violation = new Violation();
       violation.setPolicy(policy);
       violation.setRule(rule);
-      violation.setAssetId(result.get("asset_id").toString());
+      violation.setAssetId(result.get("asset_id").toString()); // Assume Rules should always return this type of alias
       violation.setInfo(rule.getDescription());
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
@@ -143,7 +140,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
     });
   }
 
-  private List<String> checkForMissingAssets(Jdbi jdbi, String sql) {
+  private List<String> checkForMissingAssets(String sql) {
     String sqlNoWhitespaces = sql.replaceAll("\\s+", "");
     String resourceTypeSearch = "resource_type='";
     List<String> resourceTypes = new ArrayList<>();
@@ -161,13 +158,11 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     List<String> missingAssets = new ArrayList<>();
     resourceTypes.forEach(resourceType -> {
-      String query = String.format("SELECT COUNT(*) FROM assets WHERE resource_type ='%s';", resourceType);
 
-      var results = jdbi.withHandle(handle -> {
-        return handle.createQuery(query).mapToMap().list();
-      });
+      // TODO implement getting the class by resource type
+      var results = assetsRepo.getAssetCount(resourceType);
 
-      if ((long) results.get(0).get("count") == 0) {
+      if (results == 0) {
         missingAssets.add(resourceType);
       }
     });

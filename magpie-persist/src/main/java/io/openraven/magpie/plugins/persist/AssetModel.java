@@ -16,12 +16,17 @@
 
 package io.openraven.magpie.plugins.persist;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.time.Instant;
 
+// Keeping old structure for backward compatibility with rules
 @Entity
 @Table(name = "assets")
 public class AssetModel {
@@ -31,6 +36,7 @@ public class AssetModel {
   public String documentId;
 
   @Column(name = "asset_id")
+  @JsonAlias("arn")
   public String assetId;
 
   @Column(name = "resource_name")
@@ -43,12 +49,14 @@ public class AssetModel {
   public String resourceType;
 
   @Column(name = "region")
+  @JsonAlias("awsRegion")
   public String region;
 
   @Column(name = "project_id")
   public String projectId;
 
   @Column(name = "account_id")
+  @JsonAlias("awsAccountId")
   public String accountId;
 
   @Column(name = "created_iso")
@@ -189,31 +197,35 @@ public class AssetModel {
     return configuration;
   }
 
-  public void setConfiguration(String configuration) {
-    this.configuration = configuration;
+  @JsonSetter("configuration")
+  public void setConfiguration(JsonNode configuration) {
+    this.configuration = configuration.toPrettyString();
   }
 
   public String getSupplementaryConfiguration() {
     return supplementaryConfiguration;
   }
 
-  public void setSupplementaryConfiguration(String supplementaryConfiguration) {
-    this.supplementaryConfiguration = supplementaryConfiguration;
+  @JsonSetter("supplementaryConfiguration")
+  public void setSupplementaryConfiguration(JsonNode supplementaryConfiguration) {
+    this.supplementaryConfiguration = supplementaryConfiguration.toString();
   }
 
   public String getTags() {
     return tags;
   }
 
-  public void setTags(String tags) {
-    this.tags = tags;
+  @JsonSetter("tags")
+  public void setTags(JsonNode tags) {
+    this.tags = tags.toString();
   }
 
   public String getDiscoveryMeta() {
     return discoveryMeta;
   }
 
-  public void setDiscoveryMeta(String discoveryMeta) {
-    this.discoveryMeta = discoveryMeta;
+  @JsonSetter("discoveryMeta")
+  public void setDiscoveryMeta(JsonNode discoveryMeta) {
+    this.discoveryMeta = discoveryMeta.toString();
   }
 }
