@@ -15,6 +15,10 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <javax.persistence.version>2.2</javax.persistence.version>
+    <hibernate.version>5.6.1.Final</hibernate.version>
+    <postgresql.driver.version>42.2.10</postgresql.driver.version>
+    <flyway.version>7.10.0</flyway.version>
+    <magpie-data.vesrion>0.1.0-SNAPSHOT</magpie-data.vesrion>
   </properties>
 
   <dependencies>
@@ -22,13 +26,22 @@
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-data</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>${magpie-data.vesrion}</version>
     </dependency>
 
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-core</artifactId>
-      <version>5.6.1.Final</version>
+      <groupId>io.openraven.magpie</groupId>
+      <artifactId>magpie-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
     <dependency>
@@ -38,21 +51,21 @@
     </dependency>
 
     <dependency>
-      <groupId>io.openraven.magpie</groupId>
-      <artifactId>magpie-api</artifactId>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-core</artifactId>
+      <version>${hibernate.version}</version>
     </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
+
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.10</version>
+      <version>${postgresql.driver.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+      <version>${flyway.version}</version>
     </dependency>
 
     <!-- Test scope -->

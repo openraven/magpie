@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.persist.config;
 
 import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.gcp.GCPResource;
 import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.PersistConfig;
+import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -27,7 +29,7 @@ import org.hibernate.service.ServiceRegistry;
 import javax.persistence.EntityManager;
 import java.util.Properties;
 
-import static io.openraven.magpie.data.aws.utils.AwsEntityTypeResolver.getSubClasses;
+import static io.openraven.magpie.data.utils.EntityTypeResolver.getSubClasses;
 import static java.lang.String.format;
 
 public class PostgresPersistenceProvider {
@@ -40,20 +42,28 @@ public class PostgresPersistenceProvider {
       config.getHostname(), config.getPort(), config.getDatabaseName()));
     settings.put(Environment.USER, config.getUser());
     settings.put(Environment.PASS, config.getPassword());
-    settings.put(Environment.DIALECT, "org.hibernate.dialect.PostgreSQLDialect");
-    settings.put(Environment.SHOW_SQL, "true");
-    settings.put(Environment.HBM2DDL_AUTO, "update");
+    settings.put(Environment.DIALECT, "io.openraven.magpie.plugins.persist.config.PostgreSQL10StringDialect");
+    settings.put(Environment.SHOW_SQL, "false");
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
     configuration.addAnnotatedClass(AssetModel.class);
 
     getSubClasses(AWSResource.class).forEach(configuration::addAnnotatedClass);
+    getSubClasses(GCPResource.class).forEach(configuration::addAnnotatedClass);
 
     ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
       .applySettings(configuration.getProperties()).build();
 
-    return configuration.buildSessionFactory(serviceRegistry).createEntityManager();
+    EntityManager entityManager = configuration.buildSessionFactory(serviceRegistry).createEntityManager();
+
+    migratePostgreDB(config); // migrating DB after successful creation of entitymanager
+
+    return entityManager;
+  }
+
+  private static void migratePostgreDB(PersistConfig config) {
+    FlywayMigrationService.initiateDBMigration(config);
   }
 
 }
