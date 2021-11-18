@@ -112,7 +112,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
     var configuration = contents.get("configuration");
     assertTrue(configuration.get("volumeId").asText().startsWith("vol-"));
-    assertEquals("standard", configuration.get("volumeType").asText());
+    assertEquals("gp2", configuration.get("volumeType").asText());
 
     var attachments = configuration.get("attachments");
     assertEquals(1, attachments.size());
@@ -126,7 +126,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   }
 
   private void assertSecurityGroup(List<ObjectNode> data) {
-    assertEquals(2, data.size()); // There default and default VPC
+    assertEquals(1, data.size()); // There default and default VPC
     var contents = data.get(0);
 
     assertNotNull(contents.get("documentId"));
@@ -138,7 +138,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
 
     var configuration = contents.get("configuration");
-    assertEquals("default group", configuration.get("description").asText());
+    assertEquals("default VPC security group", configuration.get("description").asText());
     assertEquals("default", configuration.get("groupName").asText());
     assertEquals("000000000000", configuration.get("ownerId").asText());
   }
