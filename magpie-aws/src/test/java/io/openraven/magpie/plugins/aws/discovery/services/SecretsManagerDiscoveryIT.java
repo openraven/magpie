@@ -49,11 +49,11 @@ public class SecretsManagerDiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertTrue(contents.get("assetId").asText().contains("secret:TestSecret"));
+    assertTrue(contents.get("arn").asText().contains("secret:TestSecret"));
     assertEquals(secretName, contents.get("resourceName").asText());
     assertEquals("AWS::SecretsManager", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
 
     assertEquals("[{\"key\":\"AppName\",\"value\":\"OpenRavenIT\"}]",
       contents.get("configuration").get("tags").toString());

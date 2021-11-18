@@ -50,11 +50,11 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertEquals("arn:aws:s3:::testbucket", contents.get("assetId").asText());
+    assertEquals("arn:aws:s3:::testbucket", contents.get("arn").asText());
     assertEquals(BUCKET_NAME, contents.get("resourceName").asText());
     assertEquals("AWS::S3::Bucket", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 }
 

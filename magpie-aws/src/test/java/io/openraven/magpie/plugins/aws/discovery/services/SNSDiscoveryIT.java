@@ -54,19 +54,19 @@ public class SNSDiscoveryIT extends BaseAWSServiceIT {
   private void assertTopic(MagpieEnvelope envelope) {
     var content = envelope.getContents();
     assertNotNull(content.get("documentId"));
-    assertTrue(content.get("assetId").asText().contains("arn:aws:sns:us-west-1:000000000000:CarSalesTopic"));
+    assertTrue(content.get("arn").asText().contains("arn:aws:sns:us-west-1:000000000000:CarSalesTopic"));
     assertEquals("AWS::SNS::Topic", content.get("resourceType").asText());
-    assertEquals(BASE_REGION.toString(), content.get("region").asText());
+    assertEquals(BASE_REGION.toString(), content.get("awsRegion").asText());
   }
 
   private void assertSubscription(MagpieEnvelope envelope) {
     var content = envelope.getContents();
     assertNotNull(content.get("documentId"));
     assertNotNull(content.get("resourceName"));
-    assertTrue(content.get("assetId").asText().contains("arn:aws:sns:us-west-1:000000000000:CarSalesTopic"));
+    assertTrue(content.get("arn").asText().contains("arn:aws:sns:us-west-1:000000000000:CarSalesTopic"));
     assertEquals("AWS::SNS::Subscription", content.get("resourceType").asText());
     assertEquals("test@openraven.com", content.get("configuration").get("attributes").get("Endpoint").asText());
     assertTrue(content.get("configuration").get("attributes").get("TopicArn").asText().contains("arn:aws:sns:us-west-1:000000000000:CarSalesTopic"));
-    assertEquals(BASE_REGION.toString(), content.get("region").asText());
+    assertEquals(BASE_REGION.toString(), content.get("awsRegion").asText());
   }
 }

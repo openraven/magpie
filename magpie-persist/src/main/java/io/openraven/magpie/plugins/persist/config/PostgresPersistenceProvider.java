@@ -47,7 +47,7 @@ public class PostgresPersistenceProvider {
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
-    configuration.addAnnotatedClass(AssetModel.class);
+    configuration.addAnnotatedClass(AssetModel.class); // Keep so far for backward compatibility
 
     getSubClasses(AWSResource.class).forEach(configuration::addAnnotatedClass);
     getSubClasses(GCPResource.class).forEach(configuration::addAnnotatedClass);

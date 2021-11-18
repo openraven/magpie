@@ -18,7 +18,7 @@
     <hibernate.version>5.6.1.Final</hibernate.version>
     <postgresql.driver.version>42.2.10</postgresql.driver.version>
     <flyway.version>7.10.0</flyway.version>
-    <magpie-data.vesrion>0.1.0-SNAPSHOT</magpie-data.vesrion>
+    <magpie-data.vesrion>0.1.1</magpie-data.vesrion>
   </properties>
 
   <dependencies>
