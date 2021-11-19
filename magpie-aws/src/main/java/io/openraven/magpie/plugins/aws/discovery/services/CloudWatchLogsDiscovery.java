@@ -21,6 +21,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -46,10 +47,10 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = CloudWatchLogsClient.builder().region(region).build();
-
-    discoverLogs(mapper, session, region, emitter, client, account);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    try (final var client = clientCreator.apply(CloudWatchLogsClient.builder()).build()) {
+      discoverLogs(mapper, session, region, emitter, client, account);
+    }
   }
 
   private void discoverLogs(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchLogsClient client, String account) {
@@ -62,7 +63,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
           .withResourceName(metricFilter.filterName())
           .withResourceType(RESOURCE_TYPE)
-          .withCreatedIso(Instant.ofEpochSecond(metricFilter.creationTime().longValue()))
+          .withCreatedIso(Instant.ofEpochSecond(metricFilter.creationTime()))
           .withConfiguration(mapper.valueToTree(metricFilter.toBuilder()))
           .withAccountId(account)
           .withRegion(region.toString())

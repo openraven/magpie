@@ -52,11 +52,10 @@ public class FSXDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(FSxClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::FSx::FileSystem";
 
-    try {
+    try (final var client = clientCreator.apply(FSxClient.builder()).build()) {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, fileSystem.resourceARN())
           .withResourceName(fileSystem.fileSystemId())
@@ -68,8 +67,8 @@ public class FSXDiscovery implements AWSDiscovery {
           .withRegion(region.toString())
           .build();
 
-        discoverSize(fileSystem, data, region, logger);
-        discoverBackupJobs(fileSystem.resourceARN(), region, data);
+        discoverSize(fileSystem, data, region, logger, clientCreator);
+        discoverBackupJobs(fileSystem.resourceARN(), region, data, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });
@@ -78,12 +77,12 @@ public class FSXDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSize(FileSystem resource, MagpieResource data, Region region, Logger logger) {
+  private void discoverSize(FileSystem resource, MagpieResource data, Region region, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("FileSystemId").value(resource.fileSystemId()).build());
       Pair<Long, GetMetricStatisticsResponse> freeStorageCapacity =
-        getCloudwatchMetricMinimum(region.toString(), "AWS/FSx", "FreeDataStorageCapacity", dimensions);
+        getCloudwatchMetricMinimum(region.toString(), "AWS/FSx", "FreeDataStorageCapacity", dimensions, clientCreator);
 
       long capacityAsBytes = Conversions.GibToBytes(resource.storageCapacity());
 

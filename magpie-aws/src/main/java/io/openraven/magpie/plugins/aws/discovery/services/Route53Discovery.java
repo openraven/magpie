@@ -22,6 +22,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -54,11 +55,10 @@ public class Route53Discovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(Route53Client.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final  String RESOURCE_TYPE = "AWS::Route53::HostedZone";
 
-    try {
+    try (final var client = clientCreator.apply(Route53Client.builder()).build()) {
       client.listHostedZonesPaginator().hostedZones().stream().forEach(hostedZone -> {
         String arn = String.format("arn:aws:route53:::hostedZone/%s", hostedZone.id());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)

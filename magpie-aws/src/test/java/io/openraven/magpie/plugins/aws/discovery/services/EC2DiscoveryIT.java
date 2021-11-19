@@ -3,10 +3,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
+import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,32 +15,27 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.backup.BackupClient;
-import software.amazon.awssdk.services.backup.model.BackupJob;
-import software.amazon.awssdk.services.backup.model.ListBackupJobsRequest;
-import software.amazon.awssdk.services.backup.model.ListBackupJobsResponse;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.regions.Region;
 
-import java.util.Collections;
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
   private static final String CF_EC2_TEMPLATE_PATH = "/template/ec2-template.yml";
-  private EC2Discovery ec2Discovery = new EC2Discovery();
+  private final EC2Discovery ec2Discovery = new EC2Discovery(){
+    // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
+    public void discoverBackupJobs(String arn, Region region, MagpieResource data, MagpieAWSClientCreator clientCreator) {}
+  };
 
   @Mock
   private Emitter emitter;
-
-  @Mock
-  private BackupClient backupClient;
 
   @Captor
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
@@ -49,12 +45,21 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
     updateStackWithResources(CF_EC2_TEMPLATE_PATH);
   }
 
+  public static MagpieAWSClientCreator localClientCreator(final Region region) {
+    return new MagpieAWSClientCreator(){
+      @Override
+      public <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> BuilderT apply(AwsClientBuilder<BuilderT, ClientT> builder) {
+        final var magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
+        if (magpieAwsEndpoint != null) {
+          builder.endpointOverride(URI.create(magpieAwsEndpoint));
+        }
+        return builder.region(region);
+      }
+    };
+  }
+
   @Test
   public void testEC2Discovery() {
-    // given
-    BackupUtils.init(BASE_REGION, backupClient);
-    when(backupClient.listBackupJobs(any(ListBackupJobsRequest.class)))
-      .thenReturn(ListBackupJobsResponse.builder().backupJobs(Collections.emptyList()).build());
 
     // when
     ec2Discovery.discover(
@@ -63,7 +68,8 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
       BASE_REGION,
       emitter,
       LOGGER,
-      ACCOUNT
+      ACCOUNT,
+      ClientCreators.localClientCreator(BASE_REGION)
     );
 
     // then

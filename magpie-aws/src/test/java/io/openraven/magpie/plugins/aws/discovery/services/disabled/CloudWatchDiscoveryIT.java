@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services.disabled;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.services.CloudWatchDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,7 +48,8 @@ public class CloudWatchDiscoveryIT extends BaseAWSServiceIT {
       BASE_REGION,
       emitter,
       LOGGER,
-      ACCOUNT
+      ACCOUNT,
+      ClientCreators.localClientCreator(BASE_REGION)
     );
 
     // then
@@ -58,7 +60,7 @@ public class CloudWatchDiscoveryIT extends BaseAWSServiceIT {
   }
 
   private void createAlarm() {
-    CloudWatchClient client = AWSUtils.configure(CloudWatchClient.builder(), BASE_REGION);
+    CloudWatchClient client = ClientCreators.localClientCreator(BASE_REGION).apply(CloudWatchClient.builder()).build();
 
     Dimension dimension = Dimension.builder()
       .name("InstanceId")

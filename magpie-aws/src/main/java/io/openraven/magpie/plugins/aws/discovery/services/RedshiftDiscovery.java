@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -56,11 +57,10 @@ public class RedshiftDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(RedshiftClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::Redshift::Cluster";
 
-    try {
+    try (final var client = clientCreator.apply(RedshiftClient.builder()).build()) {
       client.describeClustersPaginator().clusters().stream().forEach(cluster -> {
         String arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
@@ -74,7 +74,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
           .build();
 
         discoverStorage(client, data);
-        discoverSize(cluster, data, region, logger);
+        discoverSize(cluster, data, region, logger, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
@@ -93,12 +93,12 @@ public class RedshiftDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger) {
+  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());
       Pair<Double, GetMetricStatisticsResponse> percentageDiskSpaceUsed =
-        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/Redshift", "PercentageDiskSpaceUsed", dimensions);
+        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/Redshift", "PercentageDiskSpaceUsed", dimensions, clientCreator);
 
       AWSUtils.update(data.supplementaryConfiguration, Map.of("PercentageDiskSpaceUsed", percentageDiskSpaceUsed.getValue0()));
 

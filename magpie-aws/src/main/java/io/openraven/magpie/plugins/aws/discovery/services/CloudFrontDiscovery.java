@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.lang.String.format;
 
 public class CloudFrontDiscovery implements AWSDiscovery {
 
@@ -54,11 +54,11 @@ public class CloudFrontDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(CloudFrontClient.builder(), region);
-    String RESOURCE_TYPE = "AWS::CloudFront::Distribution";
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    try {
+    final String RESOURCE_TYPE = "AWS::CloudFront::Distribution";
+
+    try (final var client = clientCreator.apply(CloudFrontClient.builder()).build()) {
       client.listDistributions().distributionList().items().forEach(distribution -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, distribution.arn())
           .withResourceName(distribution.domainName())

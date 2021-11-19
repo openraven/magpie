@@ -22,13 +22,21 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
-import software.amazon.awssdk.services.lambda.model.*;
+import software.amazon.awssdk.services.lambda.model.EventSourceMappingConfiguration;
+import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
+import software.amazon.awssdk.services.lambda.model.FunctionEventInvokeConfig;
+import software.amazon.awssdk.services.lambda.model.GetFunctionEventInvokeConfigRequest;
+import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.GetPolicyRequest;
+import software.amazon.awssdk.services.lambda.model.ListEventSourceMappingsRequest;
+import software.amazon.awssdk.services.lambda.model.ListFunctionEventInvokeConfigsRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -50,11 +58,10 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(LambdaClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::Lambda::Function";
 
-    try {
+    try (final var client = clientCreator.apply(LambdaClient.builder()).build()) {
       client.listFunctionsPaginator().functions().forEach(function -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, function.functionArn())
           .withResourceName(function.functionName())

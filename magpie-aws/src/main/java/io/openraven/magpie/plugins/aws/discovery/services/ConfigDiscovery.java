@@ -22,6 +22,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -51,11 +52,10 @@ public class ConfigDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = ConfigClient.builder().region(region).build();
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::Config::ConfigurationRecorder";
 
-    try {
+    try (final var client = clientCreator.apply(ConfigClient.builder()).build()) {
       client.describeConfigurationRecorders().configurationRecorders()
         .forEach(configurationRecorder -> {
           var data = new MagpieResource.MagpieResourceBuilder(mapper, configurationRecorder.roleARN())

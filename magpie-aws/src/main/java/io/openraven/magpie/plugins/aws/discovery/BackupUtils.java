@@ -35,27 +35,22 @@ public class BackupUtils {
 
   private static final Period HISTORY = Period.ofDays(45);
 
-  private static BackupClient getOrCreateClient(Region region) {
-    return CLIENTS.computeIfAbsent(region, r -> AWSUtils.configure(BackupClient.builder(), r));
-  }
-
-  public static void init(Region region, BackupClient client) {
-    CLIENTS.put(region, client);
-  }
-
-  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region) {
+  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
     List<BackupJob.Builder> jobs = new LinkedList<>();
     String nextToken = null;
-    do {
-      final var result = getOrCreateClient(region).listBackupJobs(ListBackupJobsRequest.builder()
-        .byResourceArn(arn)
-        .byCreatedAfter(Instant.now().minus(HISTORY))
-        .byState(BackupJobState.COMPLETED)
-        .nextToken(nextToken)
-        .build());
-      jobs.addAll(result.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList()));
-      nextToken = result.nextToken();
-    } while (nextToken != null);
+    try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
+      do {
+        final var result = client.listBackupJobs(ListBackupJobsRequest.builder()
+          .byResourceArn(arn)
+          .byCreatedAfter(Instant.now().minus(HISTORY))
+          .byState(BackupJobState.COMPLETED)
+          .nextToken(nextToken)
+          .build());
+        jobs.addAll(result.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList()));
+        nextToken = result.nextToken();
+
+      } while (nextToken != null);
+    }
     return jobs;
   }
 }

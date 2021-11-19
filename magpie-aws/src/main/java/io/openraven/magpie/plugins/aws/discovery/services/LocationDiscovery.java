@@ -22,13 +22,31 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.location.LocationClient;
-import software.amazon.awssdk.services.location.model.*;
+import software.amazon.awssdk.services.location.model.DescribeGeofenceCollectionRequest;
+import software.amazon.awssdk.services.location.model.DescribeGeofenceCollectionResponse;
+import software.amazon.awssdk.services.location.model.DescribeMapRequest;
+import software.amazon.awssdk.services.location.model.DescribePlaceIndexRequest;
+import software.amazon.awssdk.services.location.model.DescribeRouteCalculatorRequest;
+import software.amazon.awssdk.services.location.model.DescribeTrackerRequest;
+import software.amazon.awssdk.services.location.model.DescribeTrackerResponse;
+import software.amazon.awssdk.services.location.model.ListDevicePositionsRequest;
+import software.amazon.awssdk.services.location.model.ListDevicePositionsResponseEntry;
+import software.amazon.awssdk.services.location.model.ListGeofenceCollectionsRequest;
+import software.amazon.awssdk.services.location.model.ListGeofenceResponseEntry;
+import software.amazon.awssdk.services.location.model.ListGeofencesRequest;
+import software.amazon.awssdk.services.location.model.ListMapsRequest;
+import software.amazon.awssdk.services.location.model.ListPlaceIndexesRequest;
+import software.amazon.awssdk.services.location.model.ListRouteCalculatorsRequest;
+import software.amazon.awssdk.services.location.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.location.model.ListTrackerConsumersRequest;
+import software.amazon.awssdk.services.location.model.ListTrackersRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -61,14 +79,15 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = LocationClient.builder().region(region).build();
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    discoverTrackers(mapper, session, region, emitter, account, client);
-    discoverMaps(mapper, session, region, emitter, account, client);
-    discoverGeofenceCollections(mapper, session, region, emitter, account, client);
-    discoverPlaceIndex(mapper, session, region, emitter, account, client);
-    discoverRouteCalculators(mapper, session, region, emitter, account, client);
+    try (final var client = clientCreator.apply(LocationClient.builder()).build()) {
+      discoverTrackers(mapper, session, region, emitter, account, client);
+      discoverMaps(mapper, session, region, emitter, account, client);
+      discoverGeofenceCollections(mapper, session, region, emitter, account, client);
+      discoverPlaceIndex(mapper, session, region, emitter, account, client);
+      discoverRouteCalculators(mapper, session, region, emitter, account, client);
+    }
   }
 
   private void discoverTrackers(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {

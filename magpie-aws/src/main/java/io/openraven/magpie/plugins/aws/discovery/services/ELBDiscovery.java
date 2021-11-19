@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -42,7 +43,6 @@ public class ELBDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "elb";
 
-
   @Override
   public String service() {
     return SERVICE;
@@ -54,11 +54,10 @@ public class ELBDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(ElasticLoadBalancingClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::ElasticLoadBalancing::LoadBalancer";
 
-    try {
+    try (final var client = clientCreator.apply(ElasticLoadBalancingClient.builder()).build()) {
       client.describeLoadBalancers().loadBalancerDescriptions().forEach(loadBalancer -> {
         var arn = String.format("arn:aws:elasticloadbalancing:%s:%s:loadbalancer/%s", region, account, loadBalancer.loadBalancerName());
         var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)

@@ -25,6 +25,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -34,7 +35,11 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
+import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
+import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.rds.model.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,11 +63,12 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(RdsClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    discoverDbSnapshot(mapper, session, region, emitter, account, client);
-    discoverDbInstances(mapper, session, region, emitter, logger, account, client);
+    try (final var client = clientCreator.apply(RdsClient.builder()).build()) {
+      discoverDbSnapshot(mapper, session, region, emitter, account, client);
+      discoverDbInstances(mapper, session, region, emitter, logger, account, client, clientCreator);
+    }
   }
 
   private void discoverDbSnapshot(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, RdsClient client) {
@@ -88,9 +94,8 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
+  private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
-
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
@@ -111,9 +116,9 @@ public class RDSDiscovery implements AWSDiscovery {
           discoverTags(client, db, data, mapper);
           discoverInstanceDbClusters(client, db, data);
           discoverInstanceDbSnapshots(client, db, data);
-          discoverInstanceSize(db, data, logger);
+          discoverInstanceSize(db, data, logger, clientCreator);
 
-          discoverBackupJobs(db.dbInstanceArn(), region, data);
+          discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
         });
@@ -156,29 +161,29 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceSize(DBInstance resource, MagpieResource data, Logger logger) {
+  private void discoverInstanceSize(DBInstance resource, MagpieResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
     if (engine != null) {
       if ("docdb".equalsIgnoreCase(engine)) {
         // although DocDB uses RDS client, it's metrics are subtly different, so get metrics via setDocDBSize
-        setDocDBSize(resource, data, logger);
+        setDocDBSize(resource, data, logger, clientCreator);
       } else if (engine.startsWith("aurora")) {
-        setAuroraDBSize(resource, data, logger);
+        setAuroraDBSize(resource, data, logger, clientCreator);
       } else {
-        setRDSSize(resource, data, logger);
+        setRDSSize(resource, data, logger, clientCreator);
       }
     } else {
       logger.warn("{} RDS instance is missing engine property", resource.dbInstanceIdentifier());
     }
   }
 
-  private void setRDSSize(DBInstance resource, MagpieResource data, Logger logger) {
+  private void setRDSSize(DBInstance resource, MagpieResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBInstanceIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> freeStorageSpace =
-        AWSUtils.getCloudwatchMetricMinimum(data.region, "AWS/RDS", "FreeStorageSpace", dimensions);
+        AWSUtils.getCloudwatchMetricMinimum(data.region, "AWS/RDS", "FreeStorageSpace", dimensions, clientCreator);
 
       if (freeStorageSpace.getValue0() != null) {
         logger.warn("{} RDS instance is missing engine property", resource.dbInstanceIdentifier());
@@ -198,12 +203,12 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void setDocDBSize(DBInstance resource, MagpieResource data, Logger logger) {
+  private void setDocDBSize(DBInstance resource, MagpieResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
-        AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/DocDB", "VolumeBytesUsed", dimensions);
+        AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/DocDB", "VolumeBytesUsed", dimensions, clientCreator);
 
       if (volumeBytesUsed.getValue0() != null) {
         AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
@@ -216,12 +221,12 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void setAuroraDBSize(DBInstance resource, MagpieResource data, Logger logger) {
+  private void setAuroraDBSize(DBInstance resource, MagpieResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbInstanceIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
-        AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/RDS", "VolumeBytesUsed", dimensions);
+        AWSUtils.getCloudwatchMetricMaximum(data.region, "AWS/RDS", "VolumeBytesUsed", dimensions, clientCreator);
 
       if (volumeBytesUsed.getValue0() != null) {
         AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));

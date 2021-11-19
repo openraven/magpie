@@ -57,11 +57,10 @@ public class ESDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(ElasticsearchClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::Elasticsearch::Domain";
 
-    try {
+    try (final var client = clientCreator.apply(ElasticsearchClient.builder()).build()) {
       client.listDomainNames().domainNames().stream()
         .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus())
         .forEach(domain -> {
@@ -75,7 +74,7 @@ public class ESDiscovery implements AWSDiscovery {
             .build();
 
           discoverTags(client, domain, data, mapper);
-          discoverSize(domain, data, region, account, logger);
+          discoverSize(domain, data, region, account, logger, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode()));
         });
@@ -96,14 +95,14 @@ public class ESDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger) {
+  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DomainName").value(resource.domainName()).build());
       dimensions.add(Dimension.builder().name("ClientId").value(account).build());
 
       Pair<Double, GetMetricStatisticsResponse> clusterUsedSpace =
-        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/ES", "ClusterUsedSpace", dimensions);
+        getCloudwatchDoubleMetricMaximum(region.toString(), "AWS/ES", "ClusterUsedSpace", dimensions, clientCreator);
 
       if (clusterUsedSpace.getSize() > 0) {
         final int numNodes = resource.elasticsearchClusterConfig().instanceCount();
@@ -112,7 +111,7 @@ public class ESDiscovery implements AWSDiscovery {
         AWSUtils.update(data.supplementaryConfiguration,
           Map.of("clusterUsedSpace", clusterUsedSpace.getValue0()));
 
-        data.maxSizeInBytes = Conversions.GibToBytes(numNodes * volSizeAsGB);
+        data.maxSizeInBytes = Conversions.GibToBytes((long) numNodes * volSizeAsGB);
         data.sizeInBytes = Conversions.MibToBytes(clusterUsedSpace.getValue0().longValue());
       }
     } catch (Exception ex) {

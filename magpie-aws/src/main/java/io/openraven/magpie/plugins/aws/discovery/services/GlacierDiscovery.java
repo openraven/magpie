@@ -22,13 +22,22 @@ import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glacier.GlacierClient;
-import software.amazon.awssdk.services.glacier.model.*;
+import software.amazon.awssdk.services.glacier.model.DescribeVaultOutput;
+import software.amazon.awssdk.services.glacier.model.GetVaultAccessPolicyRequest;
+import software.amazon.awssdk.services.glacier.model.GetVaultLockRequest;
+import software.amazon.awssdk.services.glacier.model.GetVaultNotificationsRequest;
+import software.amazon.awssdk.services.glacier.model.GlacierJobDescription;
+import software.amazon.awssdk.services.glacier.model.ListJobsRequest;
+import software.amazon.awssdk.services.glacier.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.glacier.model.ListTagsForVaultRequest;
+import software.amazon.awssdk.services.glacier.model.UploadListElement;
 
 import java.time.Instant;
 import java.util.List;
@@ -52,11 +61,10 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(GlacierClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = "AWS::Glacier::Vault";
 
-    try {
+    try (final var client = clientCreator.apply(GlacierClient.builder()).build()) {
       client.listVaultsPaginator().vaultList().stream().forEach(vault -> {
         var data = new MagpieResource.MagpieResourceBuilder(mapper, vault.vaultARN())
           .withResourceName(vault.vaultName())
