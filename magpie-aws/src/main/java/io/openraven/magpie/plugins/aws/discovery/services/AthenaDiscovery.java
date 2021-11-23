@@ -60,7 +60,7 @@ public class AthenaDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = AthenaDataCatalog.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(AthenaClient.builder()).build()) {
       client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary()
         .forEach(dataCatalog -> {
           var arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region, account, dataCatalog.catalogName());

@@ -2,8 +2,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.MagpieResource;
 import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
@@ -31,7 +31,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   private static final String CF_EC2_TEMPLATE_PATH = "/template/ec2-template.yml";
   private final EC2Discovery ec2Discovery = new EC2Discovery() {
     // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
-    public void discoverBackupJobs(String arn, Region region, MagpieResource data, MagpieAWSClientCreator clientCreator) {
+    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
     }
   };
 

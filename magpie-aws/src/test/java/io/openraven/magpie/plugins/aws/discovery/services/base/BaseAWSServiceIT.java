@@ -50,7 +50,6 @@ public abstract class BaseAWSServiceIT {
 
   protected static LocalStackContainer localStackContainer =
     new LocalStackContainer(DockerImageName.parse(FULL_IMAGE_NAME))
-    new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.13.0"))
       .withExposedPorts(EXPOSED_EDGE_PORT)
       .withEnv("DEFAULT_REGION", BASE_REGION.id())
       .withEnv("DEBUG", "1")

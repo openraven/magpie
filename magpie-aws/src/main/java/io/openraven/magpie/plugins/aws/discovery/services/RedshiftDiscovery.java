@@ -19,7 +19,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.redshift.RedshiftCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;

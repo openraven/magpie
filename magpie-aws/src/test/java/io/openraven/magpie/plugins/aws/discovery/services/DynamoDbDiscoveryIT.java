@@ -1,10 +1,8 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.MagpieEnvelope;
-import io.openraven.magpie.api.MagpieResource;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
-import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
 import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
@@ -17,16 +15,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.backup.BackupClient;
-import software.amazon.awssdk.services.backup.model.ListBackupJobsRequest;
-import software.amazon.awssdk.services.backup.model.ListBackupJobsResponse;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
 class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
@@ -36,7 +28,8 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
 
   private final DynamoDbDiscovery dynamoDbDiscovery = new DynamoDbDiscovery() {
     // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
-    public void discoverBackupJobs(String arn, Region region, MagpieResource data, MagpieAWSClientCreator clientCreator) {}
+    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+    }
   };
 
   @Mock
