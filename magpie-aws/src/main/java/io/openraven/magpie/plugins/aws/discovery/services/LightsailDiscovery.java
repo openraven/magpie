@@ -25,13 +25,18 @@ import io.openraven.magpie.data.aws.lightsail.LightsailInstance;
 import io.openraven.magpie.data.aws.lightsail.LightsailLoadBalancer;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lightsail.LightsailClient;
-import software.amazon.awssdk.services.lightsail.model.*;
+import software.amazon.awssdk.services.lightsail.model.GetInstancesRequest;
+import software.amazon.awssdk.services.lightsail.model.GetRelationalDatabaseMetricDataRequest;
+import software.amazon.awssdk.services.lightsail.model.GetRelationalDatabasesRequest;
+import software.amazon.awssdk.services.lightsail.model.MetricStatistic;
+import software.amazon.awssdk.services.lightsail.model.RelationalDatabase;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -55,12 +60,13 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(LightsailClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    discoverDatabases(mapper, session, region, emitter, client, account);
-    discoverInstances(mapper, session, region, emitter, client, account);
-    discoverLoadBalancers(mapper, session, region, emitter, client, account);
+    try (final var client = clientCreator.apply(LightsailClient.builder()).build()) {
+      discoverDatabases(mapper, session, region, emitter, client, account);
+      discoverInstances(mapper, session, region, emitter, client, account);
+      discoverLoadBalancers(mapper, session, region, emitter, client, account);
+    }
   }
 
   private void discoverDatabases(ObjectMapper mapper, Session session, Region region, Emitter emitter, LightsailClient client, String account) {

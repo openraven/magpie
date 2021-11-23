@@ -2,6 +2,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,8 @@ class S3DiscoveryIT extends BaseAWSServiceIT {
       BASE_REGION,
       emitter,
       LOGGER,
-      ACCOUNT
+      ACCOUNT,
+      ClientCreators.localClientCreator(BASE_REGION)
     );
 
     // then

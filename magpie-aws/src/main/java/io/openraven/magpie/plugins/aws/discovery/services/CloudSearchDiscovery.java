@@ -23,6 +23,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.cloudsearch.CloudSearchDomain;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -56,11 +57,10 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(CloudSearchClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = CloudSearchDomain.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(CloudSearchClient.builder()).build()){
       client.describeDomains(DescribeDomainsRequest.builder().domainNames(client.listDomainNames().domainNames().keySet()).build()).domainStatusList()
         .forEach(domain -> {
           var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, domain.arn())
@@ -76,7 +76,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
           discoverServiceAccessPolicies(client, domain, data);
           discoverExpressions(client, domain, data);
           discoverIndexFields(client, domain, data);
-          discoverSize(domain, data, account);
+          discoverSize(domain, data, account, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":domain"), data.toJsonNode()));
         });
@@ -125,17 +125,17 @@ public class CloudSearchDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(DomainStatus domainStatus, MagpieAwsResource data, String account) {
+  private void discoverSize(DomainStatus domainStatus, MagpieAwsResource data, String account, MagpieAWSClientCreator clientCreator) {
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("DomainName").value(domainStatus.domainName()).build());
     dimensions.add(Dimension.builder().name("ClientId").value(account).build());
 
     Pair<Double, GetMetricStatisticsResponse> IndexUtilization =
-      getCloudwatchDoubleMetricMaximum(data.awsRegion, "AWS/CloudSearch", "IndexUtilization", dimensions);
+      getCloudwatchDoubleMetricMaximum(data.awsRegion, "AWS/CloudSearch", "IndexUtilization", dimensions, clientCreator);
 
     Pair<Long, GetMetricStatisticsResponse> SearchableDocuments =
-      getCloudwatchMetricMaximum(data.awsRegion, "AWS/CloudSearch", "SearchableDocuments", dimensions);
+      getCloudwatchMetricMaximum(data.awsRegion, "AWS/CloudSearch", "SearchableDocuments", dimensions, clientCreator);
 
 
     if (IndexUtilization.getValue0() != null && SearchableDocuments.getValue0() != null) {

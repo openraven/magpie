@@ -23,6 +23,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.efs.EfsFileSystem;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -52,11 +53,10 @@ public class EFSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(EfsClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = EfsFileSystem.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(EfsClient.builder()).build()) {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
         String arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
@@ -71,7 +71,7 @@ public class EFSDiscovery implements AWSDiscovery {
           .build();
 
         discoverMountTargets(client, fileSystem, data);
-        discoverBackupJobs(arn, region, data);
+        discoverBackupJobs(arn, region, data, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });

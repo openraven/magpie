@@ -25,6 +25,7 @@ import io.openraven.magpie.data.aws.cloudwatch.CloudWatchAlarm;
 import io.openraven.magpie.data.aws.cloudwatch.CloudWatchDashboard;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -55,11 +56,11 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(CloudWatchClient.builder(), region);
-
-    discoverAlarms(mapper, session, region, emitter, client, account);
-    discoverDashboards(mapper, session, region, emitter, client, account);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    try (final var client = clientCreator.apply(CloudWatchClient.builder()).build()) {
+      discoverAlarms(mapper, session, region, emitter, client, account);
+      discoverDashboards(mapper, session, region, emitter, client, account);
+    }
   }
 
   private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchClient client, String account) {

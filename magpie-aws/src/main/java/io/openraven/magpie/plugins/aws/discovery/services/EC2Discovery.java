@@ -29,6 +29,7 @@ import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -36,7 +37,13 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
+import software.amazon.awssdk.services.ec2.model.Filter;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Snapshot;
+import software.amazon.awssdk.services.ec2.model.Tag;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,15 +56,15 @@ import static java.lang.String.format;
 public class EC2Discovery implements AWSDiscovery {
 
   private static final String SERVICE = "ec2";
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(Ec2Client.builder(), region);
-
-    discoverEc2Instances(mapper, session, client, region, emitter, account);
-    discoverEIPs(mapper, session, client, region, emitter, account);
-    discoverSecurityGroups(mapper, session, client, region, emitter, account);
-    discoverVolumes(mapper, session, client, region, emitter, account);
-    discoverSnapshots(mapper, session, client, region, emitter, account);
+    try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
+      discoverEc2Instances(mapper, session, client, region, emitter, account, clientCreator, logger);
+      discoverEIPs(mapper, session, client, region, emitter, account);
+      discoverSecurityGroups(mapper, session, client, region, emitter, account);
+      discoverVolumes(mapper, session, client, region, emitter, account);
+      discoverSnapshots(mapper, session, client, region, emitter, account);
+    }
   }
 
   @Override
@@ -70,7 +77,8 @@ public class EC2Discovery implements AWSDiscovery {
     return Ec2Client.serviceMetadata().regions();
   }
 
-  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+  private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, MagpieAWSClientCreator clientCreator, Logger logger) {
+
     final String RESOURCE_TYPE = Ec2Instance.RESOURCE_TYPE;
     try {
       client.describeInstancesPaginator()
@@ -89,7 +97,7 @@ public class EC2Discovery implements AWSDiscovery {
               .build();
 
             massageInstanceTypeAndPublicIp(data, instance, mapper, region, RESOURCE_TYPE);
-            discoverBackupJobs(arn, region, data);
+            discoverBackupJobs(arn, region, data, clientCreator);
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
           })));
     } catch (SdkServiceException | SdkClientException ex) {

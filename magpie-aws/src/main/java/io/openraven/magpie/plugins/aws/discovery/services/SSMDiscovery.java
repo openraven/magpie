@@ -21,8 +21,8 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.ssm.SSMInstance;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -49,12 +49,10 @@ public class SSMDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    SsmClient client = AWSUtils.configure(SsmClient.builder(), region);
-
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = SSMInstance.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(SsmClient.builder()).build()) {
       client.describeInstanceInformationPaginator().instanceInformationList().forEach(instance -> {
         String arn = format("arn:aws:ec2:%s:instance/%s", region, instance.instanceId());
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)

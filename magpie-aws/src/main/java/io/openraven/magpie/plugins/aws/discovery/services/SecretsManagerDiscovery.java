@@ -21,8 +21,8 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.secretsmanager.SecretsManagerSecret;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -49,11 +49,10 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(SecretsManagerClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = SecretsManagerSecret.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(SecretsManagerClient.builder()).build()) {
       client.listSecretsPaginator(ListSecretsRequest.builder().build()).stream()
         .forEach(secretsPaginatedResponse -> secretsPaginatedResponse.secretList()
           .stream()

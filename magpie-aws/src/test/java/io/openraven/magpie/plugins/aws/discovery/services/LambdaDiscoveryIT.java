@@ -3,6 +3,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
 import org.junit.jupiter.api.AfterAll;
@@ -52,7 +53,8 @@ public class LambdaDiscoveryIT extends BaseIAMServiceIT {
       BASE_REGION,
       emitter,
       LOGGER,
-      ACCOUNT
+      ACCOUNT,
+      ClientCreators.localClientCreator(BASE_REGION)
     );
 
     // then

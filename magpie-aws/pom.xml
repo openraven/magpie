@@ -21,7 +21,6 @@
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
     <sentry.version>1.7.28</sentry.version>
     <mockito.version>3.10.0</mockito.version>
-    <testcontainer.version>1.15.3</testcontainer.version>
   </properties>
 
   <dependencies>

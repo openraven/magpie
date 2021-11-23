@@ -25,6 +25,7 @@ import io.openraven.magpie.data.aws.batch.BatchJobDefinition;
 import io.openraven.magpie.data.aws.batch.BatchJobQueue;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -49,12 +50,12 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(BatchClient.builder(), region);
-
-    discoverComputeEnvironments(mapper, session, client, region, emitter, account);
-    discoverJobQueues(mapper, session, client, region, emitter, account);
-    discoverJobDefinitions(mapper, session, client, region, emitter, account);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+    try (final var client = clientCreator.apply(BatchClient.builder()).build()) {
+      discoverComputeEnvironments(mapper, session, client, region, emitter, account);
+      discoverJobQueues(mapper, session, client, region, emitter, account);
+      discoverJobDefinitions(mapper, session, client, region, emitter, account);
+    }
   }
 
   private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {

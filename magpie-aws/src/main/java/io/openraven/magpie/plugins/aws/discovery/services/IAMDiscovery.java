@@ -31,13 +31,32 @@ import io.openraven.magpie.data.aws.accounts.IamRole;
 import io.openraven.magpie.data.aws.accounts.IamUser;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.iam.IamClient;
-import software.amazon.awssdk.services.iam.model.*;
+import software.amazon.awssdk.services.iam.model.GetGroupPolicyRequest;
+import software.amazon.awssdk.services.iam.model.GetRolePolicyRequest;
+import software.amazon.awssdk.services.iam.model.GetUserPolicyRequest;
+import software.amazon.awssdk.services.iam.model.Group;
+import software.amazon.awssdk.services.iam.model.ListAttachedGroupPoliciesRequest;
+import software.amazon.awssdk.services.iam.model.ListAttachedRolePoliciesRequest;
+import software.amazon.awssdk.services.iam.model.ListAttachedUserPoliciesRequest;
+import software.amazon.awssdk.services.iam.model.ListGroupPoliciesRequest;
+import software.amazon.awssdk.services.iam.model.ListGroupsForUserRequest;
+import software.amazon.awssdk.services.iam.model.ListMfaDevicesRequest;
+import software.amazon.awssdk.services.iam.model.ListMfaDevicesResponse;
+import software.amazon.awssdk.services.iam.model.ListPolicyVersionsRequest;
+import software.amazon.awssdk.services.iam.model.ListRolePoliciesRequest;
+import software.amazon.awssdk.services.iam.model.ListUserPoliciesRequest;
+import software.amazon.awssdk.services.iam.model.Policy;
+import software.amazon.awssdk.services.iam.model.PolicyVersion;
+import software.amazon.awssdk.services.iam.model.Role;
+import software.amazon.awssdk.services.iam.model.Tag;
+import software.amazon.awssdk.services.iam.model.User;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -65,15 +84,16 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(IamClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
-    discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
-    discoverAccounts(client, mapper, session, region, emitter, account);
-    discoverGroups(client, mapper, session, region, emitter, account);
-    discoverUsers(client, mapper, session, region, emitter, account);
-    discoverRoles(client, mapper, session, region, emitter, account);
-    discoverPolicies(client, mapper, session, region, emitter, account);
+    try (final var client = clientCreator.apply(IamClient.builder()).build()) {
+      discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);
+      discoverAccounts(client, mapper, session, region, emitter, account);
+      discoverGroups(client, mapper, session, region, emitter, account);
+      discoverUsers(client, mapper, session, region, emitter, account);
+      discoverRoles(client, mapper, session, region, emitter, account);
+      discoverPolicies(client, mapper, session, region, emitter, account);
+    }
   }
 
   protected void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {

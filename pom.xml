@@ -25,6 +25,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <jackson.version>2.12.1</jackson.version>
+    <testcontainer.version>1.16.2</testcontainer.version>
     <magpie-data.vesrion>0.1.2-SNAPSHOT</magpie-data.vesrion>
     <magpie-api.vesrion>0.4.1-SNAPSHOT</magpie-api.vesrion>
   </properties>

@@ -28,6 +28,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.s3.S3Bucket;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -37,14 +38,36 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.GetBucketAclRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketAclResponse;
+import software.amazon.awssdk.services.s3.model.GetBucketEncryptionRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketLoggingRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketMetricsConfigurationRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketNotificationConfigurationRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyStatusRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyStatusResponse;
+import software.amazon.awssdk.services.s3.model.GetBucketReplicationRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketVersioningRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketWebsiteRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectLockConfigurationRequest;
+import software.amazon.awssdk.services.s3.model.GetPublicAccessBlockRequest;
+import software.amazon.awssdk.services.s3.model.PolicyStatus;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -73,12 +96,11 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    var client = configureS3Client(S3Client.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
     final String RESOURCE_TYPE = S3Bucket.RESOURCE_TYPE;
 
-    try {
+    try(final var client = configureS3Client(clientCreator, region)) {
       final var bucketOpt = getBuckets(session, client, region, logger);
       if (bucketOpt.isEmpty()) {
         logger.debug("No buckets found for {}", region);
@@ -109,7 +131,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverPublic(client, bucket, data, logger);
         discoverVersioning(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
-        discoverSize(bucket, data);
+        discoverSize(bucket, data, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
       });
@@ -123,7 +145,9 @@ public class S3Discovery implements AWSDiscovery {
    * AWS S3 Api conduct US_EAST_1/AWS_GLOBAL as a default region and URI -> s3.amazonaws.com
    * We are unable to query buckets from other regions with the default URI without region enrichment
    */
-  private S3Client configureS3Client(S3ClientBuilder builder, Region region) {
+  private S3Client configureS3Client(MagpieAWSClientCreator clientCreator, Region region) {
+    final var builder = clientCreator.apply(S3Client.builder());
+
     // Remap magpie clients to local environment
     String magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
     if (magpieAwsEndpoint != null) {
@@ -336,18 +360,18 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Bucket resource, MagpieAwsResource data) {
+  private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("bucketName").value(resource.name()).build());
     dimensions.add(Dimension.builder().name("storageType").value("StandardStorage").build());
     Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions);
+      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
 
     List<Dimension> dimensions2 = new ArrayList<>();
     dimensions2.add(Dimension.builder().name("bucketName").value(resource.name()).build());
     dimensions2.add(Dimension.builder().name("storageType").value("AllStorageTypes").build());
     Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2);
+      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2, clientCreator);
 
     if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration,

@@ -23,13 +23,22 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.emr.EmrCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
+import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.emr.EmrClient;
-import software.amazon.awssdk.services.emr.model.*;
+import software.amazon.awssdk.services.emr.model.ClusterSummary;
+import software.amazon.awssdk.services.emr.model.InstanceFleet;
+import software.amazon.awssdk.services.emr.model.InstanceGroup;
+import software.amazon.awssdk.services.emr.model.ListInstanceFleetsRequest;
+import software.amazon.awssdk.services.emr.model.ListInstanceGroupsRequest;
+import software.amazon.awssdk.services.emr.model.ListInstancesRequest;
+import software.amazon.awssdk.services.emr.model.ListInstancesResponse;
+import software.amazon.awssdk.services.emr.model.ListStepsRequest;
+import software.amazon.awssdk.services.emr.model.StepSummary;
 
 import java.util.List;
 import java.util.Map;
@@ -52,11 +61,10 @@ public class EMRDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
-    final var client = AWSUtils.configure(EmrClient.builder(), region);
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     final String RESOURCE_TYPE = EmrCluster.RESOURCE_TYPE;
 
-    try {
+    try (final var client = clientCreator.apply(EmrClient.builder()).build()) {
       client.listClustersPaginator().clusters().stream().forEach(cluster -> {
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cluster.clusterArn())
           .withResourceName(cluster.name())

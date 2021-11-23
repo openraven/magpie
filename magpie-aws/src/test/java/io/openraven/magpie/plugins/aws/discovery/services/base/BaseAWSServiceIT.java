@@ -4,26 +4,39 @@ package io.openraven.magpie.plugins.aws.discovery.services.base;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
-import software.amazon.awssdk.services.cloudformation.model.*;
+import software.amazon.awssdk.services.cloudformation.model.CreateStackRequest;
+import software.amazon.awssdk.services.cloudformation.model.CreateStackResponse;
+import software.amazon.awssdk.services.cloudformation.model.UpdateStackRequest;
+import software.amazon.awssdk.services.cloudformation.model.UpdateStackResponse;
 
 import java.util.Objects;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.CLOUDFORMATION;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.DYNAMODB;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.EC2;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.IAM;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.KMS;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.LAMBDA;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.ROUTE53;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SECRETSMANAGER;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SNS;
 
 public abstract class BaseAWSServiceIT {
 
   private static final int EXPOSED_EDGE_PORT = 4566;
   protected static final String EMPTY_STACK_TEMPLATE_PATH = "/template/empty-stack.yml";
   private static final String STACK_NAME = "integration-stack-" + System.nanoTime();
+  private static final String FULL_IMAGE_NAME = "localstack/localstack:0.13.0";
 
   protected static final Region BASE_REGION = Region.US_WEST_1;
   protected static final String ACCOUNT = "account";
@@ -31,12 +44,12 @@ public abstract class BaseAWSServiceIT {
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseAWSServiceIT.class);
   protected static final long STACK_UPDATE_MILLS = 1000L;
 
-
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .findAndRegisterModules();
 
   protected static LocalStackContainer localStackContainer =
+    new LocalStackContainer(DockerImageName.parse(FULL_IMAGE_NAME))
     new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.13.0"))
       .withExposedPorts(EXPOSED_EDGE_PORT)
       .withEnv("DEFAULT_REGION", BASE_REGION.id())
@@ -67,7 +80,7 @@ public abstract class BaseAWSServiceIT {
   }
 
   protected static void initiateCloudFormationClient() {
-    cfClient = AWSUtils.configure(CloudFormationClient.builder(), BASE_REGION);
+    cfClient = ClientCreators.localClientCreator(BASE_REGION).apply(CloudFormationClient.builder()).build();
   }
 
   protected static void startStackWithResources(String templatePath) {

@@ -25,12 +25,11 @@ import io.openraven.magpie.plugins.aws.discovery.services.*;
 import io.sentry.Sentry;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sts.StsClient;
 
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsAccountId;
 
 public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
@@ -87,21 +86,41 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
 
   @Override
   public void discover(Session session, Emitter emitter) {
+
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
-    String account = getAwsAccountId();
 
-    enabledPlugins.forEach(plugin -> {
-      final List<Region> regions = getRegionsForDiscovery(plugin);
-
-      regions.forEach(region -> {
-        try {
-          plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
-        } catch (Exception ex) {
-          logger.error("Discovery error in {} - {}", region.id(), ex.getMessage());
-          logger.debug("Details", ex);
-        }
+    if (config.getAssumedRoles() == null || config.getAssumedRoles().isEmpty()) {
+      final var account = StsClient.create().getCallerIdentity().account();
+      enabledPlugins.forEach(plugin -> {
+        final var regions = getRegionsForDiscovery(plugin);
+        regions.forEach(region -> {
+          try {
+            final var clientCreator = ClientCreators.localClientCreator(region);
+            plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+          } catch (Exception ex) {
+            logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+            logger.debug("Details", ex);
+          }
+        });
       });
-    });
+    } else {
+      config.getAssumedRoles().forEach(role -> {
+        enabledPlugins.forEach(plugin -> {
+          final var regions = getRegionsForDiscovery(plugin);
+          regions.forEach(region -> {
+            final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
+            try (final var client = clientCreator.apply(StsClient.builder()).build()) {
+              final String account = client.getCallerIdentity().account();
+              logger.info("Discovering cross-account {}:{} using role {}", plugin.service(), region,   role);
+              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+            } catch (Exception ex) {
+              logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+              logger.debug("Details", ex);
+            }
+          });
+        });
+      });
+    }
   }
 
   protected List<Region> getRegionsForDiscovery(AWSDiscovery plugin) {
