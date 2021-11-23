@@ -25,6 +25,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <jackson.version>2.12.1</jackson.version>
+    <testcontainer.version>1.16.2</testcontainer.version>
   </properties>
 
   <dependencyManagement>
