@@ -44,7 +44,7 @@ public class NetworkDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::VPC::Network";
+    final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.vpc.Network.RESOURCE_TYPE;
 
     try (NetworkClient networkClient = NetworkClient.create();
          SubnetworkClient subnetworkClient = SubnetworkClient.create()) {

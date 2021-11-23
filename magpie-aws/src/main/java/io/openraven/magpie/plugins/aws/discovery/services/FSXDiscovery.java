@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.fsx.FSxFileSystem;
 import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public class FSXDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(FSxClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::FSx::FileSystem";
+    final String RESOURCE_TYPE = FSxFileSystem.RESOURCE_TYPE;
 
     try {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {

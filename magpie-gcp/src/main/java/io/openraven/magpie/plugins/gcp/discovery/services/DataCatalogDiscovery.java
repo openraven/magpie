@@ -25,6 +25,7 @@ import com.google.cloud.datacatalog.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.data.DataCatalog;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -78,7 +79,7 @@ public class DataCatalogDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::DataCatalog::EntryGroup";
+    final String RESOURCE_TYPE = DataCatalog.RESOURCE_TYPE;
 
     try (DataCatalogClient dataCatalogClient = DataCatalogClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {

@@ -22,6 +22,7 @@ import com.google.cloud.translate.v3.TranslationServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.translate.Glossary;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -41,7 +42,7 @@ public class TranslateDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Translate::Glossary";
+    final String RESOURCE_TYPE = Glossary.RESOURCE_TYPE;
 
     try (TranslationServiceClient translationServiceClient = TranslationServiceClient.create()) {
       try {

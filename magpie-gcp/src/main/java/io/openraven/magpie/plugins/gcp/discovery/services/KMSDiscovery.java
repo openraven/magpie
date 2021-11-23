@@ -25,6 +25,7 @@ import com.google.iam.v1.Policy;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.kms.KmsKeyring;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -86,7 +87,7 @@ public class KMSDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::KMS::Keyring";
+    final String RESOURCE_TYPE = KmsKeyring.RESOURCE_TYPE;
     try (KeyManagementServiceClient keyManagementServiceClient = KeyManagementServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();

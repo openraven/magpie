@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ess.EssDomain;
 import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class ESDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(ElasticsearchClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::Elasticsearch::Domain";
+    final String RESOURCE_TYPE = EssDomain.RESOURCE_TYPE;
 
     try {
       client.listDomainNames().domainNames().stream()

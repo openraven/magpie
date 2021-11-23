@@ -24,6 +24,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.time.Instant;
 
 // Keeping old structure for backward compatibility with rules
@@ -56,7 +57,7 @@ public class AssetModel {
   public String projectId;
 
   @Column(name = "account_id")
-  @JsonAlias("awsAccountId")
+  @JsonAlias({"awsAccountId", "gcpAccountId"})
   public String accountId;
 
   @Column(name = "created_iso")
@@ -68,10 +69,10 @@ public class AssetModel {
   @Column(name = "discovery_session_id")
   public String discoverySessionId;
 
-  @Column(name = "max_size_in_bytes")
+  @Transient
   public Long maxSizeInBytes = null;
 
-  @Column(name = "size_in_bytes")
+  @Transient
   public Long sizeInBytes = null;
 
   @Column(name = "configuration", columnDefinition = "JSONB")

@@ -26,6 +26,9 @@ import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.data.DataLabelingAnnotations;
+import io.openraven.magpie.data.gcp.data.DataLabelingDataset;
+import io.openraven.magpie.data.gcp.data.DataLabelingInstruction;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -54,7 +57,7 @@ public class DataLabelingDiscovery implements GCPDiscovery {
   }
 
   private void discoverDatasets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
-    final String RESOURCE_TYPE = "GCP::DataLabeling::Dataset";
+    final String RESOURCE_TYPE = DataLabelingDataset.RESOURCE_TYPE;
 
     for (var dataset : dataLabelingServiceClient.listDatasets(ProjectName.of(projectId).toString(), "").iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, dataset.getName())
@@ -91,7 +94,7 @@ public class DataLabelingDiscovery implements GCPDiscovery {
   }
 
   private void discoverInstructions(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
-    final String RESOURCE_TYPE = "GCP::DataLabeling::Instruction";
+    final String RESOURCE_TYPE = DataLabelingInstruction.RESOURCE_TYPE;
 
     for (var instruction : dataLabelingServiceClient.listInstructions(ProjectName.of(projectId).toString(), "").iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, instruction.getName())
@@ -105,7 +108,7 @@ public class DataLabelingDiscovery implements GCPDiscovery {
   }
 
   private void discoverAnnotationSpecSet(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DataLabelingServiceClient dataLabelingServiceClient) {
-    final String RESOURCE_TYPE = "GCP::DataLabeling::AnnotationSpecSet";
+    final String RESOURCE_TYPE = DataLabelingAnnotations.RESOURCE_TYPE;
 
     for (var annotationSpecSet : dataLabelingServiceClient.listAnnotationSpecSets(ProjectName.of(projectId).toString(), "").iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, annotationSpecSet.getName())

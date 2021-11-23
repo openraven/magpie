@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
-import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.slf4j.Logger;
 
@@ -41,13 +41,17 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
       try {
-        AWSResource asset = objectMapper.treeToValue(env.getContents(), AWSResource.class);
+        Resource asset = objectMapper.treeToValue(env.getContents(), Resource.class);
         assetsRepo.upsert(asset);
+      } catch (JsonProcessingException e) {
+        logger.warn("Unable to parse assetType from content: {}", env.getContents().toPrettyString());
+      }
 
+      try { // Keeping this code for backward compatibility with existing rules. To be removed in further versions
         AssetModel assetModel = objectMapper.treeToValue(env.getContents(), AssetModel.class);
-        assetsRepo.upsert(assetModel); // Keeping old structure for backward compatibility with existing rules
+        assetsRepo.upsert(assetModel);
 
-        logger.info("Saved asset with id: {}", asset.arn);
+        logger.info("Saved asset with id: {}", assetModel.getAssetId());
       } catch (JsonProcessingException e) {
         throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env), e);
       }

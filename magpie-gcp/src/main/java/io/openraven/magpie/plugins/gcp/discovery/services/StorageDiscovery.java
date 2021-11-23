@@ -25,6 +25,7 @@ import com.google.cloud.storage.StorageOptions;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.storage.StorageBucket;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class StorageDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Storage::Bucket";
+    final String RESOURCE_TYPE = StorageBucket.RESOURCE_TYPE;
 
     Storage storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
     storage.list().iterateAll().forEach(bucket -> {

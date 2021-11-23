@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.batch.BatchComputeEnvironment;
+import io.openraven.magpie.data.aws.batch.BatchJobDefinition;
+import io.openraven.magpie.data.aws.batch.BatchJobQueue;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -55,7 +58,7 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::ComputeEnvironment";
+    final String RESOURCE_TYPE = BatchComputeEnvironment.RESOURCE_TYPE;
 
     try {
       client.describeComputeEnvironmentsPaginator().computeEnvironments()
@@ -76,7 +79,7 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::JobQueue";
+    final String RESOURCE_TYPE = BatchJobQueue.RESOURCE_TYPE;
 
     try {
       client.describeJobQueuesPaginator().jobQueues().forEach(jobQueue -> {
@@ -96,7 +99,7 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::JobDefinition";
+    final String RESOURCE_TYPE = BatchJobDefinition.RESOURCE_TYPE;
 
     try {
       client.describeJobDefinitionsPaginator().jobDefinitions().forEach(jobDefinition -> {

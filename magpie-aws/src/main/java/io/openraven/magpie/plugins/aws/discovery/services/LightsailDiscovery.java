@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.lightsail.LightsailDatabase;
+import io.openraven.magpie.data.aws.lightsail.LightsailInstance;
+import io.openraven.magpie.data.aws.lightsail.LightsailLoadBalancer;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -61,7 +64,7 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   private void discoverDatabases(ObjectMapper mapper, Session session, Region region, Emitter emitter, LightsailClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::Lightsail::Database";
+    final String RESOURCE_TYPE = LightsailDatabase.RESOURCE_TYPE;
 
     try {
       client.getRelationalDatabases(GetRelationalDatabasesRequest.builder().build()).relationalDatabases()
@@ -84,15 +87,15 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   private void discoverSize(LightsailClient client, RelationalDatabase resource, MagpieAwsResource data) {
-    var request = GetRelationalDatabaseMetricDataRequest.builder().
-      relationalDatabaseName(resource.name()).
-      metricName("FreeStorageSpace").
-      period(60).
-      startTime(Instant.now().minus(1, ChronoUnit.MINUTES)).
-      endTime(Instant.now()).
-      unit("Bytes").
-      statistics(MetricStatistic.MINIMUM).
-      build();
+    var request = GetRelationalDatabaseMetricDataRequest.builder()
+      .relationalDatabaseName(resource.name())
+      .metricName("FreeStorageSpace")
+      .period(60)
+      .startTime(Instant.now().minus(1, ChronoUnit.MINUTES))
+      .endTime(Instant.now())
+      .unit("Bytes")
+      .statistics(MetricStatistic.MINIMUM)
+      .build();
     var response = client.getRelationalDatabaseMetricData(request);
 
     long diskSizeInBytes = GibToBytes(resource.hardware().diskSizeInGb());
@@ -108,7 +111,7 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   private void discoverInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, LightsailClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::Lightsail::Instance";
+    final String RESOURCE_TYPE = LightsailInstance.RESOURCE_TYPE;
 
     try {
       client.getInstances(GetInstancesRequest.builder().build()).instances().forEach(instance -> {
@@ -128,7 +131,7 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   private void discoverLoadBalancers(ObjectMapper mapper, Session session, Region region, Emitter emitter, LightsailClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::Lightsail::LoadBalancer";
+    final String RESOURCE_TYPE = LightsailLoadBalancer.RESOURCE_TYPE;
 
     try {
       client.getLoadBalancers().loadBalancers().forEach(loadBalancer -> {

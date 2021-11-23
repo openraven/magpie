@@ -97,7 +97,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         try {
           plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account);
         } catch (Exception ex) {
-          logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+          logger.error("Discovery error in {} - {}", region.id(), ex.getMessage());
           logger.debug("Details", ex);
         }
       });

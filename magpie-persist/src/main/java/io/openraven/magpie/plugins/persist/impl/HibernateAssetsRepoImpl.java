@@ -16,19 +16,22 @@
 
 package io.openraven.magpie.plugins.persist.impl;
 
-import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
 import org.hibernate.query.internal.NativeQueryImpl;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 
 public class HibernateAssetsRepoImpl implements AssetsRepo {
+  private final Logger logger = LoggerFactory.getLogger(HibernateAssetsRepoImpl.class);
 
   private final EntityManager entityManager;
 
@@ -36,36 +39,54 @@ public class HibernateAssetsRepoImpl implements AssetsRepo {
     this.entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
   }
 
-  public void upsert(AWSResource awsResource) {
-    entityManager.getTransaction().begin();
+  public void upsert(Resource resource) {
+    try {
+      entityManager.getTransaction().begin();
 
-    entityManager.merge(awsResource);
+      entityManager.merge(resource);
 
-    entityManager.flush();
-    entityManager.getTransaction().commit();
-    entityManager.clear();
+      entityManager.flush();
+      entityManager.getTransaction().commit();
+      entityManager.clear();
+    } catch (Exception e) {
+      logger.error("Rolling back transaction failed due to: " + e.getMessage());
+      logger.debug("Details", e);
+      entityManager.getTransaction().rollback();
+    }
   }
 
   // Keeping so far for backward compatibility with rules
   public void upsert(AssetModel assetModel) {
-    entityManager.getTransaction().begin();
+    try {
+      entityManager.getTransaction().begin();
 
-    entityManager.merge(assetModel);
+      entityManager.merge(assetModel);
 
-    entityManager.flush();
-    entityManager.getTransaction().commit();
-    entityManager.clear();
+      entityManager.flush();
+      entityManager.getTransaction().commit();
+      entityManager.clear();
+    } catch (Exception e) {
+      logger.error("Rolling back transaction failed due to: " + e.getMessage());
+      logger.debug("Details", e);
+      entityManager.getTransaction().rollback();
+    }
   }
 
   @Override
   public void executeNative(String query) {
-    entityManager.getTransaction().begin();
+    try {
+      entityManager.getTransaction().begin();
 
-    entityManager.createNativeQuery(query).executeUpdate();
+      entityManager.createNativeQuery(query).executeUpdate();
 
-    entityManager.flush();
-    entityManager.getTransaction().commit();
-    entityManager.clear();
+      entityManager.flush();
+      entityManager.getTransaction().commit();
+      entityManager.clear();
+    } catch (Exception e) {
+      logger.error("Rolling back transaction failed due to: " + e.getMessage());
+      logger.debug("Details", e);
+      entityManager.getTransaction().rollback();
+    }
   }
 
   @Override

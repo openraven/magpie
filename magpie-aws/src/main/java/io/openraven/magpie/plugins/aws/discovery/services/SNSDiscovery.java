@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.sns.SNSSubscription;
+import io.openraven.magpie.data.aws.sns.SNSTopic;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -57,7 +59,7 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   private void discoverTopics(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {
-    final String RESOURCE_TYPE = "AWS::SNS::Topic";
+    final String RESOURCE_TYPE = SNSTopic.RESOURCE_TYPE;
 
     try {
       client.listTopics().topics().stream()
@@ -82,7 +84,7 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   private void discoverSubscriptions(SnsClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter) {
-    final String RESOURCE_TYPE = "AWS::SNS::Subscription";
+    final String RESOURCE_TYPE = SNSSubscription.RESOURCE_TYPE;
 
     try {
       client.listSubscriptions().subscriptions().stream()

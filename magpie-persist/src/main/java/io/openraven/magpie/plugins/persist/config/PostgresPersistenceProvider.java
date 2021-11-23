@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.persist.config;
 
+import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.gcp.GCPResource;
 import io.openraven.magpie.plugins.persist.AssetModel;
@@ -44,22 +45,20 @@ public class PostgresPersistenceProvider {
     settings.put(Environment.PASS, config.getPassword());
     settings.put(Environment.DIALECT, "io.openraven.magpie.plugins.persist.config.PostgreSQL10StringDialect");
     settings.put(Environment.SHOW_SQL, "false");
+    settings.put(Environment.HBM2DDL_AUTO, "validate");
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
     configuration.addAnnotatedClass(AssetModel.class); // Keep so far for backward compatibility
 
-    getSubClasses(AWSResource.class).forEach(configuration::addAnnotatedClass);
-    getSubClasses(GCPResource.class).forEach(configuration::addAnnotatedClass);
+    getSubClasses(Resource.class).forEach(configuration::addAnnotatedClass);
 
     ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
       .applySettings(configuration.getProperties()).build();
 
-    EntityManager entityManager = configuration.buildSessionFactory(serviceRegistry).createEntityManager();
+    migratePostgreDB(config); // migrating DB before EM creation to validate schema further
 
-    migratePostgreDB(config); // migrating DB after successful creation of entitymanager
-
-    return entityManager;
+    return configuration.buildSessionFactory(serviceRegistry).createEntityManager();
   }
 
   private static void migratePostgreDB(PersistConfig config) {

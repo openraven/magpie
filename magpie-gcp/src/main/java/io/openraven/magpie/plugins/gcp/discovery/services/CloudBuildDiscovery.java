@@ -21,6 +21,8 @@ import com.google.cloud.devtools.cloudbuild.v1.CloudBuildClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.cloudbuild.CloudBuild;
+import io.openraven.magpie.data.gcp.cloudbuild.CloudBuildTrigger;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -47,7 +49,7 @@ public class CloudBuildDiscovery implements GCPDiscovery {
   }
 
   private void discoverBuildTriggers(ObjectMapper mapper, String projectId, Session session, Emitter emitter, CloudBuildClient cloudBuildClient) {
-    final String RESOURCE_TYPE = "GCP::CloudBuild::BuildTrigger";
+    final String RESOURCE_TYPE = CloudBuildTrigger.RESOURCE_TYPE;
 
     for (var element : cloudBuildClient.listBuildTriggers(projectId).iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
@@ -61,7 +63,7 @@ public class CloudBuildDiscovery implements GCPDiscovery {
   }
 
   private void discoverBuilds(ObjectMapper mapper, String projectId, Session session, Emitter emitter, CloudBuildClient cloudBuildClient) {
-    final String RESOURCE_TYPE = "GCP::CloudBuild::Build";
+    final String RESOURCE_TYPE = CloudBuild.RESOURCE_TYPE;
 
     for (var element : cloudBuildClient.listBuilds(projectId, "").iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())

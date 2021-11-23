@@ -22,6 +22,7 @@ import com.google.cloud.websecurityscanner.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.security.WebSecurity;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -40,7 +41,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::WebSecurityScanner::ScanConfig";
+    final String RESOURCE_TYPE = WebSecurity.RESOURCE_TYPE;
 
     try (WebSecurityScannerClient webSecurityScannerClient = WebSecurityScannerClient.create()) {
       ListScanConfigsRequest request =

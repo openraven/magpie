@@ -22,6 +22,7 @@ import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.access.AccessApproval;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -39,7 +40,7 @@ public class AccessApprovalDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::AccessApproval::ApprovalRequest";
+    final String RESOURCE_TYPE = AccessApproval.RESOURCE_TYPE;
 
     try (var accessApprovalAdminClient = AccessApprovalAdminClient.create()) {
       for (var approvalRequest : accessApprovalAdminClient.listApprovalRequests(ProjectName.of(projectId).toString()).iterateAll()) {

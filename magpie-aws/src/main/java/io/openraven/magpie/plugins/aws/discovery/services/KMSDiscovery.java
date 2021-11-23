@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.kms.KmsKey;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -55,7 +56,7 @@ public class KMSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(KmsClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::Kms::Key";
+    final String RESOURCE_TYPE = KmsKey.RESOURCE_TYPE;
 
     try {
       client.listKeysPaginator().keys().forEach(key -> {

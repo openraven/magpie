@@ -22,6 +22,7 @@ import com.google.cloud.dns.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.dns.DnsZone;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class DnsDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Dns::Zone";
+    final String RESOURCE_TYPE = DnsZone.RESOURCE_TYPE;
 
     var dnsInstance = DnsOptions.getDefaultInstance().getService();
 

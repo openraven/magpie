@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.dynamodb.DynamoDbGlobalTable;
+import io.openraven.magpie.data.aws.dynamodb.DynamoDbTable;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -62,7 +64,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   protected void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::DynamoDB::GlobalTable";
+    final String RESOURCE_TYPE = DynamoDbGlobalTable.RESOURCE_TYPE;
     try {
       client.listGlobalTables().globalTables().stream()
         .map(globalTable -> client.describeGlobalTable(
@@ -84,7 +86,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   protected void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
+    final String RESOURCE_TYPE = DynamoDbTable.RESOURCE_TYPE;
 
     try {
       client.listTablesPaginator().tableNames().stream()

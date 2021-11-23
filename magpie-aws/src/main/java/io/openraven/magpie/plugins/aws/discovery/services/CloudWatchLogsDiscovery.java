@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.cloudwatch.CloudWatchLogsMetricFilter;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
   }
 
   private void discoverLogs(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchLogsClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::CloudWatchLogs::MetricFilter";
+    final String RESOURCE_TYPE = CloudWatchLogsMetricFilter.RESOURCE_TYPE;
 
     try {
       client.describeMetricFiltersPaginator().metricFilters().forEach(metricFilter -> {

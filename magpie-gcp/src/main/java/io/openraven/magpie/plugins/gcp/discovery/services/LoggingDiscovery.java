@@ -24,6 +24,10 @@ import com.google.logging.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.logging.LoggingBucket;
+import io.openraven.magpie.data.gcp.logging.LoggingExclusion;
+import io.openraven.magpie.data.gcp.logging.LoggingMetric;
+import io.openraven.magpie.data.gcp.logging.LoggingSink;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -46,7 +50,7 @@ public class LoggingDiscovery implements GCPDiscovery {
   }
 
   private void discoverMetrics(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::Logging::Metric";
+    final String RESOURCE_TYPE = LoggingMetric.RESOURCE_TYPE;
 
     try (MetricsClient metricsClient = MetricsClient.create()) {
       String parent = ProjectName.of(projectId).toString();
@@ -75,7 +79,7 @@ public class LoggingDiscovery implements GCPDiscovery {
   }
 
   private void discoverSinks(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ConfigClient configClient) {
-    final String RESOURCE_TYPE = "GCP::Logging::Sink";
+    final String RESOURCE_TYPE = LoggingSink.RESOURCE_TYPE;
 
     ProjectName parent = ProjectName.of(projectId);
     for (var sink : configClient.listSinks(parent).iterateAll()) {
@@ -90,7 +94,7 @@ public class LoggingDiscovery implements GCPDiscovery {
   }
 
   private void discoverBuckets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ConfigClient configClient) {
-    final String RESOURCE_TYPE = "GCP::Logging::Bucket";
+    final String RESOURCE_TYPE = LoggingBucket.RESOURCE_TYPE;
 
     var parent = LocationName.of(projectId, "-");
     for (var bucket : configClient.listBuckets(parent).iterateAll()) {
@@ -105,7 +109,7 @@ public class LoggingDiscovery implements GCPDiscovery {
   }
 
   private void discoverExclusions(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ConfigClient configClient) {
-    final String RESOURCE_TYPE = "GCP::Logging::Exclusion";
+    final String RESOURCE_TYPE = LoggingExclusion.RESOURCE_TYPE;
 
     var parent = ProjectName.of(projectId);
     for (var exclusion : configClient.listExclusions(parent).iterateAll()) {

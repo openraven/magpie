@@ -21,6 +21,8 @@ import com.google.cloud.dataproc.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.data.DataProcCluster;
+import io.openraven.magpie.data.gcp.data.DataProcJob;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -75,7 +77,7 @@ public class DataprocDiscovery implements GCPDiscovery {
   }
 
   private void discoverClusters(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location) {
-    final String RESOURCE_TYPE = "GCP::Dataproc::Cluster";
+    final String RESOURCE_TYPE = DataProcCluster.RESOURCE_TYPE;
 
     try {
       var clusterControllerConfig = location.equals("global") ?
@@ -102,7 +104,7 @@ public class DataprocDiscovery implements GCPDiscovery {
   }
 
   private void discoverJobs(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location) {
-    final String RESOURCE_TYPE = "GCP::Dataproc::Job";
+    final String RESOURCE_TYPE = DataProcJob.RESOURCE_TYPE;
 
     try {
       var clusterControllerConfig = location.equals("global") ?

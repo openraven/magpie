@@ -25,6 +25,8 @@ import com.google.cloud.bigquery.reservation.v1.ReservationServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.bigquery.BigQueryReservation;
+import io.openraven.magpie.data.gcp.bigquery.BigQueryReservationCapacity;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -81,7 +83,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
   }
 
   private void discoverReservations(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::BigQueryReservation::Reservation";
+    final String RESOURCE_TYPE = BigQueryReservation.RESOURCE_TYPE;
 
     AVAILABLE_LOCATIONS.forEach(location -> {
       String parent = LocationName.of(projectId, location).toString();
@@ -112,7 +114,7 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
   }
 
   private void discoverCapacityCommitments(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ReservationServiceClient client) {
-    final String RESOURCE_TYPE = "`GCP::BigQueryReservation::CapacityCommitment`";
+    final String RESOURCE_TYPE = BigQueryReservationCapacity.RESOURCE_TYPE;
 
     AVAILABLE_LOCATIONS.forEach(location -> {
       String parent = LocationName.of(projectId, location).toString();

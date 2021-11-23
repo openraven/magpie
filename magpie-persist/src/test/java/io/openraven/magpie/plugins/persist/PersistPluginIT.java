@@ -58,9 +58,9 @@ class PersistPluginIT {
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
     persistConfig.setPassword(jdbcDatabaseContainer.getUsername());
 
-    entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
-
     FlywayMigrationService.initiateDBMigration(persistConfig);
+
+    entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
 
     persistPlugin.init(persistConfig, LoggerFactory.getLogger(PersistPluginIT.class));
   }

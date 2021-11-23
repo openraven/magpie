@@ -23,6 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.accounts.IamAccount;
+import io.openraven.magpie.data.aws.accounts.IamCredentialsReport;
+import io.openraven.magpie.data.aws.accounts.IamGroup;
+import io.openraven.magpie.data.aws.accounts.IamPolicy;
+import io.openraven.magpie.data.aws.accounts.IamRole;
+import io.openraven.magpie.data.aws.accounts.IamUser;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -71,7 +77,7 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   protected void discoverRoles(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::Role";
+    final String RESOURCE_TYPE = IamRole.RESOURCE_TYPE;
 
     try {
       client.listRolesPaginator().roles().forEach(listedRole -> {
@@ -144,7 +150,7 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   protected void discoverPolicies(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::Policy";
+    final String RESOURCE_TYPE = IamPolicy.RESOURCE_TYPE;
 
     try {
       client.listPoliciesPaginator().policies().forEach(policy -> {
@@ -194,7 +200,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   private void discoverUsers(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
     emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::User";
+    final String RESOURCE_TYPE = IamUser.RESOURCE_TYPE;
 
     try {
       client.listUsersPaginator().users().forEach(user -> {
@@ -289,7 +295,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   protected void discoverGroups(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
     emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::Group";
+    final String RESOURCE_TYPE = IamGroup.RESOURCE_TYPE;
 
     try {
       client.listGroups().groups().forEach(group -> {
@@ -348,7 +354,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
     emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::Account";
+    final String RESOURCE_TYPE = IamAccount.RESOURCE_TYPE;
 
     try {
       var accountSummary = client.getAccountSummary();
@@ -434,7 +440,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   private void processCredentialsReport(IamClient client, ObjectMapper mapper, Session session, Region
     region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::IAM::CredentialsReport";
+    final String RESOURCE_TYPE = IamCredentialsReport.RESOURCE_TYPE;
 
     var report = client.getCredentialReport();
     String reportContent = report.content().asUtf8String();

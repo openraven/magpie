@@ -27,6 +27,7 @@ import com.google.spanner.admin.instance.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.spanner.SpannerInstance;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -45,7 +46,7 @@ public class SpannerDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Spanner::Instance";
+    final String RESOURCE_TYPE = SpannerInstance.RESOURCE_TYPE;
 
     try (var client = InstanceAdminClient.create()) {
       ProjectName projectName = ProjectName.of(projectId);

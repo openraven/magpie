@@ -25,6 +25,8 @@ import com.google.cloud.memcache.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.automl.AutoMLDataset;
+import io.openraven.magpie.data.gcp.automl.AutoMLModel;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -55,7 +57,7 @@ public class AutoMLDiscovery implements GCPDiscovery {
   }
 
   private void discoverDatasets(ObjectMapper mapper, String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::AutoML::Dataset";
+    final String RESOURCE_TYPE = AutoMLDataset.RESOURCE_TYPE;
 
     String parent = LocationName.of(projectId, location).toString();
 
@@ -76,7 +78,7 @@ public class AutoMLDiscovery implements GCPDiscovery {
   }
 
   private void discoverModels(ObjectMapper mapper, String projectId, String location, Session session, Emitter emitter, AutoMlClient client, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::AutoML::Model";
+    final String RESOURCE_TYPE = AutoMLModel.RESOURCE_TYPE;
 
     String parent = LocationName.of(projectId, location).toString();
 

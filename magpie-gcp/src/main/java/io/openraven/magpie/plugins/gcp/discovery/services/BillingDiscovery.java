@@ -42,7 +42,7 @@ public class BillingDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Billing::BillingAccount";
+    final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.billing.BillingAccount.RESOURCE_TYPE;
 
     try (var client = CloudBillingClient.create()) {
       for (var billingAccount : client.listBillingAccounts().iterateAll()) {

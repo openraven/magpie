@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ecs.EcsCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -41,7 +42,6 @@ public class ECSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "ecs";
 
-
   @Override
   public String service() {
     return SERVICE;
@@ -55,7 +55,7 @@ public class ECSDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(EcsClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::ECS::Cluster";
+    final String RESOURCE_TYPE = EcsCluster.RESOURCE_TYPE;
 
     try {
       listDescribedClusters(client).forEach(cluster -> {

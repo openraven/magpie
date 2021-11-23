@@ -22,6 +22,8 @@ import com.google.privacy.dlp.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.dlp.DlpJob;
+import io.openraven.magpie.data.gcp.dlp.DlpJobTrigger;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -48,7 +50,7 @@ public class DlpDiscovery implements GCPDiscovery {
   }
 
   private void discoverJobTrigger(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DlpServiceClient dlpServiceClient) {
-    final String RESOURCE_TYPE = "GCP::Dlp::JobTrigger";
+    final String RESOURCE_TYPE = DlpJobTrigger.RESOURCE_TYPE;
 
     for (var jobTrigger : dlpServiceClient.listJobTriggers(ProjectName.of(projectId)).iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, jobTrigger.getName())
@@ -62,7 +64,7 @@ public class DlpDiscovery implements GCPDiscovery {
   }
 
   private void discoverDlpJobs(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DlpServiceClient dlpServiceClient) {
-    final String RESOURCE_TYPE = "GCP::Dlp::DlpJob";
+    final String RESOURCE_TYPE = DlpJob.RESOURCE_TYPE;
 
     for (var dlpJob : dlpServiceClient.listDlpJobs(ProjectName.of(projectId)).iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, dlpJob.getName())

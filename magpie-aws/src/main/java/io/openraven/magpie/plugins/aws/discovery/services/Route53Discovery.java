@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.route53.Route53HostedZone;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -56,7 +57,7 @@ public class Route53Discovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(Route53Client.builder(), region);
-    final  String RESOURCE_TYPE = "AWS::Route53::HostedZone";
+    final  String RESOURCE_TYPE = Route53HostedZone.RESOURCE_TYPE;
 
     try {
       client.listHostedZonesPaginator().hostedZones().stream().forEach(hostedZone -> {

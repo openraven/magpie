@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ec2.Ec2VpcPeeringConnection;
+import io.openraven.magpie.data.aws.ec2.Ec2VpcResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -64,7 +66,7 @@ public class VPCDiscovery implements AWSDiscovery {
   }
 
   private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::VPC";
+    final String RESOURCE_TYPE = Ec2VpcResource.RESOURCE_TYPE;
 
     try {
       client.describeVpcsPaginator().vpcs().forEach(vpc -> {
@@ -100,7 +102,7 @@ public class VPCDiscovery implements AWSDiscovery {
   }
 
   private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::VPCPeeringConnection";
+    final String RESOURCE_TYPE = Ec2VpcPeeringConnection.RESOURCE_TYPE;
 
     try {
       client.describeVpcPeeringConnectionsPaginator().vpcPeeringConnections().forEach(vpcPC -> {

@@ -16,14 +16,14 @@
 
 package io.openraven.magpie.plugins.persist;
 
-import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.Resource;
 
 import java.util.List;
 import java.util.Map;
 
 public interface AssetsRepo {
 
-  void upsert(AWSResource awsResource);
+  void upsert(Resource awsResource);
 
   void upsert(AssetModel assetModel);
 

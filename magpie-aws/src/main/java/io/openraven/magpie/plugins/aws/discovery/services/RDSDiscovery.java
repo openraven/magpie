@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.rds.RDSInstance;
+import io.openraven.magpie.data.aws.rds.RDSSnapshot;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -66,7 +68,7 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverDbSnapshot(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, RdsClient client) {
-    final String RESOURCE_TYPE = "AWS::RDS::DBSnapshot";
+    final String RESOURCE_TYPE = RDSSnapshot.RESOURCE_TYPE;
 
     try {
       client.describeDBSnapshots(DescribeDbSnapshotsRequest.builder().includeShared(true).includePublic(false).build()).dbSnapshots()
@@ -89,7 +91,7 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverDbInstances(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client) {
-    final String RESOURCE_TYPE = "AWS::RDS::DBInstance";
+    final String RESOURCE_TYPE = RDSInstance.RESOURCE_TYPE;
 
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()

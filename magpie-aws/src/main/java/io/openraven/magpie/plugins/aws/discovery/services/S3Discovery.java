@@ -25,6 +25,7 @@ import com.google.common.cache.CacheBuilder;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.s3.S3Bucket;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -75,7 +76,7 @@ public class S3Discovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     var client = configureS3Client(S3Client.builder(), region);
 
-    final String RESOURCE_TYPE = "AWS::S3::Bucket";
+    final String RESOURCE_TYPE = S3Bucket.RESOURCE_TYPE;
 
     try {
       final var bucketOpt = getBuckets(session, client, region, logger);

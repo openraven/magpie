@@ -24,6 +24,8 @@ import com.google.cloud.osconfig.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.osconfig.OsConfigPatchDeployment;
+import io.openraven.magpie.data.gcp.osconfig.OsConfigPatchJob;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -52,7 +54,7 @@ public class OsConfigDiscovery implements GCPDiscovery {
   }
 
   private void discoverPatchJobs(ObjectMapper mapper, String projectId, Session session, Emitter emitter, OsConfigServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::OsConfig::PatchJob";
+    final String RESOURCE_TYPE = OsConfigPatchJob.RESOURCE_TYPE;
 
     for (var patchJob : client.listPatchJobs(ProjectName.of(projectId)).iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, patchJob.getName())
@@ -78,7 +80,7 @@ public class OsConfigDiscovery implements GCPDiscovery {
   }
 
   private void discoverPatchDeployments(ObjectMapper mapper, String projectId, Session session, Emitter emitter, OsConfigServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::OsConfig::PatchDeployment";
+    final String RESOURCE_TYPE = OsConfigPatchDeployment.RESOURCE_TYPE;
 
     for (var patchDeployment : client.listPatchDeployments(ProjectName.of(projectId)).iterateAll()) {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, patchDeployment.getName())

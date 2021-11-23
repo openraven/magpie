@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.backup.BackupPlan;
+import io.openraven.magpie.data.aws.backup.BackupVault;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -66,7 +68,8 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   public void discoverPlans(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, BackupClient client) {
-    final var RESOURCE_TYPE = "AWS::Backup::BackupPlan";
+    final var RESOURCE_TYPE = BackupPlan.RESOURCE_TYPE;
+
     client.listBackupPlansPaginator().forEach(resp -> resp.backupPlansList().forEach(backupPlan -> {
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupPlan.backupPlanArn())
         .withResourceName(backupPlan.backupPlanName())
@@ -92,7 +95,7 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   public void discoverVaults(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, BackupClient client) {
-    final var RESOURCE_TYPE = "AWS::Backup::BackupVault";
+    final var RESOURCE_TYPE = BackupVault.RESOURCE_TYPE;
     try {
       client.listBackupVaultsPaginator().stream()
         .forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList()

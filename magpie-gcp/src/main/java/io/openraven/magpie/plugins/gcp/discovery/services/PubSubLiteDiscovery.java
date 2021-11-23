@@ -23,6 +23,8 @@ import com.google.cloud.pubsublite.v1.AdminServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.pubsublite.PubSubLiteSubscription;
+import io.openraven.magpie.data.gcp.pubsublite.PubSubLiteTopic;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -46,12 +48,12 @@ public class PubSubLiteDiscovery implements GCPDiscovery {
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("GCP::PubSubLite", e);
     } catch (UnimplementedException e) {
-      logger.error("{} while discovering {}", e.getStatusCode(), "GCP::PubSubLite");
+      logger.warn("PubSubLite API invocation is prohibited: " + e.getMessage());
     }
   }
 
   private void discoverSubscriptions(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AdminServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::PubSubLite::Subscription";
+    final String RESOURCE_TYPE = PubSubLiteSubscription.RESOURCE_TYPE;
 
     var parent = LocationName.of(projectId, "-");
     for (var element : client.listSubscriptions(parent.toString()).iterateAll()) {
@@ -66,7 +68,7 @@ public class PubSubLiteDiscovery implements GCPDiscovery {
   }
 
   private void discoverTopic(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AdminServiceClient client) {
-    final String RESOURCE_TYPE = "GCP::PubSubLite::Topic";
+    final String RESOURCE_TYPE = PubSubLiteTopic.RESOURCE_TYPE;
 
     var parent = LocationName.of(projectId, "-");
     for (var element : client.listTopics(parent.toString()).iterateAll()) {

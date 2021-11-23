@@ -22,6 +22,7 @@ import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.secret.Secret;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -39,7 +40,7 @@ public class SecretDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::SecretManager::Secret";
+    final String RESOURCE_TYPE = Secret.RESOURCE_TYPE;
 
     try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
       ProjectName projectName = ProjectName.of(projectId);

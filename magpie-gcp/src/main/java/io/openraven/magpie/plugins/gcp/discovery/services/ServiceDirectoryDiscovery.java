@@ -25,6 +25,7 @@ import com.google.cloud.servicedirectory.v1.RegistrationServiceClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.service.Service;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -76,7 +77,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Service";
+    final String RESOURCE_TYPE = Service.RESOURCE_TYPE;
 
     try (RegistrationServiceClient registrationServiceClient = RegistrationServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {  // Discover services in all namespaces for all locations

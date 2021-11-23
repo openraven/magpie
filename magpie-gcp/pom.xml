@@ -267,6 +267,10 @@
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.openraven.magpie</groupId>
+      <artifactId>magpie-data</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

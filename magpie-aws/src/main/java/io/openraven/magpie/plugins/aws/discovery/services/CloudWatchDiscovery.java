@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.cloudwatch.CloudWatchAlarm;
+import io.openraven.magpie.data.aws.cloudwatch.CloudWatchDashboard;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -61,7 +63,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverAlarms(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::CloudWatch::Alarm";
+    final String RESOURCE_TYPE = CloudWatchAlarm.RESOURCE_TYPE;
 
     try {
       client.describeAlarmsPaginator().metricAlarms().stream().forEach(alarm -> {
@@ -110,7 +112,7 @@ public class CloudWatchDiscovery implements AWSDiscovery {
 
 
   private void discoverDashboards(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::CloudWatch::Dashboard";
+    final String RESOURCE_TYPE = CloudWatchDashboard.RESOURCE_TYPE;
     try {
       client.listDashboardsPaginator(ListDashboardsRequest.builder().build()).dashboardEntries().stream()
         .forEach(dashboard -> {

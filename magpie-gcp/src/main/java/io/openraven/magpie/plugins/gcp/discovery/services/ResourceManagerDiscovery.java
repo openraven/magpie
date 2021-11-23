@@ -22,6 +22,9 @@ import com.google.cloud.resourcemanager.v3.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerFolder;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerOrganization;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerProject;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -45,7 +48,7 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
   }
 
   private void discoverOrganization(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Organization";
+    final String RESOURCE_TYPE = ResourceManagerOrganization.RESOURCE_TYPE;
 
     try (var client = OrganizationsClient.create()) {
       for (var organization : client.searchOrganizations("").iterateAll()) {
@@ -71,7 +74,7 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
   }
 
   private void discoverProjects(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Project";
+    final String RESOURCE_TYPE = ResourceManagerProject.RESOURCE_TYPE;
 
     try (var client = ProjectsClient.create()) {
       for (var project : client.searchProjects("").iterateAll()) {
@@ -98,7 +101,7 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
   }
 
   private void discoverFolders(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Folder";
+    final String RESOURCE_TYPE = ResourceManagerFolder.RESOURCE_TYPE;
 
     try (var client = FoldersClient.create()) {
       for (var folder : client.searchFolders("").iterateAll()) {

@@ -23,6 +23,7 @@ import com.google.monitoring.dashboard.v1.ListDashboardsRequest;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.monitoring.MonitoringDashboard;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -40,7 +41,7 @@ public class MonitoringDashboardDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::MonitoringDashboard::Dashboard";
+    final String RESOURCE_TYPE = MonitoringDashboard.RESOURCE_TYPE;
 
     try (DashboardsServiceClient dashboardsServiceClient = DashboardsServiceClient.create()) {
       var request = ListDashboardsRequest.newBuilder()

@@ -20,6 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.location.LocationGeofenceCollection;
+import io.openraven.magpie.data.aws.location.LocationMap;
+import io.openraven.magpie.data.aws.location.LocationPlaceIndex;
+import io.openraven.magpie.data.aws.location.LocationRouteCalculator;
+import io.openraven.magpie.data.aws.location.LocationTracker;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -72,7 +77,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   private void discoverTrackers(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {
-    final String RESOURCE_TYPE = "AWS::Location::Tracker";
+    final String RESOURCE_TYPE = LocationTracker.RESOURCE_TYPE;
 
     try {
       client.listTrackersPaginator(ListTrackersRequest.builder().build())
@@ -126,7 +131,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   private void discoverMaps(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {
-    final String RESOURCE_TYPE = "AWS::Location::Map";
+    final String RESOURCE_TYPE = LocationMap.RESOURCE_TYPE;
 
     try {
       client.listMapsPaginator(ListMapsRequest.builder().build())
@@ -153,7 +158,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   private void discoverGeofenceCollections(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {
-    final String RESOURCE_TYPE = "AWS::Location::GeofenceCollection";
+    final String RESOURCE_TYPE = LocationGeofenceCollection.RESOURCE_TYPE;
 
     try {
       client.listGeofenceCollectionsPaginator(ListGeofenceCollectionsRequest.builder().build())
@@ -194,7 +199,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   private void discoverPlaceIndex(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {
-    final String RESOURCE_TYPE = "AWS::Location::PlaceIndex";
+    final String RESOURCE_TYPE = LocationPlaceIndex.RESOURCE_TYPE;
 
     try {
       client.listPlaceIndexesPaginator(ListPlaceIndexesRequest.builder().build())
@@ -221,7 +226,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   private void discoverRouteCalculators(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, LocationClient client) {
-    final String RESOURCE_TYPE = "AWS::Location::RouteCalculator";
+    final String RESOURCE_TYPE = LocationRouteCalculator.RESOURCE_TYPE;
 
     try {
       client.listRouteCalculatorsPaginator(ListRouteCalculatorsRequest.builder().build())

@@ -22,6 +22,8 @@ import com.google.cloud.vision.v1.ProductSearchClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.vision.Product;
+import io.openraven.magpie.data.gcp.vision.ProductSet;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -57,7 +59,7 @@ public class VisionDiscovery implements GCPDiscovery {
   }
 
   private void discoverProducts(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ProductSearchClient productSearchClient, String location) {
-    final String RESOURCE_TYPE = "GCP::Vision::Product";
+    final String RESOURCE_TYPE = Product.RESOURCE_TYPE;
 
     LocationName parent = LocationName.of(projectId, location);
     for (var product : productSearchClient.listProducts(parent).iterateAll()) {
@@ -73,7 +75,7 @@ public class VisionDiscovery implements GCPDiscovery {
   }
 
   private void discoverProductSets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, ProductSearchClient productSearchClient, String location) {
-    final String RESOURCE_TYPE = "GCP::Vision::ProductSet";
+    final String RESOURCE_TYPE = ProductSet.RESOURCE_TYPE;
 
     LocationName parent = LocationName.of(projectId, location);
     for (var product : productSearchClient.listProductSets(parent).iterateAll()) {

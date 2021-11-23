@@ -19,8 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
-import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.config.AwsConfigurationRecorder;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -54,7 +54,7 @@ public class ConfigDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = ConfigClient.builder().region(region).build();
-    final String RESOURCE_TYPE = "AWS::Config::ConfigurationRecorder";
+    final String RESOURCE_TYPE = AwsConfigurationRecorder.RESOURCE_TYPE;
 
     try {
       client.describeConfigurationRecorders().configurationRecorders()

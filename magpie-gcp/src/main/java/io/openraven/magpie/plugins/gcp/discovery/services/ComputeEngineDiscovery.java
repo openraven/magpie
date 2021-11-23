@@ -21,6 +21,8 @@ import com.google.cloud.compute.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.compute.ComputeDisk;
+import io.openraven.magpie.data.gcp.compute.ComputeInstance;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import org.slf4j.Logger;
@@ -44,7 +46,7 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
   }
 
   private void discoverInstances(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ComputeEngine::Instance";
+    final String RESOURCE_TYPE = ComputeInstance.RESOURCE_TYPE;
 
     try (var instancesClient = InstanceClient.create();
          var zoneClient = ZoneClient.create()) {
@@ -71,7 +73,7 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
   }
 
   private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ComputeEngine::Disk";
+    final String RESOURCE_TYPE = ComputeDisk.RESOURCE_TYPE;
 
     try (var diskClient = DiskClient.create();
          var zoneClient = ZoneClient.create()) {

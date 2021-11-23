@@ -21,6 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
+import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
+import io.openraven.magpie.data.aws.ec2.Ec2Instance;
+import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
+import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -66,7 +71,7 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::Instance";
+    final String RESOURCE_TYPE = Ec2Instance.RESOURCE_TYPE;
     try {
       client.describeInstancesPaginator()
         .forEach(describeInstancesResponse -> describeInstancesResponse.reservations()
@@ -114,7 +119,7 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverEIPs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::EIP";
+    final String RESOURCE_TYPE = Ec2ElasticIpAddress.RESOURCE_TYPE;
 
     try {
       client.describeAddresses().addresses().forEach(eip -> {
@@ -138,7 +143,7 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverSecurityGroups(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::SecurityGroup";
+    final String RESOURCE_TYPE = EC2SecurityGroup.RESOURCE_TYPE;
 
     try {
       client.describeSecurityGroupsPaginator().stream()
@@ -164,7 +169,7 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::Volume";
+    final String RESOURCE_TYPE = EC2Volume.RESOURCE_TYPE;
     try {
       client.describeVolumesPaginator().stream()
         .flatMap(r -> r.volumes().stream())
@@ -188,7 +193,7 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::Snapshot";
+    final String RESOURCE_TYPE = EC2Snapshot.RESOURCE_TYPE;
 
     try {
       client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()

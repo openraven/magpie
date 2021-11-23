@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.cloudtrail.CloudTrail;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -54,7 +55,7 @@ public class CloudTrailDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(CloudTrailClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::CloudTrail::Trail";
+    final String RESOURCE_TYPE = CloudTrail.RESOURCE_TYPE;
 
     try {
       client.listTrailsPaginator(ListTrailsRequest.builder().build()).trails()

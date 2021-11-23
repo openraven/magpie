@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ssm.SSMInstance;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -51,7 +52,7 @@ public class SSMDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     SsmClient client = AWSUtils.configure(SsmClient.builder(), region);
 
-    final String RESOURCE_TYPE = "AWS::SSM::Instance";
+    final String RESOURCE_TYPE = SSMInstance.RESOURCE_TYPE;
 
     try {
       client.describeInstanceInformationPaginator().instanceInformationList().forEach(instance -> {

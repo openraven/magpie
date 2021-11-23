@@ -103,8 +103,9 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
         try {
           logger.debug("Discovering service: {}, class: {}", gcpDiscovery.service(), gcpDiscovery.getClass());
           gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger);
-        } catch (PermissionDeniedException permissionDeniedException) {
-          logger.error("{} While discovering {} service in {}", permissionDeniedException.getMessage(), gcpDiscovery.service(), project);
+        } catch (Exception ex) {
+          logger.error("Discovery error in service {} - {}", gcpDiscovery.service(), ex.getMessage());
+          logger.debug("Details", ex);
         }
       }));
 

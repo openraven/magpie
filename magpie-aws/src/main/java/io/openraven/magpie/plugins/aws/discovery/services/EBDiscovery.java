@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.eb.EbEnvironment;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -55,7 +56,7 @@ public class EBDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account) {
     final var client = AWSUtils.configure(ElasticBeanstalkClient.builder(), region);
-    final String RESOURCE_TYPE = "AWS::ElasticBeanstalk";
+    final String RESOURCE_TYPE = EbEnvironment.RESOURCE_TYPE;
 
     try {
       client.describeEnvironments().environments().forEach(environment -> {

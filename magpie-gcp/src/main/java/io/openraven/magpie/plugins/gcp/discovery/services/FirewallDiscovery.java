@@ -21,6 +21,7 @@ import com.google.cloud.compute.v1.FirewallClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.vpc.Firewall;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
@@ -39,7 +40,7 @@ public class FirewallDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::VPC::Firewall";
+    final String RESOURCE_TYPE = Firewall.RESOURCE_TYPE;
 
     try (FirewallClient firewallClient = FirewallClient.create()) {
       firewallClient.listFirewalls(projectId).iterateAll().forEach(firewall -> {
