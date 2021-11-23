@@ -29,9 +29,10 @@ import static org.mockito.Mockito.atLeast;
 public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
   private static final String CF_EC2_TEMPLATE_PATH = "/template/ec2-template.yml";
-  private final EC2Discovery ec2Discovery = new EC2Discovery(){
+  private final EC2Discovery ec2Discovery = new EC2Discovery() {
     // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
-    public void discoverBackupJobs(String arn, Region region, MagpieResource data, MagpieAWSClientCreator clientCreator) {}
+    public void discoverBackupJobs(String arn, Region region, MagpieResource data, MagpieAWSClientCreator clientCreator) {
+    }
   };
 
   @Mock
@@ -46,7 +47,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   }
 
   public static MagpieAWSClientCreator localClientCreator(final Region region) {
-    return new MagpieAWSClientCreator(){
+    return new MagpieAWSClientCreator() {
       @Override
       public <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> BuilderT apply(AwsClientBuilder<BuilderT, ClientT> builder) {
         final var magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
@@ -118,7 +119,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
     var configuration = contents.get("configuration");
     assertTrue(configuration.get("volumeId").asText().startsWith("vol-"));
-    assertEquals("standard", configuration.get("volumeType").asText());
+    assertEquals("gp2", configuration.get("volumeType").asText());
 
     var attachments = configuration.get("attachments");
     assertEquals(1, attachments.size());
@@ -132,19 +133,19 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   }
 
   private void assertSecurityGroup(List<ObjectNode> data) {
-    assertEquals(2, data.size()); // There default and default VPC
+    assertEquals(1, data.size());
     var contents = data.get(0);
 
     assertNotNull(contents.get("documentId"));
     assertTrue(contents.get("assetId").asText().startsWith("arn:aws:ec2:us-west-1:account:security-group/sg-"));
     assertEquals("default", contents.get("resourceName").asText());
-    assertTrue( contents.get("resourceId").asText().startsWith("sg-"));
+    assertTrue(contents.get("resourceId").asText().startsWith("sg-"));
     assertEquals("AWS::EC2::SecurityGroup", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("accountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("region").asText());
 
     var configuration = contents.get("configuration");
-    assertEquals("default group", configuration.get("description").asText());
+    assertEquals("default VPC security group", configuration.get("description").asText());
     assertEquals("default", configuration.get("groupName").asText());
     assertEquals("000000000000", configuration.get("ownerId").asText());
   }
@@ -198,8 +199,8 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
     assertEquals("/dev/sda1", device.get("deviceName").asText());
     assertEquals("in-use", device.get("ebs").get("status").asText());
     assertTrue(device.get("ebs").get("volumeId").asText().startsWith("vol-"));
-    assertEquals("/dev/sda1" ,configuration.get("rootDeviceName").asText());
-    assertEquals("ebs" ,configuration.get("rootDeviceType").asText());
+    assertEquals("/dev/sda1", configuration.get("rootDeviceName").asText());
+    assertEquals("ebs", configuration.get("rootDeviceType").asText());
     assertNotNull(configuration.get("publicIp").asText());
   }
 }
