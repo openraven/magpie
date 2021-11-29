@@ -23,8 +23,9 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.Table;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.bigquery.BigQueryDataset;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -43,11 +44,11 @@ public class BigQueryDiscovery implements GCPDiscovery {
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
     BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
 
-    final String RESOURCE_TYPE = "GCP::BigQuery::Dataset";
+    final String RESOURCE_TYPE = BigQueryDataset.RESOURCE_TYPE;
     bigQuery.listDatasets(projectId).iterateAll()
       .forEach(datasetProxy -> {
         Dataset datasetModel = bigQuery.getDataset(datasetProxy.getDatasetId());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, datasetProxy.getGeneratedId())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, datasetProxy.getGeneratedId())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(datasetModel))
@@ -59,7 +60,7 @@ public class BigQueryDiscovery implements GCPDiscovery {
       });
   }
 
-  private void discoverTables(BigQuery bigQuery, Dataset dataset, MagpieResource data) {
+  private void discoverTables(BigQuery bigQuery, Dataset dataset, MagpieGcpResource data) {
     String fieldName = "tables";
 
     List<Table> tables = new ArrayList<>();

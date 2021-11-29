@@ -67,11 +67,11 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private void assertAccount(MagpieEnvelope envelope) {
     var contents = envelopeCapture.getValue().getContents();
     assertNotNull(contents.get("documentId").asText());
-    assertEquals("AWS::IAM::Account", contents.get("assetId").asText());
+    assertEquals("AWS::IAM::Account", contents.get("arn").asText());
     assertEquals(allias, contents.get("resourceName").asText());
     assertEquals("AWS::IAM::Account", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 
   private void createPasswordPolicy() {

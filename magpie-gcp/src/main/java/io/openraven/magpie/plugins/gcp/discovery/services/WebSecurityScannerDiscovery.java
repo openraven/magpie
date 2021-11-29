@@ -20,8 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.websecurityscanner.v1.*;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.security.WebSecurity;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -40,7 +41,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::WebSecurityScanner::ScanConfig";
+    final String RESOURCE_TYPE = WebSecurity.RESOURCE_TYPE;
 
     try (WebSecurityScannerClient webSecurityScannerClient = WebSecurityScannerClient.create()) {
       ListScanConfigsRequest request =
@@ -48,7 +49,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
           .setParent(String.format("projects/%s", projectId))
           .build();
       for (ScanConfig element : webSecurityScannerClient.listScanConfigs(request).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(element))
@@ -65,7 +66,7 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
 
   private void discoverScanRuns(WebSecurityScannerClient client,
                                 ScanConfig scanConfig,
-                                MagpieResource data) {
+                                MagpieGcpResource data) {
     final String fieldName = "scanRuns";
 
     ArrayList<ScanRun> list = new ArrayList<>();

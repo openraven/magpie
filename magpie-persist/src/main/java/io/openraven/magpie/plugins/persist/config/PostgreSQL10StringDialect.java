@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package io.openraven.magpie.plugins.persist;
+package io.openraven.magpie.plugins.persist.config;
 
-import org.flywaydb.core.Flyway;
+import org.hibernate.dialect.PostgreSQL10Dialect;
+import org.hibernate.type.StringType;
 
-import static java.lang.String.format;
+import java.sql.Types;
 
-public class FlywayMigrationService {
+public class PostgreSQL10StringDialect extends PostgreSQL10Dialect {
 
-  private static final String POSTGRES_URL = "jdbc:postgresql://%s:%s/%s";
-
-  public static void initiateDBMigration(PersistConfig config) {
-    String databaseUrl = format(POSTGRES_URL, config.getHostname(), config.getPort(), config.getDatabaseName());
-    Flyway
-      .configure()
-      .dataSource(databaseUrl, config.getUser(), config.getPassword())
-      .load()
-      .migrate();
+  public PostgreSQL10StringDialect() {
+    super();
+    this.registerHibernateType(
+      Types.OTHER, StringType.class.getName()
+    );
   }
 }

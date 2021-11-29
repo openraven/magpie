@@ -83,12 +83,12 @@ public class IAMPolicyDiscoveryIT extends BaseIAMServiceIT {
   private void assertPolicy(MagpieEnvelope envelope) {
     var contents = envelope.getContents();
     assertNotNull(contents.get("documentId"));
-    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", POLICY_NAME), contents.get("assetId").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:policy/%s", POLICY_NAME), contents.get("arn").asText());
     assertEquals(POLICY_NAME, contents.get("resourceName").asText());
     assertNotNull(contents.get("resourceId").asText());
     assertEquals("AWS::IAM::Policy", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 
   private String createPolicy() {

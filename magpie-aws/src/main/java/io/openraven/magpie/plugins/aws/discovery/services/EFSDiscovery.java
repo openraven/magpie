@@ -18,8 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.efs.EfsFileSystem;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -53,12 +54,12 @@ public class EFSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::EFS::FileSystem";
+    final String RESOURCE_TYPE = EfsFileSystem.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(EfsClient.builder()).build()) {
       client.describeFileSystems().fileSystems().forEach(fileSystem -> {
         String arn = String.format("arn:aws:elasticfilesystem:%s:%s:file-system/%s", region, fileSystem.ownerId(), fileSystem.fileSystemId());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(fileSystem.name())
           .withResourceId(fileSystem.fileSystemId())
           .withResourceType(RESOURCE_TYPE)
@@ -66,7 +67,7 @@ public class EFSDiscovery implements AWSDiscovery {
           .withCreatedIso(fileSystem.creationTime())
           .withSizeInBytes(fileSystem.sizeInBytes().value())
           .withAccountId(fileSystem.ownerId())
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverMountTargets(client, fileSystem, data);
@@ -79,7 +80,7 @@ public class EFSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, MagpieResource data) {
+  private void discoverMountTargets(EfsClient client, FileSystemDescription resource, MagpieAwsResource data) {
     final String keyname = "mountTargets";
 
     getAwsResponse(

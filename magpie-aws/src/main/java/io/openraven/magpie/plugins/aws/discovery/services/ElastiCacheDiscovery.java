@@ -18,8 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.elasticache.ElastiCacheCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -57,17 +58,17 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final  String RESOURCE_TYPE = "AWS::ElastiCache::Cluster";
+    final  String RESOURCE_TYPE = ElastiCacheCluster.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(ElastiCacheClient.builder()).build()) {
       client.describeCacheClusters().cacheClusters().forEach(cacheCluster -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, cacheCluster.arn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cacheCluster.arn())
           .withResourceName(cacheCluster.cacheClusterId())
           .withResourceId(cacheCluster.cacheClusterId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(cacheCluster.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverRedisSize(cacheCluster, data, region.id(), clientCreator);
@@ -79,7 +80,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverRedisSize(CacheCluster resource, MagpieResource data, String region, MagpieAWSClientCreator clientCreator) {
+  private void discoverRedisSize(CacheCluster resource, MagpieAwsResource data, String region, MagpieAWSClientCreator clientCreator) {
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("CacheClusterId").value(resource.cacheClusterId()).build());
 

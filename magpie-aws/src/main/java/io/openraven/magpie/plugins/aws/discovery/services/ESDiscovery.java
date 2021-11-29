@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ess.EssDomain;
 import io.openraven.magpie.plugins.aws.discovery.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -58,19 +59,19 @@ public class ESDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::Elasticsearch::Domain";
+    final String RESOURCE_TYPE = EssDomain.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(ElasticsearchClient.builder()).build()) {
       client.listDomainNames().domainNames().stream()
         .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus())
         .forEach(domain -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, domain.arn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, domain.arn())
             .withResourceName(domain.domainName())
             .withResourceId(domain.domainId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(domain.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverTags(client, domain, data, mapper);
@@ -83,7 +84,7 @@ public class ESDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(ElasticsearchClient client, ElasticsearchDomainStatus resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTags(builder -> builder.arn(resource.arn())),
       (resp) -> {
@@ -95,7 +96,7 @@ public class ESDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(ElasticsearchDomainStatus resource, MagpieResource data, Region region, String account, Logger logger, MagpieAWSClientCreator clientCreator) {
+  private void discoverSize(ElasticsearchDomainStatus resource, MagpieAwsResource data, Region region, String account, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("DomainName").value(resource.domainName()).build());

@@ -20,8 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.devtools.containeranalysis.v1beta1.GrafeasV1Beta1Client;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.container.ContainerAnalysisNote;
+import io.openraven.magpie.data.gcp.container.ContainerAnalysisOccurrence;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -48,10 +50,10 @@ public class ContainerAnalysisDiscovery implements GCPDiscovery {
   }
 
   private void discoverOccurrences(ObjectMapper mapper, String projectId, Session session, Emitter emitter, GrafeasV1Beta1Client client) {
-    final String RESOURCE_TYPE = "GCP::ContainerAnalysis::Occurrence";
+    final String RESOURCE_TYPE = ContainerAnalysisOccurrence.RESOURCE_TYPE;
 
     for (var occurrence : client.listOccurrences(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, occurrence.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, occurrence.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(occurrence))
@@ -61,10 +63,10 @@ public class ContainerAnalysisDiscovery implements GCPDiscovery {
     }
   }
   private void discoverNotes(ObjectMapper mapper, String projectId, Session session, Emitter emitter, GrafeasV1Beta1Client client) {
-    final String RESOURCE_TYPE = "GCP::ContainerAnalysis::Note";
+    final String RESOURCE_TYPE = ContainerAnalysisNote.RESOURCE_TYPE;
 
     for (var note : client.listNotes(ProjectName.of(projectId).toString(), "").iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, note.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, note.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(note))

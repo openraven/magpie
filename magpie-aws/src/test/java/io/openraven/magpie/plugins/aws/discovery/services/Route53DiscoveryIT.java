@@ -51,10 +51,10 @@ public class Route53DiscoveryIT extends BaseAWSServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertTrue(contents.get("assetId").asText().contains("arn:aws:route53:::hostedZone"));
+    assertTrue(contents.get("arn").asText().contains("arn:aws:route53:::hostedZone"));
     assertEquals("example.com", contents.get("resourceName").asText());
     assertEquals("AWS::Route53::HostedZone", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 }

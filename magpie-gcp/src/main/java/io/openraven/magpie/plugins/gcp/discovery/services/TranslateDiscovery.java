@@ -20,8 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.translate.v3.LocationName;
 import com.google.cloud.translate.v3.TranslationServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.translate.Glossary;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -31,7 +32,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class TranslateDiscovery implements GCPDiscovery {
-  private static final String SERVICE = "translate";
+  private static final String SERVICE = "`translate`";
 
   private static final List<String> AVAILABLE_LOCATIONS = List.of("us-central1", "global");
 
@@ -41,14 +42,14 @@ public class TranslateDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Translate::Secret";
+    final String RESOURCE_TYPE = Glossary.RESOURCE_TYPE;
 
     try (TranslationServiceClient translationServiceClient = TranslationServiceClient.create()) {
       try {
         AVAILABLE_LOCATIONS.forEach(location -> {
           String parent = LocationName.of(projectId, location).toString();
           for (var glossary : translationServiceClient.listGlossaries(parent).iterateAll()) {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, glossary.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, glossary.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)

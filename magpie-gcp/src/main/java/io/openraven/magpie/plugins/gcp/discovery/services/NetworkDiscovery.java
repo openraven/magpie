@@ -23,7 +23,7 @@ import com.google.cloud.compute.v1.NetworkClient;
 import com.google.cloud.compute.v1.Subnetwork;
 import com.google.cloud.compute.v1.SubnetworkClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -44,12 +44,12 @@ public class NetworkDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::VPC::Network";
+    final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.vpc.Network.RESOURCE_TYPE;
 
     try (NetworkClient networkClient = NetworkClient.create();
          SubnetworkClient subnetworkClient = SubnetworkClient.create()) {
       networkClient.listNetworks(projectId).iterateAll().forEach(network -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, network.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, network.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(network))
@@ -65,7 +65,7 @@ public class NetworkDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverSubnetworks(SubnetworkClient subnetworkClient, Network network, MagpieResource data) {
+  private void discoverSubnetworks(SubnetworkClient subnetworkClient, Network network, MagpieGcpResource data) {
     final String fieldName = "subnetworks";
 
     List<Subnetwork.Builder> subnetworks = new ArrayList<>();

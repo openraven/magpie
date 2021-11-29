@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.trace.v1.TraceServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.trace.Trace;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -38,11 +39,11 @@ public class TraceDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Trace::Trace";
+    final String RESOURCE_TYPE = Trace.RESOURCE_TYPE;
 
     try (TraceServiceClient traceServiceClient = TraceServiceClient.create()) {
       for (var trace : traceServiceClient.listTraces(projectId).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, trace.getTraceId())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, trace.getTraceId())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(trace))

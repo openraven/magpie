@@ -24,8 +24,11 @@ import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.monitoring.v3.AlertPolicy;
 import com.google.monitoring.v3.Group;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.monitoring.MonitoringAlertPolicy;
+import io.openraven.magpie.data.gcp.monitoring.MonitoringGroup;
+import io.openraven.magpie.data.gcp.monitoring.MonitoringService;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -49,11 +52,11 @@ public class MonitoringDiscovery implements GCPDiscovery {
   }
 
   private void discoverMonitoringGroups(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::Monitoring::Group";
+    final String RESOURCE_TYPE = MonitoringGroup.RESOURCE_TYPE;
 
     try (GroupServiceClient groupServiceClient = GroupServiceClient.create()) {
       for (Group group : groupServiceClient.listGroups(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, group.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, group.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(group))
@@ -67,11 +70,11 @@ public class MonitoringDiscovery implements GCPDiscovery {
   }
 
   private void discoverAlertPolicies(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::Monitoring::AlertPolicy";
+    final String RESOURCE_TYPE = MonitoringAlertPolicy.RESOURCE_TYPE;
 
     try (AlertPolicyServiceClient alertPolicyServiceClient = AlertPolicyServiceClient.create()) {
       for (AlertPolicy alertPolicy : alertPolicyServiceClient.listAlertPolicies(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, alertPolicy.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, alertPolicy.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(alertPolicy))
@@ -85,11 +88,11 @@ public class MonitoringDiscovery implements GCPDiscovery {
   }
 
   private void discoverServices(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::Monitoring::Service";
+    final String RESOURCE_TYPE = MonitoringService.RESOURCE_TYPE;
 
     try (var serviceMonitoringServiceClient = ServiceMonitoringServiceClient.create()) {
       for (var service : serviceMonitoringServiceClient.listServices(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, service.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(service))

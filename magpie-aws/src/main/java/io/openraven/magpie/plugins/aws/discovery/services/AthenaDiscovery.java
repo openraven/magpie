@@ -18,8 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.athena.AthenaDataCatalog;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -57,18 +58,18 @@ public class AthenaDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::Athena::DataCatalog";
+    final String RESOURCE_TYPE = AthenaDataCatalog.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(AthenaClient.builder()).build()) {
       client.listDataCatalogsPaginator(ListDataCatalogsRequest.builder().build()).dataCatalogsSummary()
         .forEach(dataCatalog -> {
           var arn = format("arn:aws:athena:%s:%s:datacatalog/%s", region, account, dataCatalog.catalogName());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(dataCatalog.catalogName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(dataCatalog.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverDatabases(client, dataCatalog, data);
@@ -80,7 +81,7 @@ public class AthenaDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, MagpieResource data) {
+  private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, MagpieAwsResource data) {
     final String keyname = "databases";
 
     getAwsResponse(

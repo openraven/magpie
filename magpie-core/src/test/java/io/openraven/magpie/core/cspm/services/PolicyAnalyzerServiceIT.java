@@ -6,14 +6,13 @@ import ch.qos.logback.classic.LoggerContext;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.ScanResults;
 import io.openraven.magpie.core.cspm.analysis.Violation;
-import io.openraven.magpie.core.cspm.model.*;
-import io.openraven.magpie.plugins.persist.FlywayMigrationService;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import io.openraven.magpie.core.cspm.model.Policy;
+import io.openraven.magpie.core.cspm.model.PolicyContext;
+import io.openraven.magpie.core.cspm.model.Rule;
+import io.openraven.magpie.plugins.persist.AssetsRepo;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.slf4j.LoggerFactory;
 import io.openraven.magpie.core.config.MagpieConfig;
 import io.openraven.magpie.core.config.PluginConfig;
@@ -35,8 +34,8 @@ import java.util.Scanner;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.DISABLED;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +45,7 @@ class PolicyAnalyzerServiceIT {
   // Tested class
   private final PolicyAnalyzerServiceImpl policyAnalyzerService = new PolicyAnalyzerServiceImpl();
 
-  private static Jdbi jdbi;
+  private static AssetsRepo assetsRepo;
 
   @Mock
   private MagpieConfig config;
@@ -70,7 +69,6 @@ class PolicyAnalyzerServiceIT {
     var jdbcDatabaseContainer = postgreSQLContainerProvider.newInstance();
     jdbcDatabaseContainer.start();
 
-    jdbiSetuo(jdbcDatabaseContainer);
     persistanceSetup(jdbcDatabaseContainer);
     loggerStubSetup();
     populateAssetData();
@@ -266,14 +264,6 @@ class PolicyAnalyzerServiceIT {
     assertTrue(loggerStubAppender.contains(String.format("Analyzing rule - %s", testRuleName), Level.INFO));
   }
 
-  private static void jdbiSetuo(JdbcDatabaseContainer jdbcDatabaseContainer) {
-    jdbi = Jdbi.create(jdbcDatabaseContainer.getJdbcUrl(),
-      jdbcDatabaseContainer.getUsername(),
-      jdbcDatabaseContainer.getPassword())
-      .installPlugin(new PostgresPlugin())
-      .installPlugin(new SqlObjectPlugin());
-  }
-
   private static void persistanceSetup(JdbcDatabaseContainer jdbcDatabaseContainer) {
     PersistConfig persistConfig = new PersistConfig();
     persistConfig.setHostname("localhost");
@@ -282,10 +272,10 @@ class PolicyAnalyzerServiceIT {
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
     persistConfig.setPassword(jdbcDatabaseContainer.getUsername());
 
+    assetsRepo = new HibernateAssetsRepoImpl(persistConfig);
+
     pluginConfig = new PluginConfig<>();
     pluginConfig.setConfig(persistConfig);
-
-    FlywayMigrationService.initiateDBMigration(persistConfig);
   }
 
   private static void loggerStubSetup() {
@@ -305,7 +295,7 @@ class PolicyAnalyzerServiceIT {
   }
 
   private static void populateAssetData() {
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-asset-credential-report.sql")));
+    assetsRepo.executeNative(getResourceAsString("/sql/aws-asset-credential-report.sql"));
   }
 
   private ScanResults initAndAnalyzePolicies() throws Exception {

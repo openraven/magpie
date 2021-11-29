@@ -16,26 +16,20 @@
 
 package io.openraven.magpie.plugins.persist;
 
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import io.openraven.magpie.data.Resource;
 
-import static java.lang.String.format;
+import java.util.List;
+import java.util.Map;
 
-public class AssetsRepo {
-  private final Jdbi jdbi;
+public interface AssetsRepo {
 
-  public AssetsRepo(PersistConfig config) {
-    String url = format("jdbc:postgresql://%s:%s/%s", config.getHostname(), config.getPort(), config.getDatabaseName());
-    jdbi = Jdbi.create(url, config.getUser(), config.getPassword())
-      .installPlugin(new PostgresPlugin())
-      .installPlugin(new SqlObjectPlugin());
-  }
+  void upsert(Resource awsResource);
 
-  public void upsert(AssetModel assetModel) {
-    jdbi.useExtension(AssetsDao.class, dao -> {
-      dao.removeRecord(assetModel.getAssetId(), assetModel.getResourceType(), assetModel.getAccountId());
-      dao.insert(assetModel);
-    });
-  }
+  void upsert(AssetModel assetModel);
+
+  void executeNative(String query);
+
+  List<Map<String, Object>> queryNative(String query);
+
+  Long getAssetCount(String resourceType);
 }

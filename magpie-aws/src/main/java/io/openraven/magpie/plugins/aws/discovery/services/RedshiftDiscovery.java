@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.redshift.RedshiftCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -58,19 +59,19 @@ public class RedshiftDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::Redshift::Cluster";
+    final String RESOURCE_TYPE = RedshiftCluster.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(RedshiftClient.builder()).build()) {
       client.describeClustersPaginator().clusters().stream().forEach(cluster -> {
         String arn = String.format("arn:aws:redshift:%s:%s:cluster:%s", region, account, cluster.clusterIdentifier());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(cluster.dbName())
           .withResourceId(cluster.clusterIdentifier())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
           .withCreatedIso(cluster.clusterCreateTime())
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverStorage(client, data);
@@ -83,7 +84,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverStorage(RedshiftClient client, MagpieResource data) {
+  private void discoverStorage(RedshiftClient client, MagpieAwsResource data) {
     final String keyname = "storage";
 
     getAwsResponse(
@@ -93,7 +94,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverSize(Cluster resource, MagpieResource data, Region region, Logger logger, MagpieAWSClientCreator clientCreator) {
+  private void discoverSize(Cluster resource, MagpieAwsResource data, Region region, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("ClusterIdentifier").value(resource.clusterIdentifier()).build());

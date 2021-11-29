@@ -19,8 +19,13 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
+import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
+import io.openraven.magpie.data.aws.ec2.Ec2Instance;
+import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
+import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -74,20 +79,20 @@ public class EC2Discovery implements AWSDiscovery {
 
   private void discoverEc2Instances(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, MagpieAWSClientCreator clientCreator, Logger logger) {
 
-    final String RESOURCE_TYPE = "AWS::EC2::Instance";
+    final String RESOURCE_TYPE = Ec2Instance.RESOURCE_TYPE;
     try {
       client.describeInstancesPaginator()
         .forEach(describeInstancesResponse -> describeInstancesResponse.reservations()
           .forEach(reservation -> reservation.instances().forEach(instance -> {
             String arn = format("arn:aws:ec2:%s:%s:instance/%s", region, reservation.ownerId(), instance.instanceId());
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
               .withResourceName(instance.instanceId())
               .withResourceId(instance.instanceId())
               .withResourceType(RESOURCE_TYPE)
               .withConfiguration(mapper.valueToTree(instance.toBuilder()))
               .withCreatedIso(instance.launchTime())
               .withAccountId(account)
-              .withRegion(region.toString())
+              .withAwsRegion(region.toString())
               .withTags(getConvertedTags(instance.tags(), mapper))
               .build();
 
@@ -100,7 +105,7 @@ public class EC2Discovery implements AWSDiscovery {
     }
   }
 
-  public void massageInstanceTypeAndPublicIp(MagpieResource data,
+  public void massageInstanceTypeAndPublicIp(MagpieAwsResource data,
                                              Instance instance,
                                              ObjectMapper mapper,
                                              Region region,
@@ -122,18 +127,18 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverEIPs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::EIP";
+    final String RESOURCE_TYPE = Ec2ElasticIpAddress.RESOURCE_TYPE;
 
     try {
       client.describeAddresses().addresses().forEach(eip -> {
         String arn = format("arn:aws:ec2:%s:%s:eip-allocation/%s", region, account, eip.allocationId());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(eip.publicIp())
           .withResourceId(eip.allocationId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(eip.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .withTags(getConvertedTags(eip.tags(), mapper))
           .build();
 
@@ -146,20 +151,20 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverSecurityGroups(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::SecurityGroup";
+    final String RESOURCE_TYPE = EC2SecurityGroup.RESOURCE_TYPE;
 
     try {
       client.describeSecurityGroupsPaginator().stream()
         .flatMap(r -> r.securityGroups().stream())
         .forEach(securityGroup -> {
           String arn = format("arn:aws:ec2:%s:%s:security-group/%s", region, account, securityGroup.groupId());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(securityGroup.groupName())
             .withResourceId(securityGroup.groupId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(securityGroup.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .withTags(getConvertedTags(securityGroup.tags(), mapper))
             .build();
 
@@ -172,19 +177,19 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::Volume";
+    final String RESOURCE_TYPE = EC2Volume.RESOURCE_TYPE;
     try {
       client.describeVolumesPaginator().stream()
         .flatMap(r -> r.volumes().stream())
         .forEach(volume -> {
           String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(volume.volumeId())
             .withResourceId(volume.volumeId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(volume.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .withTags(getConvertedTags(volume.tags(), mapper))
             .build();
 
@@ -196,19 +201,19 @@ public class EC2Discovery implements AWSDiscovery {
   }
 
   private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::Snapshot";
+    final String RESOURCE_TYPE = EC2Snapshot.RESOURCE_TYPE;
 
     try {
       client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()
         .forEach(snapshot -> {
           String arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(snapshot.snapshotId())
             .withResourceId(snapshot.snapshotId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(snapshot.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .withTags(getConvertedTags(snapshot.tags(), mapper))
             .build();
 
@@ -221,7 +226,7 @@ public class EC2Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSnapshotVolumes(Ec2Client client, MagpieResource data, Snapshot snapshot) {
+  private void discoverSnapshotVolumes(Ec2Client client, MagpieAwsResource data, Snapshot snapshot) {
     final String keyname = "volumes";
     var snapshotFilter = Filter.builder().name("snapshot-id").values(List.of(snapshot.snapshotId())).build();
 

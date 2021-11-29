@@ -19,7 +19,6 @@
     <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
-    <magpie.api.version>0.3.0</magpie.api.version>
     <sentry.version>1.7.28</sentry.version>
     <mockito.version>3.10.0</mockito.version>
   </properties>
@@ -28,7 +27,10 @@
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>
-      <version>${magpie.api.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.openraven.magpie</groupId>
+      <artifactId>magpie-data</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -38,6 +40,7 @@
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
+
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>athena</artifactId>

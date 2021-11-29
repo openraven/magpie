@@ -20,8 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.asset.v1.AssetServiceClient;
 import com.google.cloud.asset.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.asset.Asset;
+import io.openraven.magpie.data.gcp.asset.AssetFeed;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -48,10 +50,10 @@ public class AssetDiscovery implements GCPDiscovery {
   }
 
   private void discoverFeeds(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
-    final String RESOURCE_TYPE = "GCP::Asset::Feed";
+    final String RESOURCE_TYPE = AssetFeed.RESOURCE_TYPE;
 
     for (var element : assetServiceClient.listFeeds(ProjectName.of(projectId).toString()).getFeedsList()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))
@@ -62,10 +64,10 @@ public class AssetDiscovery implements GCPDiscovery {
   }
 
   private void discoverAssets(ObjectMapper mapper, String projectId, Session session, Emitter emitter, AssetServiceClient assetServiceClient) {
-    final String RESOURCE_TYPE = "GCP::Asset::Asset";
+    final String RESOURCE_TYPE = Asset.RESOURCE_TYPE;
 
     for (var element : assetServiceClient.listAssets(ProjectName.of(projectId).toString()).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(element))

@@ -9,8 +9,9 @@ import com.google.api.services.sqladmin.model.InstancesListResponse;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.sql.SqlInstance;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ public class SqlDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::SQL::Instance";
+    final String RESOURCE_TYPE = SqlInstance.RESOURCE_TYPE;
 
     try {
       SQLAdmin sqlAdmin = initService();
@@ -45,7 +46,7 @@ public class SqlDiscovery implements GCPDiscovery {
           continue;
         }
         for (var sqlInstance : response.getItems()) {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, sqlInstance.getName())
+          var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, sqlInstance.getName())
             .withProjectId(projectId)
             .withResourceType(RESOURCE_TYPE)
             .withRegion(sqlInstance.getRegion())

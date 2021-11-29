@@ -69,12 +69,12 @@ public class LambdaDiscoveryIT extends BaseIAMServiceIT {
     var base = envelope.getContents();
     assertNotNull(base.get("documentId"));
     assertEquals("arn:aws:lambda:us-west-1:000000000000:function:cf-integration-test-lambda-function",
-      base.get("assetId").asText());
+      base.get("arn").asText());
     assertEquals("cf-integration-test-lambda-function", base.get("resourceName").asText());
     assertNotNull(base.get("resourceId").asText());
     assertEquals("AWS::Lambda::Function", base.get("resourceType").asText());
-    assertEquals(ACCOUNT, base.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), base.get("region").asText());
+    assertEquals(ACCOUNT, base.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), base.get("awsRegion").asText());
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {

@@ -20,8 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.scheduler.v1beta1.CloudSchedulerClient;
 import com.google.cloud.scheduler.v1beta1.LocationName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.scheduler.SchedulerJob;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -65,14 +66,14 @@ public class SchedulerDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Scheduler::Job";
+    final String RESOURCE_TYPE = SchedulerJob.RESOURCE_TYPE;
 
     try (var cloudSchedulerClient = CloudSchedulerClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
           var parent = LocationName.of(projectId, location);
           for (var job : cloudSchedulerClient.listJobs(parent.toString()).iterateAll()) {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, job.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, job.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)

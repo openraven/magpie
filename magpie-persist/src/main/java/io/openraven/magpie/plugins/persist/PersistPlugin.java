@@ -16,15 +16,20 @@
 
 package io.openraven.magpie.plugins.persist;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.api.TerminalPlugin;
-import io.openraven.magpie.plugins.persist.mapper.AssetMapper;
+import io.openraven.magpie.data.Resource;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.slf4j.Logger;
 
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
-  private final AssetMapper MAPPER = new AssetMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper()
+    .registerModule(new JavaTimeModule());
 
   public static final String ID = "magpie.persist";
 
@@ -35,9 +40,21 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void accept(MagpieEnvelope env) {
     synchronized (SYNC) {
-      AssetModel asset = MAPPER.map(env);
-      assetsRepo.upsert(asset);
-      logger.info("Saved asset with id: {}", asset.getAssetId());
+      try {
+        Resource asset = objectMapper.treeToValue(env.getContents(), Resource.class);
+        assetsRepo.upsert(asset);
+      } catch (JsonProcessingException e) {
+        logger.warn("Unable to parse assetType from content: {}", env.getContents().toPrettyString());
+      }
+
+      try { // Keeping this code for backward compatibility with existing rules. To be removed in further versions
+        AssetModel assetModel = objectMapper.treeToValue(env.getContents(), AssetModel.class);
+        assetsRepo.upsert(assetModel);
+
+        logger.info("Saved asset with id: {}", assetModel.getAssetId());
+      } catch (JsonProcessingException e) {
+        throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env), e);
+      }
     }
   }
 
@@ -49,8 +66,7 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void init(PersistConfig config, Logger logger) {
     this.logger = logger;
-    assetsRepo = new AssetsRepo(config);
-    FlywayMigrationService.initiateDBMigration(config);
+    assetsRepo = new HibernateAssetsRepoImpl(config);
   }
 
   @Override

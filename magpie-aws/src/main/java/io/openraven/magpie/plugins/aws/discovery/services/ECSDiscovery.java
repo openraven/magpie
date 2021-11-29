@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ecs.EcsCluster;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -52,7 +53,6 @@ public class ECSDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "ecs";
 
-
   @Override
   public String service() {
     return SERVICE;
@@ -65,16 +65,16 @@ public class ECSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::ECS::Cluster";
+    final String RESOURCE_TYPE = EcsCluster.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(EcsClient.builder()).build()) {
       listDescribedClusters(client).forEach(cluster -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, cluster.clusterArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cluster.clusterArn())
           .withResourceName(cluster.clusterName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverAttributes(client, cluster, data);
@@ -97,7 +97,7 @@ public class ECSDiscovery implements AWSDiscovery {
     return client.describeClusters(DescribeClustersRequest.builder().clusters(clusterArns).build()).clusters();
   }
 
-  private void discoverTags(EcsClient client, Cluster resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(EcsClient client, Cluster resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceArn(resource.clusterArn()).build()),
       (resp) -> {
@@ -109,7 +109,7 @@ public class ECSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAttributes(EcsClient client, Cluster resource, MagpieResource data) {
+  private void discoverAttributes(EcsClient client, Cluster resource, MagpieAwsResource data) {
     final String keyname = "attributes";
     getAwsResponse(
       () -> client.listAttributes(ListAttributesRequest.builder().targetType("container-instance").cluster(resource.clusterArn()).build()),
@@ -118,7 +118,7 @@ public class ECSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverServices(EcsClient client, Cluster resource, MagpieResource data) {
+  private void discoverServices(EcsClient client, Cluster resource, MagpieAwsResource data) {
     final String keyname = "services";
     getAwsResponse(
       () -> listDescribedServices(client, resource),
@@ -136,7 +136,7 @@ public class ECSDiscovery implements AWSDiscovery {
     return client.describeServices(DescribeServicesRequest.builder().cluster(resource.clusterArn()).services(serviceArns).build());
   }
 
-  private void discoverTasks(EcsClient client, Cluster resource, MagpieResource data) {
+  private void discoverTasks(EcsClient client, Cluster resource, MagpieAwsResource data) {
     final String keyname = "tasks";
     getAwsResponse(
       () -> listDescribedTasks(client, resource),

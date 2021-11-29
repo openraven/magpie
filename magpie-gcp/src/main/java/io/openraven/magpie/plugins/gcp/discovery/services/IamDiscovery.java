@@ -29,8 +29,10 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.resourcemanager.v3.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.account.GcpIamRole;
+import io.openraven.magpie.data.gcp.account.GcpIamServiceAccount;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -60,7 +62,7 @@ public class IamDiscovery implements GCPDiscovery {
   }
 
   public void discoverServiceAccounts(Iam iamService, ObjectMapper mapper, String projectId, Session session, Emitter emitter) throws GeneralSecurityException, IOException {
-    final String RESOURCE_TYPE = "GCP::Iam::ServiceAccount";
+    final String RESOURCE_TYPE = GcpIamServiceAccount.RESOURCE_TYPE;
 
     var request = iamService.projects().serviceAccounts().list(ProjectName.of(projectId).toString());
 
@@ -71,7 +73,7 @@ public class IamDiscovery implements GCPDiscovery {
         continue;
       }
       for (var serviceAccount : response.getAccounts()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, serviceAccount.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, serviceAccount.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(serviceAccount))
@@ -86,7 +88,7 @@ public class IamDiscovery implements GCPDiscovery {
     } while (response.getNextPageToken() != null);
   }
 
-  private void discoverServiceAccountIamPolicy(Iam iamService, ServiceAccount serviceAccount, MagpieResource data) throws IOException {
+  private void discoverServiceAccountIamPolicy(Iam iamService, ServiceAccount serviceAccount, MagpieGcpResource data) throws IOException {
     Iam.Projects.ServiceAccounts.GetIamPolicy getIamPolicyRequest =
       iamService.projects().serviceAccounts().getIamPolicy(serviceAccount.getName());
 
@@ -94,7 +96,7 @@ public class IamDiscovery implements GCPDiscovery {
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, getIamPolicyRequest.execute()));
   }
-  private void discoverServiceAccountKeys(Iam iamService, ServiceAccount serviceAccount, MagpieResource data) throws IOException {
+  private void discoverServiceAccountKeys(Iam iamService, ServiceAccount serviceAccount, MagpieGcpResource data) throws IOException {
     final String fieldName = "keys";
 
     var request = iamService.projects().serviceAccounts().keys().list(serviceAccount.getName());
@@ -102,7 +104,7 @@ public class IamDiscovery implements GCPDiscovery {
   }
 
   public void discoverRoles(Iam iamService, ObjectMapper mapper, String projectId, Session session, Emitter emitter) throws GeneralSecurityException, IOException {
-    final String RESOURCE_TYPE = "GCP::Iam::Role";
+    final String RESOURCE_TYPE = GcpIamRole.RESOURCE_TYPE;
 
     var request = iamService.roles().list();
 
@@ -113,7 +115,7 @@ public class IamDiscovery implements GCPDiscovery {
         continue;
       }
       for (var serviceAccount : response.getRoles()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, serviceAccount.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, serviceAccount.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(serviceAccount))

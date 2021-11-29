@@ -1,54 +1,55 @@
-package io.openraven.magpie.plugins.persist;
+/*
+ * Copyright 2021 Open Raven Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
+package io.openraven.magpie.plugins.persist;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.MagpieEnvelope;
-import org.jdbi.v3.core.Handle;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.aws.accounts.IamGroup;
+import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
+import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
+import javax.persistence.EntityManager;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.persist.TestUtils.getResourceAsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-@ExtendWith(MockitoExtension.class)
 class PersistPluginIT {
 
-  private static final String SELECT_TABLES_META =
-    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
-  private static final String SELECT_ASSET_TABLE = "SELECT * FROM assets";
+  private static final String SELECT_GROUP_TABLE = "SELECT a FROM IamGroup a";
+  private static final String SELECT_ASSETS_TABLE = "SELECT a FROM AssetModel a";
 
-  private static Jdbi jdbi;
+  private static EntityManager entityManager;
   private static PersistConfig persistConfig;
-  private final PersistPlugin persistPlugin = new PersistPlugin();
+  private static final PersistPlugin persistPlugin = new PersistPlugin();
   private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @Mock
-  private MagpieEnvelope magpieEnvelope;
 
   @BeforeAll
   static void setup() {
     var postgreSQLContainerProvider = new PostgreSQLContainerProvider();
     var jdbcDatabaseContainer = postgreSQLContainerProvider.newInstance();
-    jdbcDatabaseContainer.start();
-
-    jdbi = Jdbi.create(jdbcDatabaseContainer.getJdbcUrl(),
-      jdbcDatabaseContainer.getUsername(),
-      jdbcDatabaseContainer.getPassword())
-      .installPlugin(new PostgresPlugin())
-      .installPlugin(new SqlObjectPlugin());
+    jdbcDatabaseContainer.withUrlParam("stringtype", "unspecified").start();
 
     persistConfig = new PersistConfig();
     persistConfig.setHostname("localhost");
@@ -56,76 +57,97 @@ class PersistPluginIT {
     persistConfig.setPort(String.valueOf(jdbcDatabaseContainer.getFirstMappedPort()));
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
     persistConfig.setPassword(jdbcDatabaseContainer.getUsername());
-  }
 
-  @Test
-  void whenPersistPluginIntiFlywaySetupSchemaProperly() {
-    // given
-    List<String> tablesBefore = jdbi.withHandle(this::selectTables);
-    assertEquals(0, tablesBefore.size());
+    FlywayMigrationService.initiateDBMigration(persistConfig);
 
-    // when
-    persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
+    entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
 
-    // then
-    List<String> tablesAfter = jdbi.withHandle(this::selectTables);
-    assertEquals(2, tablesAfter.size());
-    assertTrue(tablesAfter.contains("flyway_schema_history"));
-    assertTrue(tablesAfter.contains("assets"));
-  }
-
-  private List<String> selectTables(Handle handle) {
-    return handle
-      .createQuery(SELECT_TABLES_META)
-      .mapTo(String.class)
-      .stream()
-      .collect(Collectors.toList());
+    persistPlugin.init(persistConfig, LoggerFactory.getLogger(PersistPluginIT.class));
   }
 
   @Test
   void whenPersistPluginProcessEnvelopeDataShouldBeSaved() throws Exception {
     // given
-    persistPlugin.init(persistConfig, LoggerFactory.getLogger(this.getClass()));
     ObjectNode contents = objectMapper.readValue(
       getResourceAsString("/documents/envelope-content.json"), ObjectNode.class);
-    Mockito.when(magpieEnvelope.getContents()).thenReturn(contents);
+    MagpieEnvelope magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(contents);
 
     // when
     persistPlugin.accept(magpieEnvelope);
 
     // then
-    List<AssetModel> assets = jdbi.withHandle(this::queryAssetTable);
-    assertEquals(1, assets.size());
+    List<IamGroup> assets = queryIamGroupTable();
+    assertEquals (1, assets.size());
     assertAsset(assets.get(0));
+
+    List<AssetModel> assetModels = queryAssetsTable();
+    assertEquals(1, assetModels.size());
   }
 
-  private void assertAsset(AssetModel assetModel) {
-    assertEquals("4jUz_CPXMG-Z7f8oJltkPg", assetModel.getDocumentId());
-    assertEquals("arn:aws:iam::000000000000:group/Accountants", assetModel.getAssetId());
-    assertEquals("Accountants", assetModel.getResourceName());
-    assertEquals("y9xomssf3o582439fxep", assetModel.getResourceId());
-    assertEquals("AWS::IAM::Group", assetModel.getResourceType());
-    assertEquals("us-west-1", assetModel.region);
-    assertNull(assetModel.getProjectId());
-    assertEquals("account", assetModel.getAccountId());
-    assertNull(assetModel.getCreatedIso());
-    assertEquals("2021-06-23T09:44:50.397706Z", assetModel.getUpdatedIso().toString());
-    assertNull(assetModel.getDiscoverySessionId());
-    assertEquals(0, assetModel.getMaxSizeInBytes());
-    assertEquals(0, assetModel.getSizeInBytes());
-    assertEquals("{\"arn\": \"arn:aws:iam::000000000000:group/Accountants\", \"path\": \"/\", \"groupId\": \"y9xomssf3o582439fxep\", \"groupName\": \"Accountants\", \"createDate\": null}",
-      assetModel.getConfiguration());
-    assertEquals("{\"inlinePolicies\": [{\"name\": \"inlineDataAccess\", \"policyDocument\": \"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Effect\\\":\\\"Deny\\\",\\\"Action\\\":[\\\"dynamodb:DeleteItem\\\",\\\"dynamodb:GetItem\\\"],\\\"Resource\\\":\\\"*\\\"}]}\"}], \"attachedPolicies\": [{\"arn\": \"arn:aws:iam::000000000000:policy/managedDataAccess\", \"name\": \"managedDataAccess\"}]}",
-      assetModel.getSupplementaryConfiguration());
-    assertEquals("{}", assetModel.getTags());
-    assertEquals("{}", assetModel.getDiscoveryMeta());
+  @Test
+  void whenProcessEnvelopeDataShouldBeSavedWithUpsert() throws Exception {
+    // given
+
+    ObjectNode updatedContent = objectMapper.readValue(
+      getResourceAsString("/documents/outdated-envelope-content.json"), ObjectNode.class);
+    MagpieEnvelope outdatedMagpieEnvelope = new MagpieEnvelope();
+    outdatedMagpieEnvelope.setContents(updatedContent);
+
+    // when
+    persistPlugin.accept(outdatedMagpieEnvelope);
+
+    // then
+    List<IamGroup> assets = queryIamGroupTable();
+    assertEquals(1, assets.size());
+    assertEquals("outdated-resource", assets.get(0).resourceName);
+
+    // given
+    ObjectNode content = objectMapper.readValue(
+      getResourceAsString("/documents/envelope-content.json"), ObjectNode.class);
+    MagpieEnvelope magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(content);
+
+    persistPlugin.accept(magpieEnvelope);
+    // then
+    List<IamGroup> updatedAssets = queryIamGroupTable();
+    assertEquals(1, updatedAssets.size());
+    assertAsset(updatedAssets.get(0));
+
+    List<AssetModel> assetModels = queryAssetsTable();
+    assertEquals(1, assetModels.size());
   }
 
-  private List<AssetModel> queryAssetTable(Handle handle) {
-    return handle
-      .createQuery(SELECT_ASSET_TABLE)
-      .mapToBean(AssetModel.class)
-      .stream()
-      .collect(Collectors.toList());
+  private void assertAsset(AWSResource awsResource) {
+    assertEquals("4jUz_CPXMG-Z7f8oJltkPg", awsResource.documentId);
+    assertEquals("arn:aws:iam::000000000000:group/Accountants", awsResource.arn);
+    assertEquals("Accountants", awsResource.resourceName);
+    assertEquals("y9xomssf3o582439fxep", awsResource.resourceId);
+    assertEquals("AWS::IAM::Group", awsResource.resourceType);
+    assertEquals("us-west-1", awsResource.awsRegion);
+    assertEquals("account", awsResource.awsAccountId);
+    assertNull(awsResource.createdIso);
+    assertEquals("2021-06-23T09:44:50.397706Z", awsResource.updatedIso.toString());
+    assertNull(awsResource.discoverySessionId);
+    assertNull(awsResource.maxSizeInBytes);
+    assertNull(awsResource.sizeInBytes);
+    assertEquals("{\"arn\":\"arn:aws:iam::000000000000:group/Accountants\",\"path\":\"/\",\"groupId\":\"y9xomssf3o582439fxep\",\"groupName\":\"Accountants\",\"createDate\":null}",
+      awsResource.configuration.toString());
+    assertEquals("{\"inlinePolicies\":[{\"name\":\"inlineDataAccess\",\"policyDocument\":\"{\\\"Version\\\":\\\"2012-10-17\\\",\\\"Statement\\\":[{\\\"Effect\\\":\\\"Deny\\\",\\\"Action\\\":[\\\"dynamodb:DeleteItem\\\",\\\"dynamodb:GetItem\\\"],\\\"Resource\\\":\\\"*\\\"}]}\"}],\"attachedPolicies\":[{\"arn\":\"arn:aws:iam::000000000000:policy/managedDataAccess\",\"name\":\"managedDataAccess\"}]}",
+      awsResource.supplementaryConfiguration.toString());
+    assertEquals("{}", awsResource.tags.toString());
+    assertEquals("{}", awsResource.discoveryMeta.toString());
+  }
+
+  private List<IamGroup> queryIamGroupTable() {
+    entityManager.clear();
+    return entityManager.createQuery(SELECT_GROUP_TABLE, IamGroup.class)
+      .getResultList();
+  }
+
+  private List<AssetModel> queryAssetsTable() {
+    entityManager.clear();
+    return entityManager.createQuery(SELECT_ASSETS_TABLE, AssetModel.class)
+      .getResultList();
   }
 }

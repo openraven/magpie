@@ -18,8 +18,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.batch.BatchComputeEnvironment;
+import io.openraven.magpie.data.aws.batch.BatchJobDefinition;
+import io.openraven.magpie.data.aws.batch.BatchJobQueue;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -56,17 +59,17 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverComputeEnvironments(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::ComputeEnvironment";
+    final String RESOURCE_TYPE = BatchComputeEnvironment.RESOURCE_TYPE;
 
     try {
       client.describeComputeEnvironmentsPaginator().computeEnvironments()
         .forEach( computeEnvironment -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, computeEnvironment.computeEnvironmentArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, computeEnvironment.computeEnvironmentArn())
             .withResourceName(computeEnvironment.computeEnvironmentName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(computeEnvironment.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":computeEnvironment"), data.toJsonNode()));
@@ -77,16 +80,16 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverJobQueues(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::JobQueue";
+    final String RESOURCE_TYPE = BatchJobQueue.RESOURCE_TYPE;
 
     try {
       client.describeJobQueuesPaginator().jobQueues().forEach(jobQueue -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobQueue.jobQueueArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, jobQueue.jobQueueArn())
           .withResourceName(jobQueue.jobQueueName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(jobQueue.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobQueue"), data.toJsonNode()));
@@ -97,16 +100,16 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   private void discoverJobDefinitions(ObjectMapper mapper, Session session, BatchClient client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::Batch::JobDefinition";
+    final String RESOURCE_TYPE = BatchJobDefinition.RESOURCE_TYPE;
 
     try {
       client.describeJobDefinitionsPaginator().jobDefinitions().forEach(jobDefinition -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, jobDefinition.jobDefinitionArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, jobDefinition.jobDefinitionArn())
           .withResourceName(jobDefinition.jobDefinitionName())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(jobDefinition.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":jobDefinition"), data.toJsonNode()));

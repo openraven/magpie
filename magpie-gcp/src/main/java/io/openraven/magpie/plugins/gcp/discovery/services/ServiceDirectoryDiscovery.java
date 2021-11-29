@@ -23,8 +23,9 @@ import com.google.cloud.servicedirectory.v1.LocationName;
 import com.google.cloud.servicedirectory.v1.Namespace;
 import com.google.cloud.servicedirectory.v1.RegistrationServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.service.Service;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -76,7 +77,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::ServiceDirectory::Service";
+    final String RESOURCE_TYPE = Service.RESOURCE_TYPE;
 
     try (RegistrationServiceClient registrationServiceClient = RegistrationServiceClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {  // Discover services in all namespaces for all locations
@@ -85,7 +86,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
         registrationServiceClient.listNamespaces(parent).iterateAll().forEach(namespace -> {
 
           registrationServiceClient.listServices(namespace.getName()).iterateAll().forEach(service -> {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, service.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, service.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)
@@ -105,7 +106,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
     }
   }
 
-  private void addNamespaceConfiguration(Namespace namespace, MagpieResource data) {
+  private void addNamespaceConfiguration(Namespace namespace, MagpieGcpResource data) {
     final String fieldName = "namespace";
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, namespace.toBuilder()));
 
@@ -113,7 +114,7 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
 
   private void discoverEndpoints(RegistrationServiceClient registrationServiceClient,
                                  String serviceName,
-                                 MagpieResource data) {
+                                 MagpieGcpResource data) {
     final String fieldName = "endpoints";
 
     List<Endpoint.Builder> endpoints = new ArrayList<>();

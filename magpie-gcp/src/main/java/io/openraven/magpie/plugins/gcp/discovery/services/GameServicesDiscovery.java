@@ -21,8 +21,9 @@ import com.google.api.gax.rpc.UnimplementedException;
 import com.google.cloud.gaming.v1alpha.GameServerDeploymentsServiceClient;
 import com.google.cloud.gaming.v1alpha.RealmsServiceClient;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.game.GameService;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -40,13 +41,13 @@ public class GameServicesDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::GameServices::Realm";
+    final String RESOURCE_TYPE = GameService.RESOURCE_TYPE;
 
     try (var realmsServiceClient = RealmsServiceClient.create()) {
       String formattedParent = GameServerDeploymentsServiceClient.formatLocationName(projectId, "global");
 
       for (var realm : realmsServiceClient.listRealms(formattedParent).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, realm.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, realm.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(realm))
@@ -58,7 +59,7 @@ public class GameServicesDiscovery implements GCPDiscovery {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, e);
     } catch (UnimplementedException exc) {
       // We catch this. I guess it's due to api being in alpha stage
-      logger.warn("Gameservice API invocation is prohibited", exc);
+      logger.warn("Gameservice API invocation is prohibited: " + exc.getMessage());
     }
   }
 }

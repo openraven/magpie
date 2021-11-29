@@ -20,8 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.dialogflow.v2.ConversationsClient;
 import com.google.cloud.dialogflow.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.dialogflow.DialogflowConversation;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -39,11 +40,11 @@ public class DialogflowDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Dialogflow::Conversation";
+    final String RESOURCE_TYPE = DialogflowConversation.RESOURCE_TYPE;
 
     try (ConversationsClient conversationsClient = ConversationsClient.create()) {
       for (var conversation : conversationsClient.listConversations(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, conversation.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, conversation.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(conversation))

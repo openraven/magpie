@@ -16,29 +16,79 @@
 
 package io.openraven.magpie.plugins.persist;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.time.Instant;
 
+// Keeping old structure for backward compatibility with rules
+@Entity
+@Table(name = "assets")
 public class AssetModel {
 
+  @Id
+  @Column(name = "document_id", nullable = false, unique = true)
   public String documentId;
+
+  @Column(name = "asset_id")
+  @JsonAlias("arn")
   public String assetId;
+
+  @Column(name = "resource_name")
   public String resourceName;
+
+  @Column(name = "resource_id")
   public String resourceId;
+
+  @Column(name = "resource_type")
   public String resourceType;
+
+  @Column(name = "region")
+  @JsonAlias("awsRegion")
   public String region;
+
+  @Column(name = "project_id")
   public String projectId;
+
+  @Column(name = "account_id")
+  @JsonAlias({"awsAccountId", "gcpAccountId"})
   public String accountId;
+
+  @Column(name = "created_iso")
   public Instant createdIso;
+
+  @Column(name = "updated_iso")
   public Instant updatedIso = Instant.now();
+
+  @Column(name = "discovery_session_id")
   public String discoverySessionId;
 
+  @Transient
   public Long maxSizeInBytes = null;
+
+  @Transient
   public Long sizeInBytes = null;
 
+  @Column(name = "configuration", columnDefinition = "JSONB")
   public String configuration;
+
+  @Column(name = "supplementary_configuration", columnDefinition = "JSONB")
   public String supplementaryConfiguration;
+
+  @Column(name = "tags", columnDefinition = "JSONB")
   public String tags;
+
+  @Column(name = "discovery_meta", columnDefinition = "JSONB")
   public String discoveryMeta;
+
+  public AssetModel() {
+  }
 
   public String getDocumentId() {
     return documentId;
@@ -148,31 +198,35 @@ public class AssetModel {
     return configuration;
   }
 
-  public void setConfiguration(String configuration) {
-    this.configuration = configuration;
+  @JsonSetter("configuration")
+  public void setConfiguration(JsonNode configuration) {
+    this.configuration = configuration.toPrettyString();
   }
 
   public String getSupplementaryConfiguration() {
     return supplementaryConfiguration;
   }
 
-  public void setSupplementaryConfiguration(String supplementaryConfiguration) {
-    this.supplementaryConfiguration = supplementaryConfiguration;
+  @JsonSetter("supplementaryConfiguration")
+  public void setSupplementaryConfiguration(JsonNode supplementaryConfiguration) {
+    this.supplementaryConfiguration = supplementaryConfiguration.toString();
   }
 
   public String getTags() {
     return tags;
   }
 
-  public void setTags(String tags) {
-    this.tags = tags;
+  @JsonSetter("tags")
+  public void setTags(JsonNode tags) {
+    this.tags = tags.toString();
   }
 
   public String getDiscoveryMeta() {
     return discoveryMeta;
   }
 
-  public void setDiscoveryMeta(String discoveryMeta) {
-    this.discoveryMeta = discoveryMeta;
+  @JsonSetter("discoveryMeta")
+  public void setDiscoveryMeta(JsonNode discoveryMeta) {
+    this.discoveryMeta = discoveryMeta.toString();
   }
 }

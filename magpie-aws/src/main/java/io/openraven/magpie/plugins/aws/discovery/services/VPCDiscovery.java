@@ -19,8 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ec2.Ec2VpcPeeringConnection;
+import io.openraven.magpie.data.aws.ec2.Ec2VpcResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -66,18 +68,18 @@ public class VPCDiscovery implements AWSDiscovery {
   }
 
   private void discoverVpcs(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::VPC";
+    final String RESOURCE_TYPE = Ec2VpcResource.RESOURCE_TYPE;
 
     try {
       client.describeVpcsPaginator().vpcs().forEach(vpc -> {
         String arn = format("arn:aws:ec2:%s:%s:vpc/%s", region, account, vpc.vpcId());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(vpc.vpcId())
           .withResourceId(vpc.vpcId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(vpc.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .withTags(getConvertedTags(vpc.tags(), mapper))
           .build();
 
@@ -90,7 +92,7 @@ public class VPCDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverFlowLogs(Ec2Client client, MagpieResource data, Vpc vpc) {
+  private void discoverFlowLogs(Ec2Client client, MagpieAwsResource data, Vpc vpc) {
     final String keyname = "flowLogs";
     var flowLogsFilter = Filter.builder().name("resource-id").values(List.of(vpc.vpcId())).build();
 
@@ -102,18 +104,18 @@ public class VPCDiscovery implements AWSDiscovery {
   }
 
   private void discoverVpcPeeringConnections(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = "AWS::EC2::VPCPeeringConnection";
+    final String RESOURCE_TYPE = Ec2VpcPeeringConnection.RESOURCE_TYPE;
 
     try {
       client.describeVpcPeeringConnectionsPaginator().vpcPeeringConnections().forEach(vpcPC -> {
         String arn = format("arn:aws:ec2:%s:%s:vpc-peering-connection/%s", region, account, vpcPC.vpcPeeringConnectionId());
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(vpcPC.vpcPeeringConnectionId())
           .withResourceId(vpcPC.vpcPeeringConnectionId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(vpcPC.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .withTags(getConvertedTags(vpcPC.tags(), mapper))
           .build();
 

@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.guardduty.GuardDutyDetector;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -51,7 +52,7 @@ public class GuardDutyDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::GuardDuty::Detector";
+    final String RESOURCE_TYPE = GuardDutyDetector.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(GuardDutyClient.builder()).build()) {
       client.listDetectorsPaginator()
@@ -59,14 +60,14 @@ public class GuardDutyDiscovery implements AWSDiscovery {
           id -> {
             final var resp = client.getDetector(GetDetectorRequest.builder().detectorId(id).build());
 
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, "arn:aws:guardduty:::detector/" + id)
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, "arn:aws:guardduty:::detector/" + id)
               .withResourceName(id)
               .withResourceId(id)
               .withResourceType(RESOURCE_TYPE)
               .withConfiguration(mapper.valueToTree(resp.toBuilder()))
               .withCreatedIso(Instant.parse(resp.createdAt()))
               .withAccountId(account)
-              .withRegion(region.toString())
+              .withAwsRegion(region.toString())
               .build();
 
             AWSUtils.update(data.tags, mapper.convertValue(resp.tags(), JsonNode.class));

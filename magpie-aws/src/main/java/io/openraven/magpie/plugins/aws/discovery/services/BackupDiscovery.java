@@ -19,8 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.backup.BackupPlan;
+import io.openraven.magpie.data.aws.backup.BackupVault;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -68,16 +70,17 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   public void discoverPlans(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, BackupClient client) {
-    final var RESOURCE_TYPE = "AWS::Backup::BackupPlan";
+    final var RESOURCE_TYPE = BackupPlan.RESOURCE_TYPE;
+
     client.listBackupPlansPaginator().forEach(resp -> resp.backupPlansList().forEach(backupPlan -> {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, backupPlan.backupPlanArn())
+      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupPlan.backupPlanArn())
         .withResourceName(backupPlan.backupPlanName())
         .withResourceId(backupPlan.backupPlanName())
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(mapper.valueToTree(backupPlan.toBuilder()))
         .withCreatedIso(backupPlan.creationDate())
         .withAccountId(account)
-        .withRegion(region.toString())
+        .withAwsRegion(region.toString())
         .build();
 
       discoverTags(client, backupPlan, data, mapper);
@@ -94,19 +97,19 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   public void discoverVaults(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, BackupClient client) {
-    final var RESOURCE_TYPE = "AWS::Backup::BackupVault";
+    final var RESOURCE_TYPE = BackupVault.RESOURCE_TYPE;
     try {
       client.listBackupVaultsPaginator().stream()
         .forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList()
           .forEach(backupVault -> {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, backupVault.backupVaultArn())
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupVault.backupVaultArn())
               .withResourceName(backupVault.backupVaultName())
               .withResourceId(backupVault.backupVaultName())
               .withResourceType(RESOURCE_TYPE)
               .withConfiguration(mapper.valueToTree(backupVault.toBuilder()))
               .withCreatedIso(backupVault.creationDate())
               .withAccountId(account)
-              .withRegion(region.toString())
+              .withAwsRegion(region.toString())
               .build();
 
             discoverTags(client, backupVault, data);
@@ -118,7 +121,7 @@ public class BackupDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieResource data) {
+  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
     final String keyname = "tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())
@@ -130,7 +133,7 @@ public class BackupDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieAwsResource data, ObjectMapper mapper) {
     final String keyname = "tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupPlanArn()).build())

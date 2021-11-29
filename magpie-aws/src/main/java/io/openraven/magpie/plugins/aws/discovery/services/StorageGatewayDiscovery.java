@@ -18,8 +18,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.storagegateway.StorageGatewayGateway;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -53,17 +54,17 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::StorageGateway::Gateway";
+    final String RESOURCE_TYPE = StorageGatewayGateway.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(StorageGatewayClient.builder()).build()) {
       client.listGatewaysPaginator().gateways().stream().forEach(gateway -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, gateway.gatewayARN())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, gateway.gatewayARN())
           .withResourceName(gateway.gatewayName())
           .withResourceId(gateway.gatewayId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(gateway.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverGatewayInfo(client, gateway, data);
@@ -75,7 +76,7 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverGatewayInfo(StorageGatewayClient client, GatewayInfo resource, MagpieResource data) {
+  private void discoverGatewayInfo(StorageGatewayClient client, GatewayInfo resource, MagpieAwsResource data) {
     final String keyname = "gatewayInfo";
 
     getAwsResponse(

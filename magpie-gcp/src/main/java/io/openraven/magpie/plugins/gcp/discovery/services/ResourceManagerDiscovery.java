@@ -20,8 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.resourcemanager.v3.*;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerFolder;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerOrganization;
+import io.openraven.magpie.data.gcp.resource.ResourceManagerProject;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -45,11 +48,11 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
   }
 
   private void discoverOrganization(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Organization";
+    final String RESOURCE_TYPE = ResourceManagerOrganization.RESOURCE_TYPE;
 
     try (var client = OrganizationsClient.create()) {
       for (var organization : client.searchOrganizations("").iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, organization.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, organization.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(organization))
@@ -64,18 +67,18 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverOrganizationIamPolicy(OrganizationsClient client, Organization organization, MagpieResource data) {
+  private void discoverOrganizationIamPolicy(OrganizationsClient client, Organization organization, MagpieGcpResource data) {
     final String fieldName = "iamPolicy";
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, client.getIamPolicy(organization.getName()).toBuilder()));
   }
 
   private void discoverProjects(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Project";
+    final String RESOURCE_TYPE = ResourceManagerProject.RESOURCE_TYPE;
 
     try (var client = ProjectsClient.create()) {
       for (var project : client.searchProjects("").iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, project.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, project.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(project))
@@ -90,7 +93,7 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverProjectIamPolicy(ProjectsClient client, Project project, MagpieResource data) {
+  private void discoverProjectIamPolicy(ProjectsClient client, Project project, MagpieGcpResource data) {
     final String fieldName = "iamPolicy";
     String resource = ProjectName.of(project.getProjectId()).toString();
 
@@ -98,11 +101,11 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
   }
 
   private void discoverFolders(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::ResourceManager::Folder";
+    final String RESOURCE_TYPE = ResourceManagerFolder.RESOURCE_TYPE;
 
     try (var client = FoldersClient.create()) {
       for (var folder : client.searchFolders("").iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, folder.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, folder.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(folder))
@@ -117,7 +120,7 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverFolderIamPolicy(FoldersClient client, Folder folder, MagpieResource data) {
+  private void discoverFolderIamPolicy(FoldersClient client, Folder folder, MagpieGcpResource data) {
     final String fieldName = "iamPolicy";
     String resource = ProjectName.of(folder.getName()).toString();
 

@@ -22,8 +22,12 @@ import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.pubsub.v1.TopicAdminClient;
 import com.google.pubsub.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.pubsub.PubSubSchema;
+import io.openraven.magpie.data.gcp.pubsub.PubSubSnapshots;
+import io.openraven.magpie.data.gcp.pubsub.PubSubSubscription;
+import io.openraven.magpie.data.gcp.pubsub.PubSubTopic;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -47,11 +51,11 @@ public class PubSubDiscovery implements GCPDiscovery {
   }
 
   private void discoverSchemas(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::PubSub::Schema";
+    final String RESOURCE_TYPE = PubSubSchema.RESOURCE_TYPE;
 
     try (var client = SchemaServiceClient.create()) {
       for (var schema : client.listSchemas(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, schema.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, schema.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(schema))
@@ -65,11 +69,11 @@ public class PubSubDiscovery implements GCPDiscovery {
   }
 
   private void discoverTopics(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    final String RESOURCE_TYPE = "GCP::PubSub::Topic";
+    final String RESOURCE_TYPE = PubSubTopic.RESOURCE_TYPE;
 
     try (var client = TopicAdminClient.create()) {
       for (var topic : client.listTopics(ProjectName.of(projectId)).iterateAll()) {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, topic.getName())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, topic.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(topic))
@@ -92,10 +96,10 @@ public class PubSubDiscovery implements GCPDiscovery {
   }
 
   private void discoverSubscriptions(ObjectMapper mapper, String projectId, Session session, Emitter emitter,  SubscriptionAdminClient client) {
-    final String RESOURCE_TYPE = "GCP::PubSub::Subscription";
+    final String RESOURCE_TYPE = PubSubSubscription.RESOURCE_TYPE;
 
     for (var subscription : client.listSubscriptions(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, subscription.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, subscription.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(subscription))
@@ -106,10 +110,10 @@ public class PubSubDiscovery implements GCPDiscovery {
   }
 
   private void discoverSnapshots(ObjectMapper mapper, String projectId, Session session, Emitter emitter,  SubscriptionAdminClient client) {
-    final String RESOURCE_TYPE = "GCP::PubSub::Snapshots";
+    final String RESOURCE_TYPE = PubSubSnapshots.RESOURCE_TYPE;
 
     for (var snapshot : client.listSubscriptions(ProjectName.of(projectId)).iterateAll()) {
-      var data = new MagpieResource.MagpieResourceBuilder(mapper, snapshot.getName())
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, snapshot.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(GCPUtils.asJsonNode(snapshot))

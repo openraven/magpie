@@ -66,12 +66,12 @@ public class IAMRoleDiscoveryIT extends BaseIAMServiceIT {
   private void assertRole(MagpieEnvelope envelope) {
     var contents = envelope.getContents();
     assertNotNull(contents.get("documentId"));
-    assertTrue(contents.get("assetId").asText().contains(ROLE_NAME));
+    assertTrue(contents.get("arn").asText().contains(ROLE_NAME));
     assertTrue(contents.get("resourceName").asText().contains(ROLE_NAME));
     assertNotNull(contents.get("resourceId").asText());
     assertEquals("AWS::IAM::Role", contents.get("resourceType").asText());
-    assertEquals(ACCOUNT, contents.get("accountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("region").asText());
+    assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
+    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 
   private void assertConfiguration(MagpieEnvelope envelope) {

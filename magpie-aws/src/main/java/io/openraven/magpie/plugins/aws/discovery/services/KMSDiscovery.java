@@ -20,8 +20,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.kms.KmsKey;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -62,17 +63,17 @@ public class KMSDiscovery implements AWSDiscovery {
 
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::Kms::Key";
+    final String RESOURCE_TYPE = KmsKey.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(KmsClient.builder()).build()) {
       client.listKeysPaginator().keys().forEach(key -> {
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, key.keyArn())
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, key.keyArn())
           .withResourceName(key.toString())
           .withResourceId(key.keyId())
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(mapper.valueToTree(key.toBuilder()))
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverKeyRotation(client, key, data);
@@ -88,7 +89,7 @@ public class KMSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, MagpieResource data) {
+  private void discoverKeyRotation(KmsClient client, KeyListEntry resource, MagpieAwsResource data) {
     final String keyname = "rotation";
     getAwsResponse(
       () -> client.getKeyRotationStatus(GetKeyRotationStatusRequest.builder().keyId(resource.keyId()).build()),
@@ -97,7 +98,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverAliases(KmsClient client, KeyListEntry resource, MagpieResource data) {
+  private void discoverAliases(KmsClient client, KeyListEntry resource, MagpieAwsResource data) {
     final String keyname = "aliases";
     getAwsResponse(
       () -> client.listAliasesPaginator(ListAliasesRequest.builder().keyId(resource.keyId()).build()).aliases()
@@ -109,7 +110,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, MagpieResource data) {
+  private void discoverKeyPolicies(KmsClient client, KeyListEntry resource, MagpieAwsResource data) {
     final String keyname = "keyPolicies";
     getAwsResponse(
       () -> client.listKeyPolicies(ListKeyPoliciesRequest.builder().keyId(resource.keyId()).build()),
@@ -118,7 +119,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverGrants(KmsClient client, KeyListEntry resource, MagpieResource data) {
+  private void discoverGrants(KmsClient client, KeyListEntry resource, MagpieAwsResource data) {
     final String keyname = "grants";
     getAwsResponse(
       () -> client.listGrants(ListGrantsRequest.builder().keyId(resource.keyId()).build()),
@@ -127,7 +128,7 @@ public class KMSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(KmsClient client, KeyListEntry resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(KmsClient client, KeyListEntry resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
       () -> client.listResourceTags(ListResourceTagsRequest.builder().keyId(resource.keyId()).build()),
       (resp) -> {

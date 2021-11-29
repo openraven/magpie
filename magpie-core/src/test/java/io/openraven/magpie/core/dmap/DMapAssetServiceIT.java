@@ -6,12 +6,10 @@ import io.openraven.magpie.core.dmap.model.EC2Target;
 import io.openraven.magpie.core.dmap.model.VpcConfig;
 import io.openraven.magpie.core.dmap.service.DMapAssetService;
 import io.openraven.magpie.core.dmap.service.DMapAssetServiceImpl;
-import io.openraven.magpie.plugins.persist.FlywayMigrationService;
+import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.postgres.PostgresPlugin;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,11 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Scanner;
 
 import static io.openraven.magpie.core.dmap.Util.getResourceAsString;
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,7 +31,7 @@ import static org.mockito.Mockito.when;
 public class DMapAssetServiceIT {
 
   private static PluginConfig<PersistConfig> pluginConfig;
-  private static Jdbi jdbi;
+  private static AssetsRepo assetsRepo;
 
   @Mock
   private MagpieConfig config;
@@ -47,10 +42,8 @@ public class DMapAssetServiceIT {
     var jdbcDatabaseContainer = postgreSQLContainerProvider.newInstance();
     jdbcDatabaseContainer.start();
 
-    jdbiSetuo(jdbcDatabaseContainer);
     persistenceSetup(jdbcDatabaseContainer);
     populateAssetData();
-
   }
 
   @BeforeEach
@@ -98,15 +91,6 @@ public class DMapAssetServiceIT {
     return new VpcConfig("us-west-1", subnetId, securityGroups);
   }
 
-
-  private static void jdbiSetuo(JdbcDatabaseContainer jdbcDatabaseContainer) {
-    jdbi = Jdbi.create(jdbcDatabaseContainer.getJdbcUrl(),
-      jdbcDatabaseContainer.getUsername(),
-      jdbcDatabaseContainer.getPassword())
-      .installPlugin(new PostgresPlugin())
-      .installPlugin(new SqlObjectPlugin());
-  }
-
   private static void persistenceSetup(JdbcDatabaseContainer jdbcDatabaseContainer) {
     PersistConfig persistConfig = new PersistConfig();
     persistConfig.setHostname("localhost");
@@ -114,14 +98,13 @@ public class DMapAssetServiceIT {
     persistConfig.setPort(String.valueOf(jdbcDatabaseContainer.getFirstMappedPort()));
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
     persistConfig.setPassword(jdbcDatabaseContainer.getUsername());
+    assetsRepo = new HibernateAssetsRepoImpl(persistConfig);
 
     pluginConfig = new PluginConfig<>();
     pluginConfig.setConfig(persistConfig);
-
-    FlywayMigrationService.initiateDBMigration(persistConfig);
   }
 
   private static void populateAssetData() {
-    jdbi.useHandle(handle -> handle.execute(getResourceAsString("/sql/aws-ec2-dmap-scan-targets.sql")));
+    assetsRepo.executeNative(getResourceAsString("/sql/aws-ec2-dmap-scan-targets.sql"));
   }
 }

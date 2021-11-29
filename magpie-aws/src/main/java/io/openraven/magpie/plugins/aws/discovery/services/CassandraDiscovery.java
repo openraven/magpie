@@ -19,8 +19,9 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.cassandra.CassandraKeyspace;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -42,7 +43,7 @@ public class CassandraDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "cassandra";
 
-  private static final String RESOURCE_TYPE = "AWS::Cassandra::Keyspace";
+  private static final String RESOURCE_TYPE = CassandraKeyspace.RESOURCE_TYPE;
 
   @Override
   public String service() {
@@ -107,12 +108,12 @@ public class CassandraDiscovery implements AWSDiscovery {
         String keyspaceName = keyspace.getString("keyspace_name");
 
         String arn = format("arn:aws:cassandra:keyspace:%s::%s", region, keyspaceName);
-        var data = new MagpieResource.MagpieResourceBuilder(mapper, arn)
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(keyspaceName)
           .withResourceId(keyspaceName)
           .withResourceType(RESOURCE_TYPE)
           .withAccountId(account)
-          .withRegion(region.toString())
+          .withAwsRegion(region.toString())
           .build();
 
         discoverTables(cqlSession, keyspaceName, data);
@@ -123,7 +124,7 @@ public class CassandraDiscovery implements AWSDiscovery {
     });
   }
 
-  private void discoverTables(CqlSession session, String keyspaceName, MagpieResource data) {
+  private void discoverTables(CqlSession session, String keyspaceName, MagpieAwsResource data) {
     var tables = new ArrayList<String>();
 
     String tablesQuery = String.format("SELECT keyspace_name, table_name, status FROM system_schema_mcs.tables WHERE keyspace_name = '%s'", keyspaceName);

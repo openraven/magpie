@@ -19,8 +19,10 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.dynamodb.DynamoDbGlobalTable;
+import io.openraven.magpie.data.aws.dynamodb.DynamoDbTable;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -66,18 +68,18 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   protected void discoverGlobalTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account) {
-    final String RESOURCE_TYPE = "AWS::DynamoDB::GlobalTable";
+    final String RESOURCE_TYPE = DynamoDbGlobalTable.RESOURCE_TYPE;
     try {
       client.listGlobalTables().globalTables().stream()
         .map(globalTable -> client.describeGlobalTable(
           DescribeGlobalTableRequest.builder().globalTableName(globalTable.globalTableName()).build()).globalTableDescription())
         .forEach(globalTable -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, globalTable.globalTableArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, globalTable.globalTableArn())
             .withResourceName(globalTable.globalTableName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(globalTable.toBuilder()))
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":globalTable"), data.toJsonNode()));
@@ -88,20 +90,20 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   protected void discoverTables(ObjectMapper mapper, Session session, Region region, Emitter emitter, DynamoDbClient client, String account, MagpieAWSClientCreator clientCreator) {
-    final String RESOURCE_TYPE = "AWS::DynamoDB::Table";
+    final String RESOURCE_TYPE = DynamoDbTable.RESOURCE_TYPE;
 
     try {
       client.listTablesPaginator().tableNames().stream()
         .map(tableName -> client.describeTable(DescribeTableRequest.builder().tableName(tableName).build()).table())
         .forEach(table -> {
-          var data = new MagpieResource.MagpieResourceBuilder(mapper, table.tableArn())
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, table.tableArn())
             .withResourceName(table.tableName())
             .withResourceId(table.tableId())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(table.toBuilder()))
             .withCreatedIso(table.creationDateTime())
             .withAccountId(account)
-            .withRegion(region.toString())
+            .withAwsRegion(region.toString())
             .build();
 
           discoverContinuousBackups(client, table, data);
@@ -115,7 +117,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieResource data) {
+  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieAwsResource data) {
     final String keyname = "continuousBackups";
 
     getAwsResponse(
@@ -125,7 +127,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(DynamoDbClient client, TableDescription resource, MagpieResource data, ObjectMapper mapper) {
+  private void discoverTags(DynamoDbClient client, TableDescription resource, MagpieAwsResource data, ObjectMapper mapper) {
     final String keyname = "tags";
 
     getAwsResponse(

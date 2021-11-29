@@ -23,8 +23,9 @@ import com.google.cloud.tasks.v2.CloudTasksClient;
 import com.google.cloud.tasks.v2.Queue;
 import com.google.cloud.tasks.v2.Task;
 import io.openraven.magpie.api.Emitter;
-import io.openraven.magpie.api.MagpieResource;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.task.TaskQueue;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
@@ -75,14 +76,14 @@ public class TasksDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    final String RESOURCE_TYPE = "GCP::Tasks::Queue";
+    final String RESOURCE_TYPE = TaskQueue.RESOURCE_TYPE;
 
     try (CloudTasksClient cloudTasksClient = CloudTasksClient.create()) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
           LocationName parent = LocationName.of(projectId, location);
           for (Queue element : cloudTasksClient.listQueues(parent.toString()).iterateAll()) {
-            var data = new MagpieResource.MagpieResourceBuilder(mapper, element.getName())
+            var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, element.getName())
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(location)
@@ -104,7 +105,7 @@ public class TasksDiscovery implements GCPDiscovery {
 
   private void discoverTasks(CloudTasksClient client,
                              Queue queue,
-                             MagpieResource data) {
+                             MagpieGcpResource data) {
     final String fieldName = "tasks";
 
     ArrayList<Task.Builder> list = new ArrayList<>();
