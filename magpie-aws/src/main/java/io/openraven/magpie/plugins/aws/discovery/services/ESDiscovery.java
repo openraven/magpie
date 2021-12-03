@@ -63,7 +63,7 @@ public class ESDiscovery implements AWSDiscovery {
 
     try (final var client = clientCreator.apply(ElasticsearchClient.builder()).build()) {
       client.listDomainNames().domainNames().stream()
-        .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().build()).domainStatus())
+        .map(domainInfo -> client.describeElasticsearchDomain(DescribeElasticsearchDomainRequest.builder().domainName(domainInfo.domainName()).build()).domainStatus())
         .forEach(domain -> {
           var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, domain.arn())
             .withResourceName(domain.domainName())
