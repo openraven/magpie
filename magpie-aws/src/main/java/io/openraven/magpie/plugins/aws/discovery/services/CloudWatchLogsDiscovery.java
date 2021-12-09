@@ -17,18 +17,22 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.cloudwatch.CloudWatchLogGroup;
 import io.openraven.magpie.data.aws.cloudwatch.CloudWatchLogsMetricFilter;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import javassist.runtime.Desc;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -50,6 +54,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     try (final var client = clientCreator.apply(CloudWatchLogsClient.builder()).build()) {
+      discoverLogGroups(mapper, session, region, emitter, client, account);
       discoverLogs(mapper, session, region, emitter, client, account);
     }
   }
@@ -64,7 +69,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
           .withResourceName(metricFilter.filterName())
           .withResourceType(RESOURCE_TYPE)
-          .withCreatedIso(Instant.ofEpochSecond(metricFilter.creationTime()))
+          .withCreatedIso(Instant.ofEpochMilli(metricFilter.creationTime()))
           .withConfiguration(mapper.valueToTree(metricFilter.toBuilder()))
           .withAccountId(account)
           .withAwsRegion(region.toString())
@@ -72,6 +77,33 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":metricFilter"), data.toJsonNode()));
       });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverLogGroups(ObjectMapper mapper, Session session, Region region, Emitter emitter, CloudWatchLogsClient client, String account) {
+    final String RESOURCE_TYPE = CloudWatchLogGroup.RESOURCE_TYPE;
+
+    try {
+      String nextToken = null;
+      do {
+        var resp = client.describeLogGroups(DescribeLogGroupsRequest.builder().build());
+        nextToken = resp.nextToken();
+
+        resp.logGroups().forEach(logGroup -> {
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, logGroup.arn())
+            .withResourceName(logGroup.logGroupName())
+            .withResourceType(RESOURCE_TYPE)
+            .withCreatedIso(Instant.ofEpochMilli(logGroup.creationTime()))
+            .withConfiguration(mapper.valueToTree(logGroup.toBuilder()))
+            .withAccountId(account)
+            .withAwsRegion(region.toString())
+            .build();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":logGroup"), data.toJsonNode()));
+        });
+      } while(!Strings.isNullOrEmpty(nextToken));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
