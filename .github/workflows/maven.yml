@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, cspm ]
+    branches: [ main, ci_slim_builds ]
   pull_request:
-    branches: [ main, cspm ]
+    branches: [ main]
 
 jobs:
   build:
@@ -22,20 +22,21 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Build, Package, Verify
-        run: mvn --settings .github/workflows/settings.xml -B clean package verify install
-      - name: Assembly
-        run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
-      - name: Upload zip
-        uses:  actions/upload-artifact@v2
-        with:
-          name: magpie-cli-zip
-          path: magpie-cli/target/*.zip
-      - name: Upload tar.gz
-        uses:  actions/upload-artifact@v2
-        with:
-          name: magpie-cli-tar-gz
-          path: magpie-cli/target/*.tar.gz
+      - name: Verify
+        run: mvn --settings .github/workflows/settings.xml -B clean verify -P -uberjar  # No uber jars just yet.
+#      - Build and Deploy to Central
+#      - name: Assembly
+#        run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
+#      - name: Upload zip
+#        uses:  actions/upload-artifact@v2
+#        with:
+#          name: magpie-cli-zip
+#          path: magpie-cli/target/*.zip
+#      - name: Upload tar.gz
+#        uses:  actions/upload-artifact@v2
+#        with:
+#          name: magpie-cli-tar-gz
+#          path: magpie-cli/target/*.tar.gz
 
   docker-build:
     runs-on: ubuntu-latest
