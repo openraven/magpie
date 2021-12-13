@@ -30,7 +30,7 @@ jobs:
       - name: Setup Git Identity
         run: git config --global user.email "oss@openraven.com" && git config --global user.name "Open Raven OSS"
       - name: Build && Release
-        run: mvn -B -Darguments=-DskipTest release:prepare release:perform -Possrh,-uberjar
+        run: mvn -B -Darguments=-DskipTest release:prepare release:perform -Possrh,-uberjar -DskipTests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
