@@ -33,27 +33,26 @@ jobs:
         env:
           OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
           OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
-#      - name: Deploy Snapshot (Central)
-#        run: mvn -B deploy -Possrh
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
-#          OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
-#          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-#          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-#      - Build and Deploy to Central
-#      - name: Assembly
-#        run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
-#      - name: Upload zip
-#        uses:  actions/upload-artifact@v2
-#        with:
-#          name: magpie-cli-zip
-#          path: magpie-cli/target/*.zip
-#      - name: Upload tar.gz
-#        uses:  actions/upload-artifact@v2
-#        with:
-#          name: magpie-cli-tar-gz
-#          path: magpie-cli/target/*.tar.gz
+      - name: Deploy Snapshot (Central)
+        run: mvn -B deploy -Possrh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
+          OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      - name: Assembly
+        run: mvn -B --projects magpie-cli assembly:single -DskipTests
+      - name: Upload zip
+        uses:  actions/upload-artifact@v2
+        with:
+          name: magpie-cli-zip
+          path: magpie-cli/target/*.zip
+      - name: Upload tar.gz
+        uses:  actions/upload-artifact@v2
+        with:
+          name: magpie-cli-tar-gz
+          path: magpie-cli/target/*.tar.gz
 
   docker-build:
     runs-on: ubuntu-latest
