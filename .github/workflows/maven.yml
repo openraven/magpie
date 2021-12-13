@@ -22,8 +22,25 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Verify
-        run: mvn --settings .github/workflows/settings.xml -B clean verify -P -uberjar  # No uber jars just yet.
+      - name: Install GPG Signing Key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+              gpg --list-secret-keys --keyid-format LONG
+        env:
+          OSSRH_GPG_SECRET_KEY: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
+      - name: Verify and Sign Jars
+        run: mvn -B clean verify -P -uberjar  # No uber jars just yet.
+        env:
+          OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
+          OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
+#      - name: Deploy Snapshot (Central)
+#        run: mvn -B deploy -Possrh
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
+#          OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
+#          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+#          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
 #      - Build and Deploy to Central
 #      - name: Assembly
 #        run: mvn --settings .github/workflows/settings.xml -B --projects magpie-cli assembly:single
