@@ -25,6 +25,8 @@ import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+
 public class PersistPlugin implements TerminalPlugin<PersistConfig> {
 
   private final Object SYNC = new Object();
@@ -72,6 +74,11 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
   @Override
   public void shutdown() {
     synchronized (SYNC) {
+      try {
+        assetsRepo.close();
+      } catch (IOException ex) {
+        logger.warn("Error closing asset repo",ex);
+      }
     }
   }
 

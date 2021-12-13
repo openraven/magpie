@@ -18,10 +18,11 @@ package io.openraven.magpie.plugins.persist;
 
 import io.openraven.magpie.data.Resource;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 
-public interface AssetsRepo {
+public interface AssetsRepo extends Closeable {
 
   void upsert(Resource awsResource);
 

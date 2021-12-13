@@ -44,6 +44,7 @@ public abstract class AbstractRuleValidator {
 
   protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
   protected static Map<String, Rule> ruleMap;
+  protected static PolicyAnalyzerServiceImpl analyzerService = new PolicyAnalyzerServiceImpl();
 
   // Before all extended
   static {
@@ -53,6 +54,11 @@ public abstract class AbstractRuleValidator {
 
     persistenceSetup(jdbcDatabaseContainer);
     ruleMap = loadRules();
+
+    MagpieConfig magpieConfig = new MagpieConfig();
+    magpieConfig.setPlugins(Map.of(PersistPlugin.ID, pluginConfig));
+
+    analyzerService.init(magpieConfig);
   }
 
   private static void persistenceSetup(JdbcDatabaseContainer jdbcDatabaseContainer) {
@@ -113,11 +119,6 @@ public abstract class AbstractRuleValidator {
   protected void analyzeRule(List<Violation> violations,
                              List<IgnoredRule> ignoredRules,
                              Rule rule) {
-    MagpieConfig magpieConfig = new MagpieConfig();
-    magpieConfig.setPlugins(Map.of(PersistPlugin.ID, pluginConfig));
-
-    var analyzerService = new PolicyAnalyzerServiceImpl();
-    analyzerService.init(magpieConfig);
     analyzerService.executeRule(violations, ignoredRules, null, rule);
   }
 

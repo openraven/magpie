@@ -9,19 +9,28 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * We avoid using IT prefix to skip failsafe plugin picked this test so far
  * while security-rules structure is not merged
  */
 public class SecurityRuleValidator extends AbstractRuleValidator {
+
+  private static final FilenameFilter YAML_FILTER = new FilenameFilter() {
+    @Override
+    public boolean accept(File dir, String name) {
+      return name.toLowerCase().endsWith(".yaml");
+    }
+  };
 
   private static final String TEST_RESOURCES_PROPERTY = "testResourcePath";
   private static final String TEST_RESOURCES_SUBPATH = "/resources/tests";
@@ -30,11 +39,12 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
   @MethodSource("getResourceFiles")
   public void testSecurityRules(File testRuleResourceFile) throws Exception {
 
-    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {});
+    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {
+    });
     Rule rule = ruleMap.get(ruleTestResource.getRuleId());
 
     final var filename = testRuleResourceFile.getName();
-    final var ruleId =  ruleTestResource.getRuleId();
+    final var ruleId = ruleTestResource.getRuleId();
     assertTrue(filename.contains(ruleId), "ruleId is matching filename");
 
     // Insecure asset verification
@@ -70,7 +80,7 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
 
     File testResourcePath = new File(testResourceProp);
     if (testResourcePath.isDirectory()) {
-      return Arrays.stream(Objects.requireNonNull(testResourcePath.listFiles())).map(Arguments::of);
+      return Arrays.stream(Objects.requireNonNull(testResourcePath.listFiles(YAML_FILTER))).map(Arguments::of);
     }
     return Stream.of(Arguments.of(testResourcePath));
   }
