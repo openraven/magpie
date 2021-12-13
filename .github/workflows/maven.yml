@@ -42,7 +42,7 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       - name: Assembly
-        run: mvn -B --projects magpie-cli assembly:singleç
+        run: mvn -B --projects magpie-cli assembly:single -DskipTests
       - name: Upload zip
         uses:  actions/upload-artifact@v2
         with:
