@@ -27,10 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class HibernateAssetsRepoImpl implements AssetsRepo {
+public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
   private final Logger logger = LoggerFactory.getLogger(HibernateAssetsRepoImpl.class);
 
   private final EntityManager entityManager;
@@ -105,4 +107,8 @@ public class HibernateAssetsRepoImpl implements AssetsRepo {
   }
 
 
+  @Override
+  public void close() throws IOException {
+    entityManager.close();
+  }
 }

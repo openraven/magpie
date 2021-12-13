@@ -1,6 +1,7 @@
 package io.openraven.magpie.core.cspm.services;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.dataformat.yaml.JacksonYAMLParseException;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.Rule;
@@ -9,10 +10,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.io.FilenameFilter;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,43 +22,55 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class SecurityRuleValidator extends AbstractRuleValidator {
 
+  private static final FilenameFilter YAML_FILTER = new FilenameFilter() {
+    @Override
+    public boolean accept(File dir, String name) {
+      return name.toLowerCase().endsWith(".yaml");
+    }
+  };
+
   private static final String TEST_RESOURCES_PROPERTY = "testResourcePath";
   private static final String TEST_RESOURCES_SUBPATH = "/resources/tests";
 
   @ParameterizedTest
   @MethodSource("getResourceFiles")
   public void testSecurityRules(File testRuleResourceFile) throws Exception {
+    try {
+      var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {
+      });
+      Rule rule = ruleMap.get(ruleTestResource.getRuleId());
 
-    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {});
-    Rule rule = ruleMap.get(ruleTestResource.getRuleId());
+      final var filename = testRuleResourceFile.getName();
+      final var ruleId = ruleTestResource.getRuleId();
+      assertTrue(filename.contains(ruleId), "ruleId is matching filename");
 
-    final var filename = testRuleResourceFile.getName();
-    final var ruleId =  ruleTestResource.getRuleId();
-    assertTrue(filename.contains(ruleId), "ruleId is matching filename");
+      // Insecure asset verification
+      var insecureAssets = ruleTestResource.getInsecureAssets();
+      insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
 
-    // Insecure asset verification
-    var insecureAssets = ruleTestResource.getInsecureAssets();
-    insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
+        List<Violation> violations = executeRule(insecureAssetGroup, rule);
+        assertEquals(1, violations.size(),
+          () -> reportAssertion(filename, ruleId, "violated assets size"));
 
-      List<Violation> violations = executeRule(insecureAssetGroup, rule);
-      assertEquals(1, violations.size(),
-        () -> reportAssertion(filename, ruleId, "violated assets size"));
+        Violation violation = violations.get(0);
+        assertEquals(targetAsset, violation.getAssetId(),
+          () -> reportAssertion(filename, ruleId, "violated asset"));
 
-      Violation violation = violations.get(0);
-      assertEquals(targetAsset, violation.getAssetId(),
-        () -> reportAssertion(filename, ruleId, "violated asset"));
+        cleanupAssets(); // Clean DB state before secure asset verification
+      });
 
-      cleanupAssets(); // Clean DB state before secure asset verification
-    });
+      // Secure asset verification
+      var secureAssets = ruleTestResource.getSecureAssets();
+      secureAssets.forEach((targetAsset, secureAssetGroup) -> {
 
-    // Secure asset verification
-    var secureAssets = ruleTestResource.getSecureAssets();
-    secureAssets.forEach((targetAsset, secureAssetGroup) -> {
-
-      List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
-      assertEquals(0, secureSetupViolations.size(),
-        () -> reportAssertion(filename, ruleId, "secure setup violations"));
-    });
+        List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
+        assertEquals(0, secureSetupViolations.size(),
+          () -> reportAssertion(filename, ruleId, "secure setup violations"));
+      });
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      throw ex;
+    }
   }
 
   private static Stream<Arguments> getResourceFiles() {
@@ -70,7 +81,7 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
 
     File testResourcePath = new File(testResourceProp);
     if (testResourcePath.isDirectory()) {
-      return Arrays.stream(Objects.requireNonNull(testResourcePath.listFiles())).map(Arguments::of);
+      return Arrays.stream(Objects.requireNonNull(testResourcePath.listFiles(YAML_FILTER))).map(Arguments::of);
     }
     return Stream.of(Arguments.of(testResourcePath));
   }
