@@ -1,7 +1,6 @@
 package io.openraven.magpie.core.cspm.services;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.dataformat.yaml.JacksonYAMLParseException;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.Rule;
@@ -11,10 +10,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * We avoid using IT prefix to skip failsafe plugin picked this test so far
@@ -35,42 +38,38 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
   @ParameterizedTest
   @MethodSource("getResourceFiles")
   public void testSecurityRules(File testRuleResourceFile) throws Exception {
-    try {
-      var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {
-      });
-      Rule rule = ruleMap.get(ruleTestResource.getRuleId());
 
-      final var filename = testRuleResourceFile.getName();
-      final var ruleId = ruleTestResource.getRuleId();
-      assertTrue(filename.contains(ruleId), "ruleId is matching filename");
+    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {
+    });
+    Rule rule = ruleMap.get(ruleTestResource.getRuleId());
 
-      // Insecure asset verification
-      var insecureAssets = ruleTestResource.getInsecureAssets();
-      insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
+    final var filename = testRuleResourceFile.getName();
+    final var ruleId = ruleTestResource.getRuleId();
+    assertTrue(filename.contains(ruleId), "ruleId is matching filename");
 
-        List<Violation> violations = executeRule(insecureAssetGroup, rule);
-        assertEquals(1, violations.size(),
-          () -> reportAssertion(filename, ruleId, "violated assets size"));
+    // Insecure asset verification
+    var insecureAssets = ruleTestResource.getInsecureAssets();
+    insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
 
-        Violation violation = violations.get(0);
-        assertEquals(targetAsset, violation.getAssetId(),
-          () -> reportAssertion(filename, ruleId, "violated asset"));
+      List<Violation> violations = executeRule(insecureAssetGroup, rule);
+      assertEquals(1, violations.size(),
+        () -> reportAssertion(filename, ruleId, "violated assets size"));
 
-        cleanupAssets(); // Clean DB state before secure asset verification
-      });
+      Violation violation = violations.get(0);
+      assertEquals(targetAsset, violation.getAssetId(),
+        () -> reportAssertion(filename, ruleId, "violated asset"));
 
-      // Secure asset verification
-      var secureAssets = ruleTestResource.getSecureAssets();
-      secureAssets.forEach((targetAsset, secureAssetGroup) -> {
+      cleanupAssets(); // Clean DB state before secure asset verification
+    });
 
-        List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
-        assertEquals(0, secureSetupViolations.size(),
-          () -> reportAssertion(filename, ruleId, "secure setup violations"));
-      });
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      throw ex;
-    }
+    // Secure asset verification
+    var secureAssets = ruleTestResource.getSecureAssets();
+    secureAssets.forEach((targetAsset, secureAssetGroup) -> {
+
+      List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
+      assertEquals(0, secureSetupViolations.size(),
+        () -> reportAssertion(filename, ruleId, "secure setup violations"));
+    });
   }
 
   private static Stream<Arguments> getResourceFiles() {
