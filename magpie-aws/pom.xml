@@ -22,6 +22,37 @@
     <mockito.version>3.10.0</mockito.version>
   </properties>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:https://github.com/openraven/magpie.git</connection>
+    <developerConnection>scm:git:https://github.com/openraven/magpie.git</developerConnection>
+    <url>https://github.com/openraven/magpie.git</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <developers>
+    <developer>
+      <name>Open Raven</name>
+      <email>oss@openraven.com</email>
+      <organization>Open Raven Inc</organization>
+      <organizationUrl>https://openraven.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <dependencies>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
