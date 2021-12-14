@@ -146,7 +146,7 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>3.0.0-M1</version>
         <configuration>
-          <releaseProfiles>ossrh,-uberjar</releaseProfiles>
+          <releaseProfiles>ossrh,!uberjar</releaseProfiles>
         </configuration>
       </plugin>
     </plugins>
