@@ -6,6 +6,9 @@
   <artifactId>magpie-parent</artifactId>
   <packaging>pom</packaging>
   <version>0.1.1</version>
+  <name>Open Raven Magpie</name>
+  <url>https://github.com/openraven/magpie</url>
+  <description>Open Raven's Magpie Project</description>
 
   <modules>
     <module>magpie-core</module>
