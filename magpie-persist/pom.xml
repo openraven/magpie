@@ -14,7 +14,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <javax.persistence.version>2.2</javax.persistence.version>
     <hibernate.version>5.6.1.Final</hibernate.version>
-    <postgresql.driver.version>42.2.10</postgresql.driver.version>
+    <postgresql.driver.version>42.3.1</postgresql.driver.version>
     <flyway.version>7.10.0</flyway.version>
   </properties>
 
