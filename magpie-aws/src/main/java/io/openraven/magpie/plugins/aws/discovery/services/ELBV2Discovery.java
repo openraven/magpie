@@ -30,8 +30,6 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.elasticloadbalancing.ElasticLoadBalancingClient;
-import software.amazon.awssdk.services.elasticloadbalancing.model.LoadBalancerDescription;
 import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeLoadBalancerAttributesRequest;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeTagsRequest;
