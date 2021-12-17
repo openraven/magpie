@@ -26,12 +26,7 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
-import software.amazon.awssdk.services.cloudwatch.model.Dimension;
-import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
-import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
-import software.amazon.awssdk.services.cloudwatch.model.Statistic;
-import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.cloudwatch.model.*;
 import software.amazon.awssdk.utils.builder.ToCopyableBuilder;
 
 import javax.annotation.Nullable;

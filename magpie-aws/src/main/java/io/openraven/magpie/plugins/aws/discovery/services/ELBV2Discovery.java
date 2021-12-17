@@ -31,11 +31,13 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
+import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeLoadBalancerAttributesRequest;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.DescribeTagsRequest;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.LoadBalancer;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.Tag;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
@@ -70,6 +72,7 @@ public class ELBV2Discovery implements AWSDiscovery {
           .withAwsRegion(region.toString())
           .build();
 
+        discoverAttributes(client, loadBalancerV2, data, mapper);
         discoverTags(client, loadBalancerV2, data, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":loadBalancerV2"), data.toJsonNode()));
@@ -77,6 +80,14 @@ public class ELBV2Discovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+  private void discoverAttributes(ElasticLoadBalancingV2Client client, LoadBalancer resource, MagpieAwsResource data, ObjectMapper mapper) {
+    getAwsResponse(
+      () -> client.describeLoadBalancerAttributes(DescribeLoadBalancerAttributesRequest.builder().loadBalancerArn(resource.loadBalancerArn()).build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attributes", resp.toBuilder())),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of("attributes", noresp))
+    );
+
   }
 
   private void discoverTags(ElasticLoadBalancingV2Client client, LoadBalancer resource, MagpieAwsResource data, ObjectMapper mapper) {
