@@ -54,8 +54,9 @@ public class PostgresPersistenceProvider {
 
     ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
       .applySettings(configuration.getProperties()).build();
-
-    migratePostgreDB(config); // migrating DB before EM creation to validate schema further
+    if(config.shouldMigrateDB()) {
+        migratePostgreDB(config); // migrating DB before EM creation to validate schema further
+    }
 
     return configuration.buildSessionFactory(serviceRegistry).createEntityManager();
   }
