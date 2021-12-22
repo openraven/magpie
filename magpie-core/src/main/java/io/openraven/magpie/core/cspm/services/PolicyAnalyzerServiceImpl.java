@@ -34,7 +34,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAnalyzerServiceImpl.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String EXIST_ASSETS_PER_CLOUD = // TODO rewrite logic to check cloud tables content
-    "SELECT EXISTS(SELECT 1 FROM assets WHERE resource_type like '%s%%') as exists";
+    "SELECT EXISTS(SELECT 1 FROM magpie.assets WHERE resource_type like '%s%%') as exists";
   private AssetsRepo assetsRepo;
 
   @Override

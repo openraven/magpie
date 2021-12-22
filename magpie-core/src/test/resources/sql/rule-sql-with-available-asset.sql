@@ -1,5 +1,5 @@
 SELECT asset_id
-  FROM assets
+  FROM magpie.assets
   WHERE resource_type = 'AWS::IAM::CredentialsReport'
     AND ((configuration->>'access_key_1_active' = 'true'
           AND (configuration->>'access_key_1_last_used_date' IS NULL
