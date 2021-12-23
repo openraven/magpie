@@ -23,6 +23,7 @@ public class PersistConfig {
   private String databaseName;
   private String user;
   private String password;
+  private boolean migrateDB = true;
 
   public String getHostname() { return hostname;}
   public void setHostname(String hostname) {
@@ -48,4 +49,12 @@ public class PersistConfig {
   public void setPassword(String password) {
     this.password = password == null ? "" : password;
   }
+
+    public boolean shouldMigrateDB() {
+        return migrateDB;
+    }
+
+    public void setMigrateDB(boolean migrateDB) {
+        this.migrateDB = migrateDB;
+    }
 }
