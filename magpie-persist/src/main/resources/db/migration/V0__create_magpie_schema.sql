@@ -1,1 +1,1 @@
-create schema magpie;
+CREATE SCHEMA IF NOT EXISTS magpie;
