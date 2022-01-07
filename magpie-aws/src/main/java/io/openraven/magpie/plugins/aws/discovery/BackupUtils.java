@@ -20,37 +20,35 @@ import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupJob;
 import software.amazon.awssdk.services.backup.model.BackupJobState;
 import software.amazon.awssdk.services.backup.model.ListBackupJobsRequest;
+import software.amazon.awssdk.services.backup.model.ListBackupJobsResponse;
 
 import java.time.Instant;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class BackupUtils {
 
-  private static final Map<Region, BackupClient> CLIENTS = new ConcurrentHashMap<>();
+    private static final Map<Region, BackupClient> CLIENTS = new ConcurrentHashMap<>();
 
-  private static final Period HISTORY = Period.ofDays(45);
+    private static final Period HISTORY = Period.ofDays(45);
 
-  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
-    List<BackupJob.Builder> jobs = new LinkedList<>();
-    String nextToken = null;
-    try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
-      do {
-        final var result = client.listBackupJobs(ListBackupJobsRequest.builder()
-          .byResourceArn(arn)
-          .byCreatedAfter(Instant.now().minus(HISTORY))
-          .byState(BackupJobState.COMPLETED)
-          .nextToken(nextToken)
-          .build());
-        jobs.addAll(result.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList()));
-        nextToken = result.nextToken();
-
-      } while (nextToken != null);
+    public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
+        List<BackupJob.Builder> jobs = new LinkedList<>();
+        try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
+            final var builder = ListBackupJobsRequest.builder()
+                    .byResourceArn(arn)
+                    .byCreatedAfter(Instant.now().minus(HISTORY))
+                    .maxResults(1000)
+                    .byState(BackupJobState.COMPLETED);
+            final var result = client.listBackupJobsPaginator(builder.build());
+            result.forEach(response -> jobs.addAll(response.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList())));
+            return jobs;
+        }
     }
-    return jobs;
-  }
 }
