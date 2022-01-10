@@ -1,5 +1,10 @@
-CREATE TABLE IF NOT EXISTS magpie.aws (
+CREATE TABLE IF NOT EXISTS magpie.assets (
     documentid TEXT not null,
+    resourcetype TEXT,
+    primary key (documentid)
+);
+
+CREATE TABLE IF NOT EXISTS magpie.aws(
     arn TEXT,
     awsaccountid TEXT,
     awsregion TEXT,
@@ -9,15 +14,12 @@ CREATE TABLE IF NOT EXISTS magpie.aws (
     discoverysessionid TEXT,
     resourceid TEXT,
     resourcename TEXT,
-    resourcetype TEXT,
     supplementaryconfiguration JSONB,
     tags JSONB,
-    updatediso TIMESTAMPTZ,
-    primary key (documentid)
-);
+    updatediso TIMESTAMPTZ
+) INHERITS(magpie.assets);
 
 CREATE TABLE IF NOT EXISTS magpie.gcp (
-    documentid TEXT not null,
     assetid TEXT,
     configuration JSONB,
     creatediso TIMESTAMPTZ,
@@ -27,9 +29,7 @@ CREATE TABLE IF NOT EXISTS magpie.gcp (
     projectid TEXT,
     resourceid TEXT,
     resourcename TEXT,
-    resourcetype TEXT,
     supplementaryconfiguration JSONB,
     tags JSONB,
-    updatediso TIMESTAMPTZ,
-    primary key (documentid)
-);
+    updatediso TIMESTAMPTZ
+) INHERITS(magpie.assets);

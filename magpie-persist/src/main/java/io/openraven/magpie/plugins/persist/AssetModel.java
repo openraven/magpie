@@ -33,59 +33,12 @@ import java.time.Instant;
 public class AssetModel {
 
   @Id
-  @Column(name = "document_id", nullable = false, unique = true)
+  @Column(name = "documentid", nullable = false, unique = true)
   public String documentId;
 
-  @Column(name = "asset_id")
-  @JsonAlias("arn")
-  public String assetId;
-
-  @Column(name = "resource_name")
-  public String resourceName;
-
-  @Column(name = "resource_id")
-  public String resourceId;
-
-  @Column(name = "resource_type")
+  @Column(name = "resourcetype")
   public String resourceType;
 
-  @Column(name = "region")
-  @JsonAlias("awsRegion")
-  public String region;
-
-  @Column(name = "project_id")
-  public String projectId;
-
-  @Column(name = "account_id")
-  @JsonAlias({"awsAccountId", "gcpAccountId"})
-  public String accountId;
-
-  @Column(name = "created_iso")
-  public Instant createdIso;
-
-  @Column(name = "updated_iso")
-  public Instant updatedIso = Instant.now();
-
-  @Column(name = "discovery_session_id")
-  public String discoverySessionId;
-
-  @Transient
-  public Long maxSizeInBytes = null;
-
-  @Transient
-  public Long sizeInBytes = null;
-
-  @Column(name = "configuration", columnDefinition = "JSONB")
-  public String configuration;
-
-  @Column(name = "supplementary_configuration", columnDefinition = "JSONB")
-  public String supplementaryConfiguration;
-
-  @Column(name = "tags", columnDefinition = "JSONB")
-  public String tags;
-
-  @Column(name = "discovery_meta", columnDefinition = "JSONB")
-  public String discoveryMeta;
 
   public AssetModel() {
   }
@@ -98,135 +51,11 @@ public class AssetModel {
     this.documentId = documentId;
   }
 
-  public String getAssetId() {
-    return assetId;
-  }
-
-  public void setAssetId(String assetId) {
-    this.assetId = assetId;
-  }
-
-  public String getResourceName() {
-    return resourceName;
-  }
-
-  public void setResourceName(String resourceName) {
-    this.resourceName = resourceName;
-  }
-
-  public String getResourceId() {
-    return resourceId;
-  }
-
-  public void setResourceId(String resourceId) {
-    this.resourceId = resourceId;
-  }
-
   public String getResourceType() {
     return resourceType;
   }
 
   public void setResourceType(String resourceType) {
     this.resourceType = resourceType;
-  }
-
-  public String getRegion() {
-    return region;
-  }
-
-  public void setRegion(String region) {
-    this.region = region;
-  }
-
-  public String getProjectId() {
-    return projectId;
-  }
-
-  public void setProjectId(String projectId) {
-    this.projectId = projectId;
-  }
-
-  public String getAccountId() {
-    return accountId;
-  }
-
-  public void setAccountId(String accountId) {
-    this.accountId = accountId;
-  }
-
-  public Instant getCreatedIso() {
-    return createdIso;
-  }
-
-  public void setCreatedIso(Instant createdIso) {
-    this.createdIso = createdIso;
-  }
-
-  public Instant getUpdatedIso() {
-    return updatedIso;
-  }
-
-  public void setUpdatedIso(Instant updatedIso) {
-    this.updatedIso = updatedIso;
-  }
-
-  public String getDiscoverySessionId() {
-    return discoverySessionId;
-  }
-
-  public void setDiscoverySessionId(String discoverySessionId) {
-    this.discoverySessionId = discoverySessionId;
-  }
-
-  public Long getMaxSizeInBytes() {
-    return maxSizeInBytes;
-  }
-
-  public void setMaxSizeInBytes(Long maxSizeInBytes) {
-    this.maxSizeInBytes = maxSizeInBytes;
-  }
-
-  public Long getSizeInBytes() {
-    return sizeInBytes;
-  }
-
-  public void setSizeInBytes(Long sizeInBytes) {
-    this.sizeInBytes = sizeInBytes;
-  }
-
-  public String getConfiguration() {
-    return configuration;
-  }
-
-  @JsonSetter("configuration")
-  public void setConfiguration(JsonNode configuration) {
-    this.configuration = configuration.toPrettyString();
-  }
-
-  public String getSupplementaryConfiguration() {
-    return supplementaryConfiguration;
-  }
-
-  @JsonSetter("supplementaryConfiguration")
-  public void setSupplementaryConfiguration(JsonNode supplementaryConfiguration) {
-    this.supplementaryConfiguration = supplementaryConfiguration.toString();
-  }
-
-  public String getTags() {
-    return tags;
-  }
-
-  @JsonSetter("tags")
-  public void setTags(JsonNode tags) {
-    this.tags = tags.toString();
-  }
-
-  public String getDiscoveryMeta() {
-    return discoveryMeta;
-  }
-
-  @JsonSetter("discoveryMeta")
-  public void setDiscoveryMeta(JsonNode discoveryMeta) {
-    this.discoveryMeta = discoveryMeta.toString();
   }
 }
