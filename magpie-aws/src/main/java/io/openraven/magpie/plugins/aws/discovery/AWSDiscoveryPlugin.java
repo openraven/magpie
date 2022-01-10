@@ -137,7 +137,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   }
 
   private boolean isEnabled(String svc) {
-    var enabled = config.getServices().isEmpty() || config.getServices().contains(svc);
+    var enabled = config.getServices().isEmpty() || config.getServices().stream().anyMatch(configuredService -> configuredService.equalsIgnoreCase(svc));
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", svc);
     return enabled;
   }
