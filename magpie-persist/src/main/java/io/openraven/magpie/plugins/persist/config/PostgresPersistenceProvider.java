@@ -17,7 +17,6 @@
 package io.openraven.magpie.plugins.persist.config;
 
 import io.openraven.magpie.data.Resource;
-import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -48,7 +47,6 @@ public class PostgresPersistenceProvider {
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
-    configuration.addAnnotatedClass(AssetModel.class); // Keep so far for backward compatibility
 
     getSubClasses(Resource.class).forEach(configuration::addAnnotatedClass);
 

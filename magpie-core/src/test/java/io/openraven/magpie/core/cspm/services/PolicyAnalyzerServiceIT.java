@@ -191,7 +191,7 @@ class PolicyAnalyzerServiceIT {
     String policyName = "no-rules-policy";
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
-    String missedAssets = "AWS::CloudTrail::Trail, AWS::S3::Bucket";
+    String missedAssets = "AWS::CloudTrail::Trail";
 
     when(policyContext.getPolicy()).thenReturn(policy);
     when(policy.isEnabled()).thenReturn(true);

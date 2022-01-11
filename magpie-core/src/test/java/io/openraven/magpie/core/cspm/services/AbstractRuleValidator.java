@@ -15,7 +15,7 @@ import io.openraven.magpie.core.cspm.analysis.Violation;
 import io.openraven.magpie.core.cspm.model.Policy;
 import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.Rule;
-import io.openraven.magpie.plugins.persist.AssetModel;
+import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.PersistPlugin;
@@ -106,9 +106,8 @@ public abstract class AbstractRuleValidator {
       MagpieEnvelope envelope = new MagpieEnvelope();
       envelope.setContents(asset);
 
-      AssetModel assetModel = null;
       try {
-        assetModel = MAPPER.treeToValue(envelope.getContents(), AssetModel.class);
+        var assetModel = MAPPER.treeToValue(envelope.getContents(), Resource.class);
         assetsRepo.upsert(assetModel);
       } catch (JsonProcessingException e) {
         throw new IllegalArgumentException(e);

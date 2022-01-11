@@ -26,8 +26,6 @@ public interface AssetsRepo extends Closeable {
 
   void upsert(Resource awsResource);
 
-  void upsert(AssetModel assetModel);
-
   void executeNative(String query);
 
   List<Map<String, Object>> queryNative(String query);

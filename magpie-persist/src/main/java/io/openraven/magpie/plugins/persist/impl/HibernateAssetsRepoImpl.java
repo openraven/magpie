@@ -17,7 +17,6 @@
 package io.openraven.magpie.plugins.persist.impl;
 
 import io.openraven.magpie.data.Resource;
-import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.EntityManager;
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -57,23 +57,6 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
     }
   }
 
-  // Keeping so far for backward compatibility with rules
-  public void upsert(AssetModel assetModel) {
-    try {
-      entityManager.getTransaction().begin();
-
-      entityManager.merge(assetModel);
-
-      entityManager.flush();
-      entityManager.getTransaction().commit();
-      entityManager.clear();
-    } catch (Exception e) {
-      logger.error("Rolling back transaction failed due to: " + e.getMessage());
-      logger.debug("Details", e);
-      entityManager.getTransaction().rollback();
-    }
-  }
-
   @Override
   public void executeNative(String query) {
     try {
@@ -88,6 +71,7 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
       logger.error("Rolling back transaction failed due to: " + e.getMessage());
       logger.debug("Details", e);
       entityManager.getTransaction().rollback();
+      throw(e);
     }
   }
 
@@ -101,9 +85,10 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
 
   @Override
   public Long getAssetCount(String resourceType) {
-    return entityManager.createQuery("SELECT COUNT(a) FROM AssetModel a WHERE resourceType = :resourceType", Long.class)
-      .setParameter("resourceType", resourceType)
-      .getSingleResult();
+    BigInteger val = (BigInteger)entityManager.createNativeQuery("SELECT COUNT(*) FROM magpie.assets WHERE resourcetype = :resourceType")
+      .setParameter("resourceType", resourceType).getResultList().get(0);
+
+    return val.longValue();
   }
 
 
