@@ -155,11 +155,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     List<String> missingAssets = new ArrayList<>();
     resourceTypes.forEach(resourceType -> {
-
-      // TODO implement getting the class by resource type
-      var results = assetsRepo.getAssetCount(resourceType);
-
-      if (results == 0) {
+      if (assetsRepo.getAssetCount(resourceType) == 0) {
         missingAssets.add(resourceType);
       }
     });

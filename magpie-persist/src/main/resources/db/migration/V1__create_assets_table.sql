@@ -1,35 +1,35 @@
-CREATE TABLE IF NOT EXISTS magpie.assets (
-    documentid TEXT not null,
-    resourcetype TEXT,
-    primary key (documentid)
-);
-
 CREATE TABLE IF NOT EXISTS magpie.aws(
+    documentid TEXT primary key not null,
     arn TEXT,
-    awsaccountid TEXT,
-    awsregion TEXT,
-    configuration JSONB,
-    creatediso TIMESTAMPTZ,
-    discoverymeta JSONB,
-    discoverysessionid TEXT,
-    resourceid TEXT,
     resourcename TEXT,
-    supplementaryconfiguration JSONB,
+    resourceid TEXT,
+    resourcetype TEXT,
+    awsregion TEXT,
+    awsaccountid TEXT,
+    creatediso TIMESTAMPTZ,
+    updatediso TIMESTAMPTZ,
+    discoverysessionid TEXT,
     tags JSONB,
-    updatediso TIMESTAMPTZ
-) INHERITS(magpie.assets);
+    configuration JSONB,
+    supplementaryconfiguration JSONB,
+    discoverymeta JSONB
+);
+CREATE INDEX IF NOT EXISTS aws_resource_type ON magpie.aws (resourcetype);
 
 CREATE TABLE IF NOT EXISTS magpie.gcp (
+    documentid TEXT primary key not null,
     assetid TEXT,
-    configuration JSONB,
-    creatediso TIMESTAMPTZ,
-    discoverymeta JSONB,
-    discoverysessionid TEXT,
+    resourcename TEXT,
+    resourceid TEXT,
+    resourcetype TEXT,
     gcpaccountid TEXT,
     projectid TEXT,
-    resourceid TEXT,
-    resourcename TEXT,
-    supplementaryconfiguration JSONB,
+    creatediso TIMESTAMPTZ,
+    updatediso TIMESTAMPTZ,
+    discoverysessionid TEXT,
     tags JSONB,
-    updatediso TIMESTAMPTZ
-) INHERITS(magpie.assets);
+    configuration JSONB,
+    supplementaryconfiguration JSONB,
+    discoverymeta JSONB
+);
+CREATE INDEX IF NOT EXISTS gcp_resource_type ON magpie.gcp (resourcetype);

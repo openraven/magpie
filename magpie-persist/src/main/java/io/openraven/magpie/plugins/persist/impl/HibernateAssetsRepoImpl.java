@@ -30,6 +30,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
@@ -85,8 +86,18 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
 
   @Override
   public Long getAssetCount(String resourceType) {
-    BigInteger val = (BigInteger)entityManager.createNativeQuery("SELECT COUNT(*) FROM magpie.assets WHERE resourcetype = :resourceType")
-      .setParameter("resourceType", resourceType).getResultList().get(0);
+
+    // Sadly, table names cannot be parameterized in queries, and simple string substitution opens us up to SQL
+    // injection. So we must account for both AWS and GCP in our logic.
+    final var provider = resourceType.split(":")[0].toLowerCase(Locale.ROOT);
+    final var query = "aws".equals(provider) ?
+      "SELECT COUNT(*) FROM magpie.aws WHERE resourcetype = :resourceType":
+      "SELECT COUNT(*) FROM magpie.gcp WHERE resourcetype = :resourceType";
+
+    BigInteger val = (BigInteger)entityManager.createNativeQuery(query)
+      .setParameter("resourceType", resourceType)
+      .getResultList()
+      .get(0);
 
     return val.longValue();
   }
