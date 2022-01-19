@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS magpie.gcp (
     resourcename TEXT,
     resourceid TEXT,
     resourcetype TEXT,
+    region TEXT,
     gcpaccountid TEXT,
     projectid TEXT,
     creatediso TIMESTAMPTZ,

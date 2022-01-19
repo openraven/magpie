@@ -3,6 +3,7 @@ package io.openraven.magpie.core.cspm.services;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.openraven.magpie.core.cspm.analysis.IgnoredRule;
 import io.openraven.magpie.core.cspm.analysis.Violation;
+import io.openraven.magpie.core.cspm.model.Policy;
 import io.openraven.magpie.core.cspm.model.Rule;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -39,8 +40,11 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
   @MethodSource("getResourceFiles")
   public void testSecurityRules(File testRuleResourceFile) throws Exception {
 
-    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {
-    });
+    var ruleTestResource = MAPPER.readValue(testRuleResourceFile, new TypeReference<RuleTestResource>() {});
+
+    final var policy = new Policy();
+    policy.setCloudProvider(ruleTestResource.getCloudProvider());
+
     Rule rule = ruleMap.get(ruleTestResource.getRuleId());
 
     final var filename = testRuleResourceFile.getName();
@@ -51,7 +55,8 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     var insecureAssets = ruleTestResource.getInsecureAssets();
     insecureAssets.forEach((targetAsset, insecureAssetGroup) -> {
 
-      List<Violation> violations = executeRule(insecureAssetGroup, rule);
+
+      List<Violation> violations = executeRule(insecureAssetGroup, rule, policy);
       assertEquals(1, violations.size(),
         () -> reportAssertion(filename, ruleId, "violated assets size"));
 
@@ -66,7 +71,7 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     var secureAssets = ruleTestResource.getSecureAssets();
     secureAssets.forEach((targetAsset, secureAssetGroup) -> {
 
-      List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule);
+      List<Violation> secureSetupViolations = executeRule(secureAssetGroup, rule, policy);
       assertEquals(0, secureSetupViolations.size(),
         () -> reportAssertion(filename, ruleId, "secure setup violations"));
     });
@@ -85,13 +90,13 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     return Stream.of(Arguments.of(testResourcePath));
   }
 
-  private List<Violation> executeRule(String assetGroup, Rule rule) {
+  private List<Violation> executeRule(String assetGroup, Rule rule, Policy policy) {
     populateAssetData(assetGroup);
 
     List<Violation> violations = new ArrayList<>();
     List<IgnoredRule> ignoredRules = new ArrayList<>();
 
-    analyzeRule(violations, ignoredRules, rule);
+    analyzeRule(violations, ignoredRules, policy, rule);
 
     // All covered rules should be executed
     assertEquals(0, ignoredRules.size(), () -> "Provided rule ignored: " + rule.getRuleId());

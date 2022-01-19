@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class AbstractRuleValidator {
@@ -117,14 +116,14 @@ public abstract class AbstractRuleValidator {
 
   protected void analyzeRule(List<Violation> violations,
                              List<IgnoredRule> ignoredRules,
+                             Policy policy,
                              Rule rule) {
-    analyzerService.executeRule(violations, ignoredRules, null, rule);
+    analyzerService.executeRule(violations, ignoredRules, policy, rule);
   }
 
   @AfterEach
   protected void cleanupAssets() {
-    assetsRepo.executeNative("DELETE FROM assets");
-    assertEquals("0", assetsRepo.queryNative("SELECT count(*) FROM assets").get(0).get("count").toString());
+    assetsRepo.executeNative("DELETE FROM magpie.aws; DELETE FROM magpie.gcp");
   }
 
   protected static String getTargetProjectDirectoryPath() {
@@ -144,6 +143,7 @@ public abstract class AbstractRuleValidator {
     private String description;
     private Map<String, String> insecureAssets;
     private Map<String, String> secureAssets;
+    private String cloudProvider;
 
     public String getRuleId() {
       return ruleId;
@@ -175,6 +175,14 @@ public abstract class AbstractRuleValidator {
 
     public void setSecureAssets(Map<String, String> secureAssets) {
       this.secureAssets = secureAssets;
+    }
+
+    public String getCloudProvider() {
+      return cloudProvider;
+    }
+
+    public void setCloudProvider(String cloudProvider) {
+      this.cloudProvider = cloudProvider;
     }
   }
 
