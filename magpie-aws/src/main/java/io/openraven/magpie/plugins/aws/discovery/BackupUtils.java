@@ -34,21 +34,21 @@ import java.util.stream.Collectors;
 
 public class BackupUtils {
 
-    private static final Map<Region, BackupClient> CLIENTS = new ConcurrentHashMap<>();
+  private static final Map<Region, BackupClient> CLIENTS = new ConcurrentHashMap<>();
 
-    private static final Period HISTORY = Period.ofDays(45);
+  private static final Period HISTORY = Period.ofDays(45);
 
-    public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
-        List<BackupJob.Builder> jobs = new LinkedList<>();
-        try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
-            final var builder = ListBackupJobsRequest.builder()
-                    .byResourceArn(arn)
-                    .byCreatedAfter(Instant.now().minus(HISTORY))
-                    .maxResults(1000)
-                    .byState(BackupJobState.COMPLETED);
-            final var result = client.listBackupJobsPaginator(builder.build());
-            result.forEach(response -> jobs.addAll(response.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList())));
-            return jobs;
-        }
+  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator) {
+    List<BackupJob.Builder> jobs = new LinkedList<>();
+    try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
+      final var builder = ListBackupJobsRequest.builder()
+        .byResourceArn(arn)
+        .byCreatedAfter(Instant.now().minus(HISTORY))
+        .maxResults(1000)
+        .byState(BackupJobState.COMPLETED);
+      final var result = client.listBackupJobsPaginator(builder.build());
+      result.forEach(response -> jobs.addAll(response.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList())));
+      return jobs;
     }
+  }
 }
