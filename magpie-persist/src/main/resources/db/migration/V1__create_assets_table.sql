@@ -1,20 +1,36 @@
--- Generic resource table for various cloud provider assets
-CREATE TABLE IF NOT EXISTS assets (
-    document_id varchar(59) primary key,
-    asset_id varchar(255),
-    resource_name varchar(255),
-    resource_id varchar(255),
-    resource_type varchar(255),
-    region varchar(50),
-    project_id varchar(255),
-    account_id varchar(255),
-    created_iso timestamp with time zone,
-    updated_iso timestamp with time zone,
-    discovery_session_id varchar(255),
-    max_size_in_bytes integer,
-    size_in_bytes integer,
-    configuration jsonb,
-    supplementary_configuration jsonb,
-    tags jsonb,
-    discovery_meta jsonb
+CREATE TABLE IF NOT EXISTS magpie.aws(
+    documentid TEXT primary key not null,
+    arn TEXT,
+    resourcename TEXT,
+    resourceid TEXT,
+    resourcetype TEXT,
+    awsregion TEXT,
+    awsaccountid TEXT,
+    creatediso TIMESTAMPTZ,
+    updatediso TIMESTAMPTZ,
+    discoverysessionid TEXT,
+    tags JSONB,
+    configuration JSONB,
+    supplementaryconfiguration JSONB,
+    discoverymeta JSONB
 );
+CREATE INDEX IF NOT EXISTS aws_resource_type ON magpie.aws (resourcetype);
+
+CREATE TABLE IF NOT EXISTS magpie.gcp (
+    documentid TEXT primary key not null,
+    assetid TEXT,
+    resourcename TEXT,
+    resourceid TEXT,
+    resourcetype TEXT,
+    region TEXT,
+    gcpaccountid TEXT,
+    projectid TEXT,
+    creatediso TIMESTAMPTZ,
+    updatediso TIMESTAMPTZ,
+    discoverysessionid TEXT,
+    tags JSONB,
+    configuration JSONB,
+    supplementaryconfiguration JSONB,
+    discoverymeta JSONB
+);
+CREATE INDEX IF NOT EXISTS gcp_resource_type ON magpie.gcp (resourcetype);

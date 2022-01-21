@@ -17,9 +17,6 @@
 package io.openraven.magpie.plugins.persist.config;
 
 import io.openraven.magpie.data.Resource;
-import io.openraven.magpie.data.aws.AWSResource;
-import io.openraven.magpie.data.gcp.GCPResource;
-import io.openraven.magpie.plugins.persist.AssetModel;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -46,17 +43,18 @@ public class PostgresPersistenceProvider {
     settings.put(Environment.DIALECT, "io.openraven.magpie.plugins.persist.config.PostgreSQL10StringDialect");
     settings.put(Environment.SHOW_SQL, "false");
     settings.put(Environment.HBM2DDL_AUTO, "validate");
+    settings.put(Environment.DEFAULT_SCHEMA, "magpie");
 
     Configuration configuration = new Configuration();
     configuration.setProperties(settings);
-    configuration.addAnnotatedClass(AssetModel.class); // Keep so far for backward compatibility
 
     getSubClasses(Resource.class).forEach(configuration::addAnnotatedClass);
 
     ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
       .applySettings(configuration.getProperties()).build();
-
-    migratePostgreDB(config); // migrating DB before EM creation to validate schema further
+    if(config.shouldMigrateDB()) {
+        migratePostgreDB(config); // migrating DB before EM creation to validate schema further
+    }
 
     return configuration.buildSessionFactory(serviceRegistry).createEntityManager();
   }

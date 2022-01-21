@@ -16,25 +16,21 @@ import io.openraven.magpie.plugins.persist.PersistPlugin;
 import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.python.core.PyDictionary;
 import org.python.core.PyList;
+import org.python.google.common.base.Strings;
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.*;
 
 public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAnalyzerServiceImpl.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String EXIST_ASSETS_PER_CLOUD = // TODO rewrite logic to check cloud tables content
-    "SELECT EXISTS(SELECT 1 FROM assets WHERE resource_type like '%s%%') as exists";
   private AssetsRepo assetsRepo;
 
   @Override
@@ -86,8 +82,9 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   private boolean cloudProviderAssetsAvailable(Policy policy) {
-    List<Map<String, Object>> data = assetsRepo.queryNative(String.format(EXIST_ASSETS_PER_CLOUD, policy.getCloudProvider()));
-    return Boolean.parseBoolean(data.get(0).get("exists").toString());
+    var provider = Strings.isNullOrEmpty(policy.getCloudProvider()) ? "" : policy.getCloudProvider().toLowerCase(Locale.ROOT);
+    List<Map<String, Object>> data = assetsRepo.queryNative("select count(*) from magpie.%provider%".replace("%provider%", provider));
+    return BigInteger.ZERO.compareTo((BigInteger)data.get(0).get("count")) < 0;
   }
 
   protected void executeRule(List<Violation> policyViolations,
@@ -132,7 +129,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       Violation violation = new Violation();
       violation.setPolicy(policy);
       violation.setRule(rule);
-      violation.setAssetId(result.get("asset_id").toString()); // Assume Rules should always return this type of alias
+      violation.setAssetId(result.get(policy.getCloudProvider().toLowerCase(Locale.ROOT).equals("aws") ? "arn" : "assetid").toString()); // Assume Rules should always return this type of alias
       violation.setInfo(rule.getDescription());
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
@@ -142,7 +139,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
   private List<String> checkForMissingAssets(String sql) {
     String sqlNoWhitespaces = sql.replaceAll("\\s+", "");
-    String resourceTypeSearch = "resource_type='";
+    String resourceTypeSearch = "resourcetype='";
     List<String> resourceTypes = new ArrayList<>();
 
     int index = 0;
@@ -158,11 +155,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     List<String> missingAssets = new ArrayList<>();
     resourceTypes.forEach(resourceType -> {
-
-      // TODO implement getting the class by resource type
-      var results = assetsRepo.getAssetCount(resourceType);
-
-      if (results == 0) {
+      if (assetsRepo.getAssetCount(resourceType) == 0) {
         missingAssets.add(resourceType);
       }
     });

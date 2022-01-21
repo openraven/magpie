@@ -48,15 +48,6 @@ public class PersistPlugin implements TerminalPlugin<PersistConfig> {
       } catch (JsonProcessingException e) {
         logger.warn("Unable to parse assetType from content: {}", env.getContents().toPrettyString());
       }
-
-      try { // Keeping this code for backward compatibility with existing rules. To be removed in further versions
-        AssetModel assetModel = objectMapper.treeToValue(env.getContents(), AssetModel.class);
-        assetsRepo.upsert(assetModel);
-
-        logger.info("Saved asset with id: {}", assetModel.getAssetId());
-      } catch (JsonProcessingException e) {
-        throw new IllegalArgumentException(String.format("Unable to parse envelope: %s", env), e);
-      }
     }
   }
 

@@ -39,8 +39,7 @@ import static java.util.stream.Collectors.*;
 public class DMapAssetServiceImpl implements DMapAssetService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DMapAssetServiceImpl.class);
-  private static final String GROUP_ASSET_SQL_PATH = "/sql/dmap-asset-grouping.sql";
-  private static final String QUERY = Util.getResourceAsString(GROUP_ASSET_SQL_PATH);
+  private static final String QUERY = Util.getResourceAsString("/sql/dmap-asset-grouping.sql");
 
   private final ObjectMapper mapper = new ObjectMapper();
   private AssetsRepo assetsRepo;
@@ -56,7 +55,7 @@ public class DMapAssetServiceImpl implements DMapAssetService {
     List<DMapTarget> scanTargets = maps
       .stream()
       .map(tuple -> new DMapTarget(
-        tuple.get("resource_id").toString(),
+        tuple.get("resourceid").toString(),
         String.valueOf(tuple.get("region")), // TODO rewrite
         tuple.get("subnet_id").toString(),
         tuple.get("private_ip_address").toString(),

@@ -3,7 +3,7 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.1.4-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -37,7 +37,11 @@
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
-
+      <dependency>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>sso</artifactId>
+          <version>${aws.sdk.version}</version>
+      </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>athena</artifactId>
