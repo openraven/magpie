@@ -24,6 +24,8 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
 import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
 import io.openraven.magpie.data.aws.ec2.Ec2Instance;
+import io.openraven.magpie.data.aws.ec2.Ec2NetworkAcl;
+import io.openraven.magpie.data.aws.ec2.Ec2NetworkInterface;
 import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
 import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
@@ -37,6 +39,8 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeNetworkInterfacesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
@@ -64,6 +68,8 @@ public class EC2Discovery implements AWSDiscovery {
       discoverSecurityGroups(mapper, session, client, region, emitter, account);
       discoverVolumes(mapper, session, client, region, emitter, account);
       discoverSnapshots(mapper, session, client, region, emitter, account);
+      discoverNetworkAcls(mapper, session, client, region, emitter, account);
+      discoverNetworkInterfaces(mapper, session, client, region, emitter, account);
     }
   }
 
@@ -238,6 +244,54 @@ public class EC2Discovery implements AWSDiscovery {
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
+  }
+
+  private void discoverNetworkAcls(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = Ec2NetworkAcl.RESOURCE_TYPE;
+
+    try {
+      client.describeNetworkAclsPaginator(DescribeNetworkAclsRequest.builder().build()).networkAcls().stream()
+        .forEach(acl -> {
+          String arn = format("arn:aws:ec2:%s:%s:network-acl/%s", region, account, acl.networkAclId());
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
+            .withResourceName(acl.networkAclId())
+            .withResourceId(acl.networkAclId())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(acl.toBuilder()))
+            .withAccountId(account)
+            .withAwsRegion(region.toString())
+            .withTags(getConvertedTags(acl.tags(), mapper))
+            .build();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":NetworkAcl"), data.toJsonNode()));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverNetworkInterfaces(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = Ec2NetworkInterface.RESOURCE_TYPE;
+
+    try {
+      client.describeNetworkInterfacesPaginator(DescribeNetworkInterfacesRequest.builder().build()).networkInterfaces().stream()
+        .forEach(networkInterface -> {
+          String arn = format("arn:aws:ec2:%s:%s:network-interface/%s", region, account, networkInterface.networkInterfaceId());
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
+            .withResourceName(networkInterface.networkInterfaceId())
+            .withResourceId(networkInterface.networkInterfaceId())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(networkInterface.toBuilder()))
+            .withAccountId(account)
+            .withAwsRegion(region.toString())
+            .withTags(getConvertedTags(networkInterface.tagSet(), mapper))
+            .build();
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":NetworkInterface"), data.toJsonNode()));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
   }
 
   private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
