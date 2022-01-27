@@ -21,7 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.data.aws.ec2.*;
+import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
+import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
+import io.openraven.magpie.data.aws.ec2.Ec2Instance;
+import io.openraven.magpie.data.aws.ec2.Ec2NetworkAcl;
+import io.openraven.magpie.data.aws.ec2.Ec2NetworkInterface;
 import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
 import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
@@ -35,7 +39,15 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeNetworkInterfacesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
+import software.amazon.awssdk.services.ec2.model.Filter;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Snapshot;
+import software.amazon.awssdk.services.ec2.model.Tag;
 
 import java.io.IOException;
 import java.util.List;
@@ -275,7 +287,7 @@ public class EC2Discovery implements AWSDiscovery {
             .withTags(getConvertedTags(networkInterface.tagSet(), mapper))
             .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":NetworkAcl"), data.toJsonNode()));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":NetworkInterface"), data.toJsonNode()));
         });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
