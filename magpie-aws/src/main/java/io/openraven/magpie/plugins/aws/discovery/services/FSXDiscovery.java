@@ -69,7 +69,7 @@ public class FSXDiscovery implements AWSDiscovery {
           .build();
 
         discoverSize(fileSystem, data, region, logger, clientCreator);
-        discoverBackupJobs(fileSystem.resourceARN(), region, data, clientCreator);
+        discoverBackupJobs(fileSystem.resourceARN(), region, data, clientCreator, logger);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":fileSystem"), data.toJsonNode()));
       });

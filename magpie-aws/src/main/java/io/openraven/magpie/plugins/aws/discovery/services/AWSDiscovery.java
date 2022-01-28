@@ -42,8 +42,8 @@ public interface AWSDiscovery {
 
   void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator);
 
-  default void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
-    final var backups = BackupUtils.listBackupJobs(arn, region, clientCreator);
+  default void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
+    final var backups = BackupUtils.listBackupJobs(arn, region, clientCreator, logger);
     AWSUtils.update(data.supplementaryConfiguration, Map.of("awsBackupJobs", backups));
   }
 

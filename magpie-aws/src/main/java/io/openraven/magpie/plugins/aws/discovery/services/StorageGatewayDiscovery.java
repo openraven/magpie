@@ -68,7 +68,6 @@ public class StorageGatewayDiscovery implements AWSDiscovery {
           .build();
 
         discoverGatewayInfo(client, gateway, data);
-        discoverBackupJobs(gateway.gatewayARN(), region, data, clientCreator);
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":gateway"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {

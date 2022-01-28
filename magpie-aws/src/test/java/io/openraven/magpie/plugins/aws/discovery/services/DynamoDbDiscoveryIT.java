@@ -14,6 +14,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
@@ -28,7 +30,7 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
 
   private final DynamoDbDiscovery dynamoDbDiscovery = new DynamoDbDiscovery() {
     // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
-    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
     }
   };
 
@@ -56,7 +58,8 @@ class DynamoDbDiscoveryIT extends BaseAWSServiceIT {
       emitter,
       dynamoDbClient,
       ACCOUNT,
-      ClientCreators.localClientCreator(BASE_REGION)
+      ClientCreators.localClientCreator(BASE_REGION),
+      LoggerFactory.getLogger(DynamoDbDiscoveryIT.class)
     );
 
     // then
