@@ -103,7 +103,7 @@ public class EC2Discovery implements AWSDiscovery {
               .build();
 
             massageInstanceTypeAndPublicIp(data, instance, mapper, region, RESOURCE_TYPE);
-            discoverBackupJobs(arn, region, data, clientCreator);
+            discoverBackupJobs(arn, region, data, clientCreator, logger);
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
           })));
     } catch (SdkServiceException | SdkClientException ex) {

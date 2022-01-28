@@ -15,6 +15,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
 
@@ -31,7 +32,7 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
   private static final String CF_EC2_TEMPLATE_PATH = "/template/ec2-template.yml";
   private final EC2Discovery ec2Discovery = new EC2Discovery() {
     // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
-    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
     }
   };
 
