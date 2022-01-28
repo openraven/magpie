@@ -59,7 +59,7 @@ public class BackupUtils {
           throw ex;
         }
 
-        logger.info("Couldn't list backup jobs for {}, retrying {} more times", arn, retries);
+        logger.warn("Couldn't list backup jobs for {}, retrying {} more times", arn, retries);
       }
     }
     return List.of();
