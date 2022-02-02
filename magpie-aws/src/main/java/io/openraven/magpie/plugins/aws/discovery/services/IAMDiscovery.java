@@ -52,7 +52,6 @@ import software.amazon.awssdk.services.iam.model.ListMfaDevicesResponse;
 import software.amazon.awssdk.services.iam.model.ListPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListPolicyVersionsRequest;
 import software.amazon.awssdk.services.iam.model.ListRolePoliciesRequest;
-import software.amazon.awssdk.services.iam.model.ListRolesRequest;
 import software.amazon.awssdk.services.iam.model.ListUserPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.Policy;
 import software.amazon.awssdk.services.iam.model.PolicyScopeType;
