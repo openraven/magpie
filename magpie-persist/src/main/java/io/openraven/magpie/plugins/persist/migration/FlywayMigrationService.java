@@ -28,7 +28,7 @@ public class FlywayMigrationService {
   public static void initiateDBMigration(PersistConfig config) {
     String databaseUrl = format(POSTGRES_URL, config.getHostname(), config.getPort(), config.getDatabaseName());
     Flyway
-      .configure()
+      .configure().schemas("magpie")
       .dataSource(databaseUrl, config.getUser(), config.getPassword())
       .load()
       .migrate();
