@@ -49,10 +49,12 @@ import software.amazon.awssdk.services.iam.model.ListGroupPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListGroupsForUserRequest;
 import software.amazon.awssdk.services.iam.model.ListMfaDevicesRequest;
 import software.amazon.awssdk.services.iam.model.ListMfaDevicesResponse;
+import software.amazon.awssdk.services.iam.model.ListPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListPolicyVersionsRequest;
 import software.amazon.awssdk.services.iam.model.ListRolePoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListUserPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.Policy;
+import software.amazon.awssdk.services.iam.model.PolicyScopeType;
 import software.amazon.awssdk.services.iam.model.PolicyVersion;
 import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.iam.model.Tag;
@@ -173,7 +175,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = IamPolicy.RESOURCE_TYPE;
 
     try {
-      client.listPoliciesPaginator().policies().forEach(policy -> {
+      client.listPoliciesPaginator(ListPoliciesRequest.builder().scope(PolicyScopeType.LOCAL).build()).policies().forEach(policy -> {
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, policy.arn())
           .withResourceName(policy.policyName())
           .withResourceId(policy.policyId())
