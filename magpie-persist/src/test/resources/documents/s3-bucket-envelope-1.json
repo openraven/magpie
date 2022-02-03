@@ -1,18 +1,18 @@
 {
   "documentId": "9SfEAIv8OOSH4tHPMwYXsQ",
-  "arn": "arn:aws:s3:::config-723176279592-ap-northeast-1",
-  "resourceName": "config-723176279592-ap-northeast-1",
-  "resourceId": "config-723176279592-ap-northeast-1",
+  "arn": "arn:aws:s3:::config-723176279544-ap-northeast-1",
+  "resourceName": "config-723176279544-ap-northeast-1",
+  "resourceId": "config-723176279544-ap-northeast-1",
   "resourceType": "AWS::S3::Bucket",
   "awsRegion": "ap-northeast-1",
-  "awsAccountId": "723176279592",
+  "awsAccountId": "723176279544",
   "createdIso": "2020-09-23T16:45:26Z",
   "updatedIso": "2022-02-03T22:13:01.530754Z",
   "discoverySessionId": null,
   "maxSizeInBytes": null,
   "sizeInBytes": null,
   "configuration": {
-    "name": "config-723176279592-ap-northeast-1",
+    "name": "config-723176279544-ap-northeast-1",
     "creationDate": "2020-09-23T16:45:26Z"
   },
   "supplementaryConfiguration": {
@@ -20,13 +20,13 @@
     "bucketWebsiteConfiguration": null,
     "bucketACLConfiguration": {
       "owner": {
-        "displayName": "aws-root+jason",
+        "displayName": "aws-test-acct",
         "id": "4ada5691d8d2e32a414c5384a8fba85a529d7299ce78f4bfe097a311667ad2cf"
       },
       "grants": [
         {
           "grantee": {
-            "displayName": "aws-root+jason",
+            "displayName": "aws-test-acct",
             "emailAddress": null,
             "id": "4ada5691d8d2e32a414c5384a8fba85a529d7299ce78f4bfe097a311667ad2cf",
             "type": "CanonicalUser",
@@ -63,7 +63,7 @@
             "Service": "config.amazonaws.com"
           },
           "Action": "s3:GetBucketAcl",
-          "Resource": "arn:aws:s3:::config-723176279592-ap-northeast-1"
+          "Resource": "arn:aws:s3:::config-723176279544-ap-northeast-1"
         },
         {
           "Sid": "AWSConfigBucketDelivery",
@@ -72,7 +72,7 @@
             "Service": "config.amazonaws.com"
           },
           "Action": "s3:PutObject",
-          "Resource": "arn:aws:s3:::config-723176279592-ap-northeast-1/AWSLogs/723176279592/*"
+          "Resource": "arn:aws:s3:::config-723176279544-ap-northeast-1/AWSLogs/723176279544/*"
         }
       ]
     },
