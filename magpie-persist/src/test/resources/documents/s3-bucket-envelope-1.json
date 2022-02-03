@@ -1,0 +1,89 @@
+{
+  "documentId": "9SfEAIv8OOSH4tHPMwYXsQ",
+  "arn": "arn:aws:s3:::config-723176279592-ap-northeast-1",
+  "resourceName": "config-723176279592-ap-northeast-1",
+  "resourceId": "config-723176279592-ap-northeast-1",
+  "resourceType": "AWS::S3::Bucket",
+  "awsRegion": "ap-northeast-1",
+  "awsAccountId": "723176279592",
+  "createdIso": "2020-09-23T16:45:26Z",
+  "updatedIso": "2022-02-03T22:13:01.530754Z",
+  "discoverySessionId": null,
+  "maxSizeInBytes": null,
+  "sizeInBytes": null,
+  "configuration": {
+    "name": "config-723176279592-ap-northeast-1",
+    "creationDate": "2020-09-23T16:45:26Z"
+  },
+  "supplementaryConfiguration": {
+    "serverSideEncryptionConfiguration": null,
+    "bucketWebsiteConfiguration": null,
+    "bucketACLConfiguration": {
+      "owner": {
+        "displayName": "aws-root+jason",
+        "id": "4ada5691d8d2e32a414c5384a8fba85a529d7299ce78f4bfe097a311667ad2cf"
+      },
+      "grants": [
+        {
+          "grantee": {
+            "displayName": "aws-root+jason",
+            "emailAddress": null,
+            "id": "4ada5691d8d2e32a414c5384a8fba85a529d7299ce78f4bfe097a311667ad2cf",
+            "type": "CanonicalUser",
+            "uri": null
+          },
+          "permission": "FULL_CONTROL"
+        }
+      ]
+    },
+    "publicAccessBlockConfiguration": null,
+    "bucketLoggingConfiguration": {
+      "loggingEnabled": null
+    },
+    "metricsConfiguration": {
+      "id": null,
+      "filter": null
+    },
+    "notificationConfiguration": {
+      "topicConfigurations": null,
+      "queueConfigurations": null,
+      "lambdaFunctionConfigurations": null,
+      "eventBridgeConfiguration": null
+    },
+    "bucketPolicyStatus": {
+      "isPublic": false
+    },
+    "bucketPolicy": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "AWSConfigBucketPermissionsCheck",
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "config.amazonaws.com"
+          },
+          "Action": "s3:GetBucketAcl",
+          "Resource": "arn:aws:s3:::config-723176279592-ap-northeast-1"
+        },
+        {
+          "Sid": "AWSConfigBucketDelivery",
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "config.amazonaws.com"
+          },
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3:::config-723176279592-ap-northeast-1/AWSLogs/723176279592/*"
+        }
+      ]
+    },
+    "bucketObjectLockConfiguration": null,
+    "replicationConfiguration": null,
+    "isPublicByACL": false,
+    "isPublic": false,
+    "isPublicByPolicy": false,
+    "versioning": {
+      "status": null,
+      "mfaDelete": null
+    }
+  }
+}

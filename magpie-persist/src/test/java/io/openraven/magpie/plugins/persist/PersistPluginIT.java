@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.accounts.IamGroup;
+import io.openraven.magpie.data.aws.s3.S3Bucket;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
 import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
 import javax.persistence.EntityManager;
+import java.time.Instant;
 import java.util.List;
 
 import static io.openraven.magpie.plugins.persist.TestUtils.getResourceAsString;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class PersistPluginIT {
 
   private static final String SELECT_GROUP_TABLE = "SELECT a FROM IamGroup a";
+  private static final String SELECT_S3_BUCKET = "SELECT b FROM S3Bucket b";
 
   private static EntityManager entityManager;
   private static PersistConfig persistConfig;
@@ -62,6 +65,38 @@ class PersistPluginIT {
     entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
 
     persistPlugin.init(persistConfig, LoggerFactory.getLogger(PersistPluginIT.class));
+  }
+
+  @Test
+  void testPersistingS3BucketUpsert() throws Exception {
+    // given
+    ObjectNode contents = objectMapper.readValue(
+      getResourceAsString("/documents/s3-bucket-envelope-1.json"), ObjectNode.class);
+    MagpieEnvelope magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(contents);
+
+    // when
+    persistPlugin.accept(magpieEnvelope);
+
+    // then
+    var buckets = queryS3bucket();
+    assertEquals(1, buckets.size());
+    assertEquals(Instant.parse("2022-02-03T22:13:01.530754Z"),buckets.get(0).updatedIso);
+
+    // given again
+    contents = objectMapper.readValue(
+      getResourceAsString("/documents/s3-bucket-envelope-2.json"), ObjectNode.class);
+    magpieEnvelope = new MagpieEnvelope();
+    magpieEnvelope.setContents(contents);
+
+    // when again
+    persistPlugin.accept(magpieEnvelope);  // Verify the upsert
+
+
+    // then
+    buckets = queryS3bucket();
+    assertEquals(1, buckets.size());
+    assertEquals(Instant.parse("2022-02-03T22:14:01.530754Z"),buckets.get(0).updatedIso);
   }
 
   @Test
@@ -135,6 +170,12 @@ class PersistPluginIT {
   private List<IamGroup> queryIamGroupTable() {
     entityManager.clear();
     return entityManager.createQuery(SELECT_GROUP_TABLE, IamGroup.class)
+      .getResultList();
+  }
+
+  private List<S3Bucket> queryS3bucket() {
+    entityManager.clear();
+    return entityManager.createQuery(SELECT_S3_BUCKET, S3Bucket.class)
       .getResultList();
   }
 }
