@@ -28,7 +28,7 @@
     <jackson.version>2.12.1</jackson.version>
     <testcontainer.version>1.16.2</testcontainer.version>
     <magpie-data.vesrion>0.1.8</magpie-data.vesrion>
-    <magpie-api.vesrion>0.4.1</magpie-api.vesrion>
+    <magpie-api.vesrion>0.4.3</magpie-api.vesrion>
     <aws.sdk.version>2.17.93</aws.sdk.version>
   </properties>
 
