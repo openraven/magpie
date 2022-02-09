@@ -362,22 +362,22 @@ public class S3Discovery implements AWSDiscovery {
 
   private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
     List<Dimension> dimensions = new ArrayList<>();
-    dimensions.add(Dimension.builder().name("bucketName").value(resource.name()).build());
-    dimensions.add(Dimension.builder().name("storageType").value("StandardStorage").build());
+    dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+    dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());
     Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
       AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
 
     List<Dimension> dimensions2 = new ArrayList<>();
-    dimensions2.add(Dimension.builder().name("bucketName").value(resource.name()).build());
-    dimensions2.add(Dimension.builder().name("storageType").value("AllStorageTypes").build());
+    dimensions2.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+    dimensions2.add(Dimension.builder().name("StorageType").value("AllStorageTypes").build());
     Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
       AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2, clientCreator);
 
     if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration,
         Map.of("size",
-          Map.of("bucketSizeBytes", bucketSizeBytes.getValue0(),
-            "numberOfObjects", numberOfObjects.getValue0())));
+          Map.of("BucketSizeBytes", bucketSizeBytes.getValue0(),
+            "NumberOfObjects", numberOfObjects.getValue0())));
 
       data.sizeInBytes = bucketSizeBytes.getValue0();
     }
