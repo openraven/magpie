@@ -1,5 +1,5 @@
 SELECT arn
-  FROM magpie.extendawsiamusercredentialreport
+  FROM magpie.awsusercredentialreport
   WHERE resourcetype = 'AWS::IAM::CredentialsReport'
     AND ((configuration->>'access_key_1_active' = 'true'
           AND (configuration->>'access_key_1_last_used_date' IS NULL
