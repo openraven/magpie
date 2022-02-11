@@ -69,8 +69,8 @@ create table magpie.awsstoragegatewaygateway () INHERITS (magpie.aws);
 create table magpie.awswatchalarm () INHERITS (magpie.aws);
 create table magpie.awswatchdashboard () INHERITS (magpie.aws);
 create table magpie.awswatchlogsmetricfilter () INHERITS (magpie.aws);
-create table magpie.extendawsiamusercredentialreport () INHERITS (magpie.aws);
-create table magpie.extendawsssminstance () INHERITS (magpie.aws);
+create table magpie.awsusercredentialreport () INHERITS (magpie.aws);
+create table magpie.awsssminstance () INHERITS (magpie.aws);
 create table magpie.orvnshadowaccount () INHERITS (magpie.aws);
 create table magpie.awswatchloggroup () INHERITS (magpie.aws);
 
