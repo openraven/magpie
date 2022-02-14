@@ -80,7 +80,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
   }
 
   private void discoverDataLakeSettings(LakeFormationClient client, MagpieAwsResource data) {
-    final String keyname = "dataLakeSettings";
+    final String keyname = "DataLakeSettings";
 
     getAwsResponse(
       () -> client.getDataLakeSettings(GetDataLakeSettingsRequest.builder().build()).dataLakeSettings(),
@@ -90,7 +90,7 @@ public class LakeFormationDiscovery implements AWSDiscovery {
   }
 
   private void discoverPermissions(LakeFormationClient client, ResourceInfo resource, MagpieAwsResource data) {
-    final String keyname = "permissions";
+    final String keyname = "Permissions";
 
     getAwsResponse(
       () -> client.getEffectivePermissionsForPath(GetEffectivePermissionsForPathRequest.builder().resourceArn(resource.resourceArn()).build()).permissions(),
