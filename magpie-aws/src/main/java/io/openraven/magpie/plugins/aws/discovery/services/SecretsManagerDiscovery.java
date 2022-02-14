@@ -16,11 +16,14 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.secretsmanager.SecretsManagerSecret;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -28,11 +31,17 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.iam.model.GetGroupPolicyRequest;
+import software.amazon.awssdk.services.iam.model.ListGroupPoliciesRequest;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.DescribeSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
 
 import java.util.List;
+import java.util.Map;
+
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class SecretsManagerDiscovery implements AWSDiscovery {
 
@@ -67,10 +76,24 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
               .withAwsRegion(region.toString())
               .build();
 
+            discoverSecrets(data, client);
+
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":secret"), data.toJsonNode()));
           }));
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  public void discoverSecrets(MagpieAwsResource data, SecretsManagerClient client) {
+    final String keyname = "SecretList";
+
+    getAwsResponse(
+      () -> client.listSecrets(ListSecretsRequest.builder().build()),
+      (resp) -> data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration,
+        Map.of(keyname, resp)),
+      (noresp) -> data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration,
+        Map.of(keyname, noresp))
+    );
   }
 }
