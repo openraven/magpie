@@ -64,6 +64,7 @@ plugins:
     config:
       hostname: localhost
       port: 5432
-      databaseName: db_name
-      user: postgres
-      password: postgres
+      schema: magpie
+      databaseName: magpie
+      user: magpie
+      password: magpie
