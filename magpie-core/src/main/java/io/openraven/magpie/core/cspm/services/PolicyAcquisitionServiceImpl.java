@@ -8,6 +8,7 @@ import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.PolicyMetadata;
 import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.core.cspm.model.Policy;
+import io.openraven.magpie.plugins.persist.PersistConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -22,13 +23,18 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
+
+  private static final String SQL_SCHEMA_TOKEN = "${magpie_schema}";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAcquisitionServiceImpl.class);
   private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
   private PolicyConfig policyConfig;
+  private MagpieConfig config;
 
   @Override
   public void init(MagpieConfig config) {
     policyConfig = config.getPolicies();
+    this.config = config;
 
     policyConfig.getRepositories()
       .stream()
@@ -66,12 +72,18 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
   private List<Rule> loadRules(String rulesDirectory, List<String> ruleFileNames) {
     List<Rule> rules = new ArrayList<>();
+    final var persistConfig = config.getPlugins().get("magpie.persist");
+    final var schema = ((PersistConfig)persistConfig.getConfig()).getSchema();
 
     for (String ruleFileName : ruleFileNames) {
       try {
         File ruleFile = new File(rulesDirectory + "/" + ruleFileName);
         Rule yamlRule = YAML_MAPPER.readValue(ruleFile, Rule.class);
+
+        // Loading post-processing.  Update the file name and modify the sql to replace the SQL schema placeholder
         yamlRule.setFileName(ruleFileName);
+        yamlRule.setSql(yamlRule.getSql().replaceAll(SQL_SCHEMA_TOKEN, schema));
+
         rules.add(yamlRule);
         LOGGER.info("Successfully loaded rule {}", yamlRule.getRuleId());
       } catch (IOException yamlIOException) {
