@@ -236,7 +236,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverACLS(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "bucketACLConfiguration";
+    final String keyname = "BucketACLConfiguration";
     getAwsResponse(
       () -> client.getBucketAcl(GetBucketAclRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -246,7 +246,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverEncryption(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "serverSideEncryptionConfiguration";
+    final String keyname = "ServerSideEncryptionConfiguration";
     getAwsResponse(
       () -> client.getBucketEncryption(GetBucketEncryptionRequest.builder().bucket(resource.name()).build()).serverSideEncryptionConfiguration(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -255,7 +255,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverVersioning(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "versioning";
+    final String keyname = "Versioning";
     getAwsResponse(
       () -> client.getBucketVersioning(GetBucketVersioningRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -264,7 +264,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverHosting(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "bucketWebsiteConfiguration";
+    final String keyname = "BucketWebsiteConfiguration";
     getAwsResponse(
       () -> client.getBucketWebsite(GetBucketWebsiteRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -274,7 +274,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverObjectLockConfiguration(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "bucketObjectLockConfiguration";
+    final String keyname = "BucketObjectLockConfiguration";
     getAwsResponse(
       () -> client.getObjectLockConfiguration(GetObjectLockConfigurationRequest.builder().bucket(resource.name()).build()).objectLockConfiguration(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -284,7 +284,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverLogging(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "bucketLoggingConfiguration";
+    final String keyname = "BucketLoggingConfiguration";
     getAwsResponse(
       () -> client.getBucketLogging(GetBucketLoggingRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -294,7 +294,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverMetrics(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "metricsConfiguration";
+    final String keyname = "MetricsConfiguration";
     getAwsResponse(
       () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().bucket(resource.name()).build()).metricsConfiguration(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -304,7 +304,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverNotifications(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "notificationConfiguration";
+    final String keyname = "NotificationConfiguration";
     getAwsResponse(
       () -> client.getBucketNotificationConfiguration(GetBucketNotificationConfigurationRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -314,7 +314,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverPublicAccess(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "publicAccessBlockConfiguration";
+    final String keyname = "PublicAccessBlockConfiguration";
     getAwsResponse(
       () -> client.getPublicAccessBlock(GetPublicAccessBlockRequest.builder().bucket(resource.name()).build()).publicAccessBlockConfiguration(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -324,14 +324,14 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverBucketPolicy(S3Client client, Bucket resource, MagpieAwsResource data, ObjectMapper mapper) {
-    final String keyname = "bucketPolicyStatus";
+    final String keyname = "BucketPolicyStatus";
     getAwsResponse(
       () -> client.getBucketPolicyStatus(GetBucketPolicyStatusRequest.builder().bucket(resource.name()).build()).policyStatus(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
 
-    final String keyname2 = "bucketPolicy";
+    final String keyname2 = "BucketPolicy";
     getAwsResponse(
       () -> client.getBucketPolicy(GetBucketPolicyRequest.builder().bucket(resource.name()).build()).policy(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, parsePolicyDocument(mapper, resp))),
@@ -340,7 +340,7 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverReplication(S3Client client, Bucket resource, MagpieAwsResource data) {
-    final String keyname = "replicationConfiguration";
+    final String keyname = "ReplicationConfiguration";
     getAwsResponse(
       () -> client.getBucketReplication(GetBucketReplicationRequest.builder().bucket(resource.name()).build()).replicationConfiguration(),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),

@@ -92,7 +92,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverJobs(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "jobs";
+    final String keyname = "ListJobs";
 
     getAwsResponse(
       () -> client.listJobsPaginator(ListJobsRequest.builder().vaultName(resource.vaultName()).build()).jobList()
@@ -105,7 +105,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverMultipartUploads(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "multipartUploads";
+    final String keyname = "MultipartUploads";
 
     getAwsResponse(
       () -> client.listMultipartUploadsPaginator(ListMultipartUploadsRequest.builder().vaultName(resource.vaultName()).build()).uploadsList()
@@ -118,7 +118,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccessPolicy(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "accessPolicy";
+    final String keyname = "AccessPolicy";
 
     getAwsResponse(
       () -> client.getVaultAccessPolicy(GetVaultAccessPolicyRequest.builder().vaultName(resource.vaultName()).build()),
@@ -128,7 +128,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverVaultNotifications(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "vaultNotifications";
+    final String keyname = "Notifications";
 
     getAwsResponse(
       () -> client.getVaultNotifications(GetVaultNotificationsRequest.builder().vaultName(resource.vaultName()).build()),
@@ -138,7 +138,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverVaultLock(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "vaultLock";
+    final String keyname = "VaultLock";
 
     getAwsResponse(
       () -> client.getVaultLock(GetVaultLockRequest.builder().vaultName(resource.vaultName()).build()),
@@ -148,7 +148,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(GlacierClient client, DescribeVaultOutput resource, MagpieAwsResource data) {
-    final String keyname = "tags";
+    final String keyname = "Tags";
 
     getAwsResponse(
       () -> client.listTagsForVault(ListTagsForVaultRequest.builder().vaultName(resource.vaultName()).build()).tags(),

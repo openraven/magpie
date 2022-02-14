@@ -87,7 +87,7 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverFunctionEventInvokeConfigs(LambdaClient client, FunctionConfiguration resource, MagpieAwsResource data) {
-    final String keyname = "functionEventInvokeConfigs";
+    final String keyname = "EventInvokeConfigs";
     getAwsResponse(
       () -> client.listFunctionEventInvokeConfigsPaginator(ListFunctionEventInvokeConfigsRequest.builder().functionName(resource.functionName()).build()).functionEventInvokeConfigs()
         .stream()
@@ -99,7 +99,7 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverEventSourceMapping(LambdaClient client, FunctionConfiguration resource, MagpieAwsResource data) {
-    final String keyname = "eventSourceMapping";
+    final String keyname = "EventSourceMapping";
     getAwsResponse(
       () -> client.listEventSourceMappingsPaginator(ListEventSourceMappingsRequest.builder().functionName(resource.functionName()).build()).eventSourceMappings()
         .stream()
@@ -111,7 +111,7 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverFunctionInvokeConfig(LambdaClient client, FunctionConfiguration resource, MagpieAwsResource data) {
-    final String keyname = "functionInvokeConfig";
+    final String keyname = "FunctionInvokeConfig";
     getAwsResponse(
       () -> client.getFunctionEventInvokeConfig(GetFunctionEventInvokeConfigRequest.builder().functionName(resource.functionName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -120,7 +120,7 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverFunction(LambdaClient client, FunctionConfiguration resource, MagpieAwsResource data) {
-    final String keyname = "function";
+    final String keyname = "Function";
     getAwsResponse(
       () -> client.getFunction(GetFunctionRequest.builder().functionName(resource.functionName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
@@ -129,7 +129,7 @@ public class LambdaDiscovery implements AWSDiscovery {
   }
 
   private void discoverAccessPolicy(LambdaClient client, FunctionConfiguration resource, MagpieAwsResource data) {
-    final String keyname = "accessPolicy";
+    final String keyname = "AccessPolicy";
     getAwsResponse(
       () -> client.getPolicy(GetPolicyRequest.builder().functionName(resource.functionName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),

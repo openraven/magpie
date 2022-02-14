@@ -92,9 +92,9 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
 
     if (volumeBytesUsed.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration, Map.of(
-        "bytesUsedForCache", volumeBytesUsed.getValue0(),
-        "databaseMemoryUsagePercentage", DatabaseMemoryUsagePercentage.getValue0(),
-        "databaseMaxSize", (long) (volumeBytesUsed.getValue0() / (DatabaseMemoryUsagePercentage.getValue0() / 100))));
+        "BytesUsedForCache", volumeBytesUsed.getValue0(),
+        "DatabaseMemoryUsagePercentage", DatabaseMemoryUsagePercentage.getValue0(),
+        "DatabaseMaxSize", (long) (volumeBytesUsed.getValue0() / (DatabaseMemoryUsagePercentage.getValue0() / 100))));
     }
   }
 }

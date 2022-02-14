@@ -82,7 +82,7 @@ public class Route53Discovery implements AWSDiscovery {
   }
 
   private void discoverRecordSets(Route53Client client, HostedZone resource, MagpieAwsResource data) {
-    final String keyname = "recordSets";
+    final String keyname = "RecordSets";
 
     getAwsResponse(
       () -> client.listResourceRecordSetsPaginator(ListResourceRecordSetsRequest.builder().hostedZoneId(resource.id()).build()).resourceRecordSets()
@@ -95,7 +95,7 @@ public class Route53Discovery implements AWSDiscovery {
   }
 
   private void discoverTrafficPolicyInstances(Route53Client client, HostedZone resource, MagpieAwsResource data) {
-    final String keyname = "trafficPolicyInstances";
+    final String keyname = "TrafficPolicyInstances";
 
     getAwsResponse(
       () -> client.listTrafficPolicyInstancesByHostedZone(ListTrafficPolicyInstancesByHostedZoneRequest.builder().hostedZoneId(resource.id()).build()).trafficPolicyInstances(),
