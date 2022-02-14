@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS magpie.aws(
+CREATE TABLE IF NOT EXISTS aws(
     documentid TEXT primary key not null,
     arn TEXT,
     resourcename TEXT,
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS magpie.aws(
     supplementaryconfiguration JSONB,
     discoverymeta JSONB
 );
-CREATE INDEX IF NOT EXISTS aws_resource_type ON magpie.aws (resourcetype);
+CREATE INDEX IF NOT EXISTS aws_resource_type ON aws (resourcetype);
 
-CREATE TABLE IF NOT EXISTS magpie.gcp (
+CREATE TABLE IF NOT EXISTS gcp (
     documentid TEXT primary key not null,
     assetid TEXT,
     resourcename TEXT,
@@ -33,4 +33,4 @@ CREATE TABLE IF NOT EXISTS magpie.gcp (
     supplementaryconfiguration JSONB,
     discoverymeta JSONB
 );
-CREATE INDEX IF NOT EXISTS gcp_resource_type ON magpie.gcp (resourcetype);
+CREATE INDEX IF NOT EXISTS gcp_resource_type ON gcp (resourcetype);

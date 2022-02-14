@@ -18,6 +18,7 @@ package io.openraven.magpie.plugins.persist.migration;
 
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
 
 import static java.lang.String.format;
 
@@ -27,8 +28,14 @@ public class FlywayMigrationService {
 
   public static void initiateDBMigration(PersistConfig config) {
     String databaseUrl = format(POSTGRES_URL, config.getHostname(), config.getPort(), config.getDatabaseName());
+
+    final var schema = config.getSchema();
+    if (schema == null || schema.isEmpty()) {
+      throw new IllegalArgumentException("persist configuration cannot have a null or empty schema value");
+    }
+
     Flyway
-      .configure().schemas("magpie")
+      .configure().schemas(schema)
       .dataSource(databaseUrl, config.getUser(), config.getPassword())
       .load()
       .migrate();

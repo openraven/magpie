@@ -20,10 +20,20 @@ package io.openraven.magpie.plugins.persist;
 public class PersistConfig {
   private String hostname;
   private String port;
+  private String schema = "magpie";
   private String databaseName;
   private String user;
   private String password;
   private boolean migrateDB = true;
+
+
+  public String getSchema() {
+    return schema;
+  }
+
+  public void setSchema(String schema) {
+    this.schema = schema;
+  }
 
   public String getHostname() { return hostname;}
   public void setHostname(String hostname) {
