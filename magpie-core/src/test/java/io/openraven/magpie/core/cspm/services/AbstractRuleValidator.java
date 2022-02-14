@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class AbstractRuleValidator {
 
+  private static final String DEFAULT_SCHEMA = "magpie_it";
   private static final String DEFAULT_SECURITY_RULES_REPO = "https://github.com/openraven/security-rules.git";
   private static final String REPOSITORY_PROPERTY = "repository";
   private static final PolicyAcquisitionServiceImpl policyAcquisitionService = new PolicyAcquisitionServiceImpl();
@@ -63,6 +64,7 @@ public abstract class AbstractRuleValidator {
   private static void persistenceSetup(JdbcDatabaseContainer jdbcDatabaseContainer) {
     PersistConfig persistConfig = new PersistConfig();
     persistConfig.setHostname("localhost");
+    persistConfig.setSchema(DEFAULT_SCHEMA);
     persistConfig.setDatabaseName(jdbcDatabaseContainer.getDatabaseName());
     persistConfig.setPort(String.valueOf(jdbcDatabaseContainer.getFirstMappedPort()));
     persistConfig.setUser(jdbcDatabaseContainer.getUsername());
@@ -77,7 +79,12 @@ public abstract class AbstractRuleValidator {
     PolicyConfig policyConfig = new PolicyConfig();
     policyConfig.setRepositories(List.of(getSecurityRulesRepository()));
 
+    var persistConfig = new PluginConfig();
+    var cfg = new PersistConfig();
+    cfg.setSchema(DEFAULT_SCHEMA);
+    persistConfig.setConfig(cfg);
     MagpieConfig magpieConfig = new MagpieConfig();
+    magpieConfig.getPlugins().put("magpie.persist", persistConfig);
     magpieConfig.setPolicies(policyConfig);
 
     policyAcquisitionService.init(magpieConfig);
@@ -123,7 +130,7 @@ public abstract class AbstractRuleValidator {
 
   @AfterEach
   protected void cleanupAssets() {
-    assetsRepo.executeNative("DELETE FROM magpie.aws; DELETE FROM magpie.gcp");
+    assetsRepo.executeNative("DELETE FROM "  + DEFAULT_SCHEMA + ".aws; DELETE FROM " + DEFAULT_SCHEMA +  ".gcp");
   }
 
   protected static String getTargetProjectDirectoryPath() {

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
-  private static final String SQL_SCHEMA_TOKEN = "${magpie_schema}";
+  private static final String SQL_SCHEMA_TOKEN = "\\$\\{magpie_schema\\}";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAcquisitionServiceImpl.class);
   private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
@@ -82,7 +82,10 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
         // Loading post-processing.  Update the file name and modify the sql to replace the SQL schema placeholder
         yamlRule.setFileName(ruleFileName);
-        yamlRule.setSql(yamlRule.getSql().replaceAll(SQL_SCHEMA_TOKEN, schema));
+        if (yamlRule.getSql()!= null) {
+          yamlRule.setSql(yamlRule.getSql().replaceAll(SQL_SCHEMA_TOKEN, schema));
+        }
+
 
         rules.add(yamlRule);
         LOGGER.info("Successfully loaded rule {}", yamlRule.getRuleId());

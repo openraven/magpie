@@ -37,9 +37,11 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
   private final Logger logger = LoggerFactory.getLogger(HibernateAssetsRepoImpl.class);
 
   private final EntityManager entityManager;
+  private final PersistConfig persistConfig;
 
   public HibernateAssetsRepoImpl(PersistConfig persistConfig) {
     this.entityManager = PostgresPersistenceProvider.getEntityManager(persistConfig);
+    this.persistConfig = persistConfig;
   }
 
   public void upsert(Resource resource) {
@@ -91,8 +93,8 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
     // injection. So we must account for both AWS and GCP in our logic.
     final var provider = resourceType.split(":")[0].toLowerCase(Locale.ROOT);
     final var query = "aws".equals(provider) ?
-      "SELECT COUNT(*) FROM magpie.aws WHERE resourcetype = :resourceType":
-      "SELECT COUNT(*) FROM magpie.gcp WHERE resourcetype = :resourceType";
+      "SELECT COUNT(*) FROM " + persistConfig.getSchema() + ".aws WHERE resourcetype = :resourceType":
+      "SELECT COUNT(*) FROM "  + persistConfig.getSchema() + ".gcp WHERE resourcetype = :resourceType";
 
     BigInteger val = (BigInteger)entityManager.createNativeQuery(query)
       .setParameter("resourceType", resourceType)
