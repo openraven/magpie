@@ -130,6 +130,6 @@ public class CassandraDiscovery implements AWSDiscovery {
     String tablesQuery = String.format("SELECT keyspace_name, table_name, status FROM system_schema_mcs.tables WHERE keyspace_name = '%s'", keyspaceName);
     session.execute(tablesQuery).forEach(table -> tables.add(table.getString("table_name")));
 
-    AWSUtils.update(data.supplementaryConfiguration, Map.of("tables", tables));
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("Tables", tables));
   }
 }
