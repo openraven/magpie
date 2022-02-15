@@ -86,7 +86,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   private void discoverSuggesters(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
-    final String keyname = "suggesters";
+    final String keyname = "Suggesters";
 
     getAwsResponse(
       () -> cloudSearchClient.describeSuggesters(DescribeSuggestersRequest.builder().domainName(domainStatus.domainName()).build()),
@@ -96,7 +96,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   private void discoverServiceAccessPolicies(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
-    final String keyname = "serviceAccessPolicies";
+    final String keyname = "ServiceAccessPolicies";
 
     getAwsResponse(
       () -> cloudSearchClient.describeServiceAccessPolicies(DescribeServiceAccessPoliciesRequest.builder().domainName(domainStatus.domainName()).build()),
@@ -106,7 +106,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   private void discoverIndexFields(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
-    final String keyname = "indexFields";
+    final String keyname = "IndexFields";
 
     getAwsResponse(
       () -> cloudSearchClient.describeIndexFields(DescribeIndexFieldsRequest.builder().domainName(domainStatus.domainName()).build()),
@@ -116,7 +116,7 @@ public class CloudSearchDiscovery implements AWSDiscovery {
   }
 
   private void discoverExpressions(CloudSearchClient cloudSearchClient, DomainStatus domainStatus, MagpieAwsResource data) {
-    final String keyname = "expressions";
+    final String keyname = "Expressions";
 
     getAwsResponse(
       () -> cloudSearchClient.describeExpressions(DescribeExpressionsRequest.builder().domainName(domainStatus.domainName()).build()),
@@ -140,8 +140,8 @@ public class CloudSearchDiscovery implements AWSDiscovery {
 
     if (IndexUtilization.getValue0() != null && SearchableDocuments.getValue0() != null) {
       AWSUtils.update(data.supplementaryConfiguration, Map.of(
-        "indexUtilization", IndexUtilization.getValue0(),
-        "searchableDocuments", SearchableDocuments.getValue0()));
+        "IndexUtilization", IndexUtilization.getValue0(),
+        "SearchableDocuments", SearchableDocuments.getValue0()));
     }
   }
 }
