@@ -106,6 +106,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
             .withAwsRegion(region.toString())
             .build();
 
+          discoverSize(data);
           discoverContinuousBackups(client, table, data);
           discoverTags(client, table, data, mapper);
           discoverBackupJobs(table.tableArn(), region, data, clientCreator, logger);
@@ -117,24 +118,27 @@ public class DynamoDbDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieAwsResource data) {
-    final String keyname = "continuousBackups";
+  private void discoverSize(MagpieAwsResource data) {
+    // pull the relevant node(s) from the payload object. See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html
+    JsonNode sizeNode = data.configuration.at("/tableSizeBytes");
+    if (!sizeNode.isMissingNode()) {
+      data.sizeInBytes = sizeNode.asLong();
+    }
+  }
 
+  private void discoverContinuousBackups(DynamoDbClient client, TableDescription resource, MagpieAwsResource data) {
     getAwsResponse(
       () -> client.describeContinuousBackups(builder -> builder.tableName(resource.tableName())),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
   }
 
   private void discoverTags(DynamoDbClient client, TableDescription resource, MagpieAwsResource data, ObjectMapper mapper) {
-    final String keyname = "tags";
-
     getAwsResponse(
       () -> client.listTagsOfResource(ListTagsOfResourceRequest.builder().resourceArn(resource.tableArn()).build()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, mapper.convertValue(
-        resp.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class))),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.tags, mapper.convertValue(resp.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)),
+      (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
 }

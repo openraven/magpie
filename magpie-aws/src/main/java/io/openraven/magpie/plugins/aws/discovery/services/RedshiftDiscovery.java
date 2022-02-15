@@ -85,12 +85,10 @@ public class RedshiftDiscovery implements AWSDiscovery {
   }
 
   private void discoverStorage(RedshiftClient client, MagpieAwsResource data) {
-    final String keyname = "storage";
-
     getAwsResponse(
       client::describeStorage,
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
   }
 
@@ -104,8 +102,8 @@ public class RedshiftDiscovery implements AWSDiscovery {
       AWSUtils.update(data.supplementaryConfiguration, Map.of("PercentageDiskSpaceUsed", percentageDiskSpaceUsed.getValue0()));
 
       // pull the relevant node(s) from the payload object. See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/redshift.html
-      JsonNode storageCapacityNode = data.supplementaryConfiguration.at("storage/totalProvisionedStorageInMegaBytes");
-      JsonNode usedPctNode = data.supplementaryConfiguration.at("storage/PercentageDiskSpaceUsed");
+      JsonNode storageCapacityNode = data.supplementaryConfiguration.at("/totalProvisionedStorageInMegaBytes");
+      JsonNode usedPctNode = data.supplementaryConfiguration.at("/PercentageDiskSpaceUsed");
       if (!storageCapacityNode.isMissingNode() && !usedPctNode.isMissingNode()) {
         long capacityAsBytes = storageCapacityNode.asLong() * 1049000L;
         @SuppressWarnings("WrapperTypeMayBePrimitive")

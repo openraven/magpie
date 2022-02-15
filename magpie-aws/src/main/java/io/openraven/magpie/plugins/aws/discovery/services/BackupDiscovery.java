@@ -90,7 +90,7 @@ public class BackupDiscovery implements AWSDiscovery {
         var backupSelectionResp = client.getBackupSelection(GetBackupSelectionRequest.builder().backupPlanId(backupSelection.backupPlanId()).selectionId(backupSelection.selectionId()).build());
         backupSelections.add(backupSelectionResp.toBuilder());
       }));
-      AWSUtils.update(data.supplementaryConfiguration, Map.of("selections", backupSelections));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("backupSelections", backupSelections));
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
     }));
 
@@ -122,7 +122,7 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
-    final String keyname = "tags";
+    final String keyname = "Tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())
         .stream()
@@ -134,7 +134,7 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieAwsResource data, ObjectMapper mapper) {
-    final String keyname = "tags";
+    final String keyname = "Tags";
     getAwsResponse(
       () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupPlanArn()).build())
         .stream()

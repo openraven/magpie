@@ -82,7 +82,7 @@ public class AthenaDiscovery implements AWSDiscovery {
   }
 
   private void discoverDatabases(AthenaClient client, DataCatalogSummary resource, MagpieAwsResource data) {
-    final String keyname = "databases";
+    final String keyname = "Databases";
 
     getAwsResponse(
       () -> client.listDatabasesPaginator(ListDatabasesRequest.builder().catalogName(resource.catalogName()).build())

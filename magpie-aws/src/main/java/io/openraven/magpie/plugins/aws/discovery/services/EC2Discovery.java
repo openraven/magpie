@@ -44,6 +44,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeNetworkInterfacesReques
 import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
+import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Snapshot;
@@ -67,7 +68,7 @@ public class EC2Discovery implements AWSDiscovery {
       discoverEIPs(mapper, session, client, region, emitter, account);
       discoverSecurityGroups(mapper, session, client, region, emitter, account);
       discoverVolumes(mapper, session, client, region, emitter, account);
-      discoverSnapshots(mapper, session, client, region, emitter, account);
+      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
       discoverNetworkAcls(mapper, session, client, region, emitter, account);
       discoverNetworkInterfaces(mapper, session, client, region, emitter, account);
     }
@@ -206,7 +207,7 @@ public class EC2Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+  private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, Logger logger) {
     final String RESOURCE_TYPE = EC2Snapshot.RESOURCE_TYPE;
 
     try {
@@ -227,6 +228,8 @@ public class EC2Discovery implements AWSDiscovery {
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
         });
+    } catch (Ec2Exception ex) {
+      logger.info("Error discovering snapshots", ex);
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
