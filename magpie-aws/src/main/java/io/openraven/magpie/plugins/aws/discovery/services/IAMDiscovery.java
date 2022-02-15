@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.data.aws.accounts.IamAccount;
+import io.openraven.magpie.data.aws.accounts.AccountResource;
 import io.openraven.magpie.data.aws.accounts.IamCredentialsReport;
 import io.openraven.magpie.data.aws.accounts.IamGroup;
 import io.openraven.magpie.data.aws.accounts.IamPolicy;
@@ -376,7 +376,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   protected void discoverAccounts(IamClient client, ObjectMapper mapper, Session session, Region region, Emitter
     emitter, String account) {
-    final String RESOURCE_TYPE = IamAccount.RESOURCE_TYPE;
+    final String RESOURCE_TYPE = AccountResource.RESOURCE_TYPE;
 
     try {
       var accountSummary = client.getAccountSummary();
