@@ -17,14 +17,16 @@
 package io.openraven.magpie.plugins.aws.discovery;
 
 import java.util.List;
+import java.util.Optional;
 
 public class AWSDiscoveryConfig {
   private List<String> assumedRoles = List.of();
   private List<String> services = List.of();
   private List<String> regions = List.of();
   private List<String> ignoredRegions = List.of();
+  private String externalId;
 
-  /**
+    /**
    * @return
    * The list of AWS services to enabled for discovery.  By default this list is empty, meaning that all services will
    * be scanned.  If this list is not empty, the only the listed services will be scanned.
@@ -60,4 +62,12 @@ public class AWSDiscoveryConfig {
   public void setAssumedRoles(List<String> assumedRoles) {
     this.assumedRoles = assumedRoles;
   }
+
+  public Optional<String> getExternalId() {
+      return Optional.ofNullable(this.externalId);
+  }
+
+  public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
 }

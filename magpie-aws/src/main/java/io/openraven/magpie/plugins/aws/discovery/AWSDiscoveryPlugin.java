@@ -108,7 +108,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
         enabledPlugins.forEach(plugin -> {
           final var regions = getRegionsForDiscovery(plugin);
           regions.forEach(region -> {
-            final var clientCreator = ClientCreators.assumeRoleCreator(region, role);
+            final var clientCreator = ClientCreators.assumeRoleCreator(region, role, config.getExternalId());
             try (final var client = clientCreator.apply(StsClient.builder()).build()) {
               final String account = client.getCallerIdentity().account();
               logger.info("Discovering cross-account {}:{} using role {}", plugin.service(), region,   role);
