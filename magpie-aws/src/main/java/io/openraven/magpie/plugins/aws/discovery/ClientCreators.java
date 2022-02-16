@@ -12,6 +12,9 @@ import java.util.UUID;
 
 public class ClientCreators {
 
+  //This client does not need to be recreated on every request.
+  public static final StsClient stsClient = StsClient.create();
+
   public static MagpieAWSClientCreator assumeRoleCreator(final Region region, final String roleArn, Optional<String> externalIdOptional) {
     return new MagpieAWSClientCreator(){
       @Override
@@ -25,7 +28,7 @@ public class ClientCreators {
                   .roleSessionName(UUID.randomUUID().toString());
           externalIdOptional.ifPresent(assumeRoleRequestBuilder::externalId);
           final var provider = StsAssumeRoleCredentialsProvider.builder()
-          .stsClient(StsClient.create())
+          .stsClient(stsClient)
           .refreshRequest(
             assumeRoleRequestBuilder
               .build()

@@ -17,7 +17,6 @@
 package io.openraven.magpie.plugins.aws.discovery;
 
 import java.util.List;
-import java.util.Optional;
 
 public class AWSDiscoveryConfig {
   private List<String> assumedRoles = List.of();
@@ -63,8 +62,8 @@ public class AWSDiscoveryConfig {
     this.assumedRoles = assumedRoles;
   }
 
-  public Optional<String> getExternalId() {
-      return Optional.ofNullable(this.externalId);
+  public String getExternalId() {
+      return this.externalId;
   }
 
   public void setExternalId(String externalId) {
