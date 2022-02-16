@@ -7,11 +7,12 @@ import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 import java.net.URI;
+import java.util.Optional;
 import java.util.UUID;
 
 public class ClientCreators {
 
-  public static MagpieAWSClientCreator assumeRoleCreator(final Region region, final String roleArn) {
+  public static MagpieAWSClientCreator assumeRoleCreator(final Region region, final String roleArn, Optional<String> externalIdOptional) {
     return new MagpieAWSClientCreator(){
       @Override
       public <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> BuilderT apply(AwsClientBuilder<BuilderT, ClientT> builder) {
@@ -19,12 +20,14 @@ public class ClientCreators {
         if (magpieAwsEndpoint != null) {
           builder.endpointOverride(URI.create(magpieAwsEndpoint));
         }
-        final var provider = StsAssumeRoleCredentialsProvider.builder()
+          final AssumeRoleRequest.Builder assumeRoleRequestBuilder = AssumeRoleRequest.builder()
+                  .roleArn(roleArn)
+                  .roleSessionName(UUID.randomUUID().toString());
+          externalIdOptional.ifPresent(assumeRoleRequestBuilder::externalId);
+          final var provider = StsAssumeRoleCredentialsProvider.builder()
           .stsClient(StsClient.create())
           .refreshRequest(
-            AssumeRoleRequest.builder()
-              .roleArn(roleArn)
-              .roleSessionName(UUID.randomUUID().toString())
+            assumeRoleRequestBuilder
               .build()
           ).build();
         return builder.credentialsProvider(provider).region(region);
