@@ -120,8 +120,8 @@ public class IAMDiscovery implements AWSDiscovery {
         discoverAttachedPolicies(client, data, role);
         discoverInlinePolicies(mapper, client, data, role);
 
-        AWSUtils.update(data.tags, Map.of("tags", mapper.convertValue(role.tags().stream().collect(
-          Collectors.toMap(Tag::key, Tag::value)), JsonNode.class)));
+        AWSUtils.update(data.tags, mapper.convertValue(role.tags().stream().collect(
+          Collectors.toMap(Tag::key, Tag::value)), JsonNode.class));
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data.toJsonNode()));
       });
