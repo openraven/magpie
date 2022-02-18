@@ -19,7 +19,7 @@ import static org.mockito.Mockito.atLeast;
 @ExtendWith(MockitoExtension.class)
 public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
 
-  private final String allias = "AccountTestAllias";
+  private final String alias = "AccountTestAllias";
   private final String mfaDeviceName = "testdevice";
   private final IAMDiscovery iamDiscovery = new IAMDiscovery();
 
@@ -32,7 +32,7 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   @Test
   public void testAccountDiscovery() {
     // given
-    createAccountAlliases(allias);
+    createAccountAliases(alias);
     createPasswordPolicy();
 
     // when
@@ -67,8 +67,8 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private void assertAccount(MagpieEnvelope envelope) {
     var contents = envelopeCapture.getValue().getContents();
     assertNotNull(contents.get("documentId").asText());
-    assertEquals("AWS::Account", contents.get("arn").asText());
-    assertEquals(allias, contents.get("resourceName").asText());
+    assertEquals("arn:aws:organizations::account", contents.get("arn").asText());
+    assertEquals(alias, contents.get("resourceName").asText());
     assertEquals("AWS::Account", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
@@ -88,8 +88,8 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
     );
   }
 
-  private void createAccountAlliases(String allias) {
-    IAMCLIENT.createAccountAlias(req -> req.accountAlias(allias));
+  private void createAccountAliases(String alias) {
+    IAMCLIENT.createAccountAlias(req -> req.accountAlias(alias));
   }
 
 

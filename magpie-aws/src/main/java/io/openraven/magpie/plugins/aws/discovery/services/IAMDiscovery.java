@@ -69,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
+import static java.lang.String.format;
 
 public class IAMDiscovery implements AWSDiscovery {
 
@@ -380,7 +381,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
     try {
       var accountSummary = client.getAccountSummary();
-      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, RESOURCE_TYPE)
+      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, format("arn:aws:organizations::%s", account))
         .withResourceType(RESOURCE_TYPE)
         .withAccountId(account)
         .withAwsRegion(region.toString())
