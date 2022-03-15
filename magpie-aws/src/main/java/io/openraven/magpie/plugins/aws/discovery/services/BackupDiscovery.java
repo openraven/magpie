@@ -75,7 +75,7 @@ public class BackupDiscovery implements AWSDiscovery {
     client.listBackupPlansPaginator().forEach(resp -> resp.backupPlansList().forEach(backupPlan -> {
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupPlan.backupPlanArn())
         .withResourceName(backupPlan.backupPlanName())
-        .withResourceId(backupPlan.backupPlanName())
+        .withResourceId(backupPlan.backupPlanId())
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(mapper.valueToTree(backupPlan.toBuilder()))
         .withCreatedIso(backupPlan.creationDate())
