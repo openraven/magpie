@@ -34,6 +34,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupPlansListMember;
 import software.amazon.awssdk.services.backup.model.BackupVaultListMember;
+import software.amazon.awssdk.services.backup.model.GetBackupPlanRequest;
 import software.amazon.awssdk.services.backup.model.GetBackupSelectionRequest;
 import software.amazon.awssdk.services.backup.model.GetBackupSelectionResponse;
 import software.amazon.awssdk.services.backup.model.ListBackupSelectionsRequest;
@@ -73,6 +74,7 @@ public class BackupDiscovery implements AWSDiscovery {
     final var RESOURCE_TYPE = BackupPlan.RESOURCE_TYPE;
 
     client.listBackupPlansPaginator().forEach(resp -> resp.backupPlansList().forEach(backupPlan -> {
+
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupPlan.backupPlanArn())
         .withResourceName(backupPlan.backupPlanName())
         .withResourceId(backupPlan.backupPlanId())
@@ -106,12 +108,12 @@ public class BackupDiscovery implements AWSDiscovery {
               .withResourceName(backupVault.backupVaultName())
               .withResourceId(backupVault.backupVaultName())
               .withResourceType(RESOURCE_TYPE)
-              .withConfiguration(mapper.valueToTree(backupVault.toBuilder()))
               .withCreatedIso(backupVault.creationDate())
               .withAccountId(account)
               .withAwsRegion(region.toString())
               .build();
 
+            getPlanDetails(client, data);
             discoverTags(client, backupVault, data);
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
@@ -119,6 +121,14 @@ public class BackupDiscovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private void getPlanDetails(BackupClient client, MagpieAwsResource data) {
+    getAwsResponse(
+      () -> client.getBackupPlan(GetBackupPlanRequest.builder().backupPlanId(data.resourceId).build()),
+      (resp) -> AWSUtils.update(data.configuration, resp),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
   }
 
   private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
