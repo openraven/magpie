@@ -16,6 +16,12 @@
 
 package io.openraven.magpie.core.layers;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.MagpieEnvelope;
@@ -30,6 +36,17 @@ import java.util.Collection;
 public class OriginLayer implements Layer {
 
   private final static Logger LOGGER = LoggerFactory.getLogger(OriginLayer.class);
+  private final static ObjectMapper MAPPER = new ObjectMapper();
+  private final static ObjectMapper ANNOTATED_MAPPER = new ObjectMapper()
+    .registerModule(new JavaTimeModule())
+    .findAndRegisterModules()
+    .activateDefaultTyping(
+      LaissezFaireSubTypeValidator.instance,
+      ObjectMapper.DefaultTyping.NON_FINAL,
+      JsonTypeInfo.As.WRAPPER_ARRAY
+    )
+    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
   private final Session session;
   private final Collection<OriginPlugin> plugins;
@@ -62,6 +79,10 @@ public class OriginLayer implements Layer {
 
   private void emit(MagpieEnvelope env) {
     try {
+      // Rather than set these values on *each* service discovery, we set it centrally here.
+      env.getContents().set("discoveryMeta", ANNOTATED_MAPPER.valueToTree(session));
+      env.getContents().set("discoverySessionId", MAPPER.valueToTree(session.getId()));
+      env.setSession(session);
       queue.add(env);
     } catch (FifoException e) {
       LOGGER.warn("Emitter exception", e);
