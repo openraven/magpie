@@ -88,7 +88,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
     try {
       String nextToken = null;
       do {
-        var resp = client.describeLogGroups(DescribeLogGroupsRequest.builder().build());
+        var resp = client.describeLogGroups(DescribeLogGroupsRequest.builder().nextToken(nextToken).build());
         nextToken = resp.nextToken();
 
         resp.logGroups().forEach(logGroup -> {
