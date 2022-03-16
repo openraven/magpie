@@ -127,7 +127,7 @@ public class BackupDiscovery implements AWSDiscovery {
     getAwsResponse(
       () -> client.getBackupPlan(GetBackupPlanRequest.builder().backupPlanId(data.resourceId).build()),
       (resp) -> AWSUtils.update(data.configuration, resp),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
   }
 
