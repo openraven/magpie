@@ -19,6 +19,8 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
@@ -88,7 +90,7 @@ public class EC2Discovery implements AWSDiscovery {
       discoverEIPs(mapper, session, client, region, emitter, account);
       discoverSecurityGroups(mapper, session, client, region, emitter, account, logger);
       discoverVolumes(mapper, session, client, region, emitter, account);
-      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
+//      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
       discoverNetworkAcls(mapper, session, client, region, emitter, account);
     }
   }
@@ -193,6 +195,13 @@ public class EC2Discovery implements AWSDiscovery {
             .withAwsRegion(region.toString())
             .withTags(getConvertedTags(securityGroup.tags(), mapper))
             .build();
+
+          // PROD-2758 requires that ipPermissionEgress[].ipRanges be string values.  For unknown reasons we're bringing
+          // back objects at that location instead.  Pull out the cidrIP value from the object and place it under
+          var egressNode = data.configuration.get("ipPermissionsEgress");
+          if (egressNode instanceof ArrayNode) {
+            updateIpPermissionsEgressNode((ArrayNode)egressNode, mapper);
+          }
 
           List<EC2SecurityGroup.OwnerCIDR> cidrOwnersList =
             StreamSupport.stream(data.configuration.get("ipPermissions").spliterator(), false)
@@ -487,5 +496,19 @@ public class EC2Discovery implements AWSDiscovery {
     }
 
     return result;
+  }
+
+  // Fix for https://openraven.atlassian.net/browse/PROD-2758,
+  // ipPermissionsEgress[]->ipRanges[] needs to be a CIDR string, not an object containing the string. Unsure how
+  // this changed between AWSDiscovery and Magpie
+  private void updateIpPermissionsEgressNode(ArrayNode ipPermissionsEgressNode, ObjectMapper mapper) {
+    for (int i = 0 ; i < ipPermissionsEgressNode.size() ; i++) {
+      ObjectNode objNode = (ObjectNode)ipPermissionsEgressNode.get(i);
+      ArrayNode ipRangesNode = (ArrayNode) objNode.get("ipRanges");
+      for (int j = 0 ; j < ipRangesNode.size() ; j++) {
+        var child = (ObjectNode) ipRangesNode.get(j);
+        ipRangesNode.set(j, mapper.valueToTree(child.get("cidrIp")));
+      }
+    }
   }
 }
