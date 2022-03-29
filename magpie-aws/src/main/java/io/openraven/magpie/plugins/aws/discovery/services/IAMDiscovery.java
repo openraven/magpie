@@ -209,9 +209,11 @@ public class IAMDiscovery implements AWSDiscovery {
             .policyArn(policy.arn())
             .versionId(policyVersion.versionId())
             .build()),
-          (innerResp) -> AWSUtils.update(data.supplementaryConfiguration,
-            Map.of("attachedPolicies",
-              Map.of("policyDocument", parsePolicyDocument(mapper, innerResp.policyVersion().document())))),
+          (innerResp) -> {
+            AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", parsePolicyDocument(mapper, innerResp.policyVersion().document()))));
+            // PROD-2760 requires the encoded policy doc under this key
+            AWSUtils.update(data.supplementaryConfiguration, Map.of("policyDocument", innerResp.policyVersion().document()));
+        },
           (innerNoresp) -> {
           }
         ));
