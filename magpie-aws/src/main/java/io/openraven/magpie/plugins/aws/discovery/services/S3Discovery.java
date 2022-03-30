@@ -32,11 +32,17 @@ import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.DimensionFilter;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.Metric;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Bucket;
 import software.amazon.awssdk.services.s3.model.GetBucketAclRequest;
@@ -63,6 +69,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -361,6 +368,28 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+
+    // get the different bucket size metrics available
+    List<String> storageTypeDimensions = AWSUtils.getS3AvailableSizeMetrics(data.awsRegion, data.resourceName, clientCreator);
+
+    List<Map<String, Long>> storageTypeMap = new ArrayList<>();
+
+    // run through all the available metrics and make cloudwatch calls to get bucket size
+    for (String storageType : storageTypeDimensions) {
+      List<Dimension> dimensions = new ArrayList<>();
+      dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+      dimensions.add(Dimension.builder().name("StorageType").value(storageType).build());
+      Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
+        AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
+
+      // we are leaving it boxed due to the insertion into the Map below
+      final Long bucketSizeMetric = bucketSizeBytes.getValue0();
+      if (bucketSizeMetric != null) {
+        storageTypeMap.add(Map.of(storageType, bucketSizeMetric));
+      }
+    }
+    data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration,  Map.of("storageTypeSizeInBytes", storageTypeMap));
+
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
     dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());
