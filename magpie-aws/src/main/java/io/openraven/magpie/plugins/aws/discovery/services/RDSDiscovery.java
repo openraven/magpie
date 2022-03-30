@@ -142,11 +142,10 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   private void discoverInstanceDbClusters(RdsClient client, DBInstance resource, MagpieAwsResource data) {
-    final String keyname = "dbClusters";
     getAwsResponse(
       () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
   }
 
