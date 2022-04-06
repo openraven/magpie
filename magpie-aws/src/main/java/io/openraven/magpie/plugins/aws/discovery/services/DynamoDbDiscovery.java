@@ -76,6 +76,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         .forEach(globalTable -> {
           var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, globalTable.globalTableArn())
             .withResourceName(globalTable.globalTableName())
+            .withResourceId(globalTable.globalTableName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(globalTable.toBuilder()))
             .withAccountId(account)
