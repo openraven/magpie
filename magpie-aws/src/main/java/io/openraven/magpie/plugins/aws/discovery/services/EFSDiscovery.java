@@ -32,9 +32,11 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.efs.EfsClient;
 import software.amazon.awssdk.services.efs.model.DescribeMountTargetsRequest;
 import software.amazon.awssdk.services.efs.model.FileSystemDescription;
+import software.amazon.awssdk.services.efs.model.Tag;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
@@ -68,6 +70,7 @@ public class EFSDiscovery implements AWSDiscovery {
           .withSizeInBytes(fileSystem.sizeInBytes().value())
           .withAccountId(fileSystem.ownerId())
           .withAwsRegion(region.toString())
+          .withTags(mapper.valueToTree(fileSystem.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value))))
           .build();
 
         discoverMountTargets(client, fileSystem, data);
@@ -81,12 +84,10 @@ public class EFSDiscovery implements AWSDiscovery {
   }
 
   private void discoverMountTargets(EfsClient client, FileSystemDescription resource, MagpieAwsResource data) {
-    final String keyname = "mountTargets";
-
     getAwsResponse(
       () -> client.describeMountTargets(DescribeMountTargetsRequest.builder().fileSystemId(resource.fileSystemId()).build()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      (resp) -> AWSUtils.update(data.configuration, resp),
+      (noresp) -> AWSUtils.update(data.configuration, noresp)
     );
   }
 }
