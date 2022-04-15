@@ -35,7 +35,6 @@ import software.amazon.awssdk.services.efs.model.FileSystemDescription;
 import software.amazon.awssdk.services.efs.model.Tag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
