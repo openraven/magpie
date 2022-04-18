@@ -53,6 +53,8 @@ import software.amazon.awssdk.services.iam.model.ListPoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListPolicyVersionsRequest;
 import software.amazon.awssdk.services.iam.model.ListRolePoliciesRequest;
 import software.amazon.awssdk.services.iam.model.ListUserPoliciesRequest;
+import software.amazon.awssdk.services.iam.model.NoSuchEntityException;
+import software.amazon.awssdk.services.iam.model.PasswordPolicy;
 import software.amazon.awssdk.services.iam.model.Policy;
 import software.amazon.awssdk.services.iam.model.PolicyScopeType;
 import software.amazon.awssdk.services.iam.model.PolicyVersion;
@@ -304,7 +306,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
     AWSUtils.update(data.supplementaryConfiguration, Map.of("userPolicies", inlinePolicies));
   }
-
+  q
   private void discoverUserMFADevices(IamClient client, MagpieAwsResource data, User user) {
     String keyname = "mfaDevices";
 
@@ -387,10 +389,9 @@ public class IAMDiscovery implements AWSDiscovery {
         .withResourceType(RESOURCE_TYPE)
         .withAccountId(account)
         .withResourceId(account)
-//        .withAwsRegion(region.toString())
-        .withConfiguration(mapper.valueToTree(accountSummary.summaryMapAsStrings()))
         .build();
 
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("SummaryMap", accountSummary.summaryMapAsStrings()));
       discoverAccountAlias(client, data);
       discoverAccountPasswordPolicy(client, data);
       discoverVirtualMFADevices(client, data);
@@ -413,15 +414,20 @@ public class IAMDiscovery implements AWSDiscovery {
   private void discoverAccountPasswordPolicy(IamClient client, MagpieAwsResource data) {
     final String keyname = "PasswordPolicy";
 
-    getAwsResponse(
-      () -> client.getAccountPasswordPolicy().passwordPolicy(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
+    try {
+      getAwsResponse(
+        () -> client.getAccountPasswordPolicy().passwordPolicy(),
+        (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+        (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, PasswordPolicy.builder().build()))
+      );
+    } catch (NoSuchEntityException ex) {
+      AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, PasswordPolicy.builder().build()));
+    }
+
   }
 
   private void discoverVirtualMFADevices(IamClient client, MagpieAwsResource data) {
-    final String keyname = "virtualMFADevices";
+    final String keyname = "VirtualMFADevices";
 
     getAwsResponse(
       () -> client.listVirtualMFADevices().toBuilder(),
