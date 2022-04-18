@@ -386,7 +386,8 @@ public class IAMDiscovery implements AWSDiscovery {
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, format("arn:aws:organizations::%s", account))
         .withResourceType(RESOURCE_TYPE)
         .withAccountId(account)
-        .withAwsRegion(region.toString())
+        .withResourceId(account)
+//        .withAwsRegion(region.toString())
         .withConfiguration(mapper.valueToTree(accountSummary.summaryMapAsStrings()))
         .build();
 
