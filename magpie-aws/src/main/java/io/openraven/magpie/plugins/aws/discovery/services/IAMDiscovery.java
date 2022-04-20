@@ -306,7 +306,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
     AWSUtils.update(data.supplementaryConfiguration, Map.of("userPolicies", inlinePolicies));
   }
-  q
+
   private void discoverUserMFADevices(IamClient client, MagpieAwsResource data, User user) {
     String keyname = "mfaDevices";
 

@@ -73,7 +73,7 @@ public class BackupDiscovery implements AWSDiscovery {
   public void discoverPlans(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, BackupClient client) {
     final var RESOURCE_TYPE = BackupPlan.RESOURCE_TYPE;
 
-    client.listBackupPlansPaginator().forEach(resp -> resp.backupPlansList().forEach(backupPlan -> {
+    client.listBackupPlans().backupPlansList().forEach(backupPlan -> {
 
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupPlan.backupPlanArn())
         .withResourceName(backupPlan.backupPlanName())
@@ -85,6 +85,7 @@ public class BackupDiscovery implements AWSDiscovery {
         .withAwsRegion(region.toString())
         .build();
 
+      getPlanDetails(client, data);
       discoverTags(client, backupPlan, data, mapper);
 
       var backupSelections = new ArrayList<GetBackupSelectionResponse.Builder>();
@@ -94,15 +95,14 @@ public class BackupDiscovery implements AWSDiscovery {
       }));
       AWSUtils.update(data.supplementaryConfiguration, Map.of("backupSelections", backupSelections));
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
-    }));
+    });
 
   }
 
   public void discoverVaults(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, BackupClient client) {
     final var RESOURCE_TYPE = BackupVault.RESOURCE_TYPE;
     try {
-      client.listBackupVaultsPaginator().stream()
-        .forEach(backupVaultsResponse -> backupVaultsResponse.backupVaultList()
+      client.listBackupVaults().backupVaultList().stream()
           .forEach(backupVault -> {
             var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, backupVault.backupVaultArn())
               .withResourceName(backupVault.backupVaultName())
@@ -113,15 +113,29 @@ public class BackupDiscovery implements AWSDiscovery {
               .withAwsRegion(region.toString())
               .build();
 
-            getPlanDetails(client, data);
-            discoverTags(client, backupVault, data);
+            AWSUtils.update(data.configuration, backupVault);
+
+            discoverVaultTags(client, backupVault, data);
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":backupVault"), data.toJsonNode()));
-          }));
+          });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
+
+  private void discoverVaultTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
+    final String keyname = "Tags";
+    getAwsResponse(
+      () -> client.listTags(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build()),
+      (resp) -> data.supplementaryConfiguration = AWSUtils.update(
+        data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> data.supplementaryConfiguration = AWSUtils.update(
+        data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
+
+  }
+
 
   private void getPlanDetails(BackupClient client, MagpieAwsResource data) {
     getAwsResponse(
@@ -131,18 +145,18 @@ public class BackupDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
-    final String keyname = "Tags";
-    getAwsResponse(
-      () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())
-        .stream()
-        .map(ListTagsResponse::toBuilder)
-        .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
-  }
-
+//  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
+//    final String keyname = "Tags";
+//    getAwsResponse(
+//      () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())
+//        .stream()
+//        .map(ListTagsResponse::toBuilder)
+//        .collect(Collectors.toList()),
+//      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+//      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+//    );
+//  }
+//
   private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieAwsResource data, ObjectMapper mapper) {
     final String keyname = "Tags";
     getAwsResponse(
