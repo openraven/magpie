@@ -81,7 +81,8 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     new RedshiftDiscovery(),
     new Route53Discovery(),
     new KMSDiscovery(),
-    new VPCDiscovery());
+    new VPCDiscovery(),
+    new RegionDiscovery());
 
   private Logger logger;
   private AWSDiscoveryConfig config;
