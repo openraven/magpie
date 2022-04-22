@@ -76,6 +76,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
         .forEach(globalTable -> {
           var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, globalTable.globalTableArn())
             .withResourceName(globalTable.globalTableName())
+            .withResourceId(globalTable.globalTableName())
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(globalTable.toBuilder()))
             .withAccountId(account)
@@ -105,6 +106,10 @@ public class DynamoDbDiscovery implements AWSDiscovery {
             .withAccountId(account)
             .withAwsRegion(region.toString())
             .build();
+
+          // Workaround for PROD-2757.  Magpie defaults to date strings over milliseconds for dates, but we need
+          // to use millis for backwards compatibility
+          AWSUtils.update(data.configuration, Map.of("creationDateTime", table.creationDateTime().toEpochMilli()));
 
           discoverSize(data);
           discoverContinuousBackups(client, table, data);

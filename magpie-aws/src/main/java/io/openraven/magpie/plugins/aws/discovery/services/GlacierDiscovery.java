@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.fsx.model.Tag;
 import software.amazon.awssdk.services.glacier.GlacierClient;
 import software.amazon.awssdk.services.glacier.model.DescribeVaultOutput;
 import software.amazon.awssdk.services.glacier.model.GetVaultAccessPolicyRequest;
@@ -95,10 +96,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     final String keyname = "ListJobs";
 
     getAwsResponse(
-      () -> client.listJobsPaginator(ListJobsRequest.builder().vaultName(resource.vaultName()).build()).jobList()
-        .stream()
-        .map(GlacierJobDescription::toBuilder)
-        .collect(Collectors.toList()),
+      () -> client.listJobs(ListJobsRequest.builder().vaultName(resource.vaultName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
@@ -108,10 +106,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     final String keyname = "MultipartUploads";
 
     getAwsResponse(
-      () -> client.listMultipartUploadsPaginator(ListMultipartUploadsRequest.builder().vaultName(resource.vaultName()).build()).uploadsList()
-        .stream()
-        .map(UploadListElement::toBuilder)
-        .collect(Collectors.toList()),
+      () -> client.listMultipartUploads(ListMultipartUploadsRequest.builder().vaultName(resource.vaultName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
@@ -151,7 +146,7 @@ public class GlacierDiscovery implements AWSDiscovery {
     final String keyname = "Tags";
 
     getAwsResponse(
-      () -> client.listTagsForVault(ListTagsForVaultRequest.builder().vaultName(resource.vaultName()).build()).tags(),
+      () -> client.listTagsForVault(ListTagsForVaultRequest.builder().vaultName(resource.vaultName()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );

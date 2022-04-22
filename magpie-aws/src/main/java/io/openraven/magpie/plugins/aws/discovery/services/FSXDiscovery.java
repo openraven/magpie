@@ -31,10 +31,12 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.fsx.FSxClient;
 import software.amazon.awssdk.services.fsx.model.FileSystem;
+import software.amazon.awssdk.services.fsx.model.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getCloudwatchMetricMinimum;
 
@@ -66,6 +68,7 @@ public class FSXDiscovery implements AWSDiscovery {
           .withCreatedIso(fileSystem.creationTime())
           .withAccountId(account)
           .withAwsRegion(region.toString())
+          .withTags(mapper.valueToTree(fileSystem.tags().stream().collect(Collectors.toMap(Tag::key, Tag::value))))
           .build();
 
         discoverSize(fileSystem, data, region, logger, clientCreator);

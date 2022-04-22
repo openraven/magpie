@@ -361,6 +361,28 @@ public class S3Discovery implements AWSDiscovery {
   }
 
   private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+
+    // get the different bucket size metrics available
+    List<String> storageTypeDimensions = AWSUtils.getS3AvailableSizeMetrics(data.awsRegion, data.resourceName, clientCreator);
+
+    List<Map<String, Long>> storageTypeMap = new ArrayList<>();
+
+    // run through all the available metrics and make cloudwatch calls to get bucket size
+    for (String storageType : storageTypeDimensions) {
+      List<Dimension> dimensions = new ArrayList<>();
+      dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+      dimensions.add(Dimension.builder().name("StorageType").value(storageType).build());
+      Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
+        AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
+
+      // we are leaving it boxed due to the insertion into the Map below
+      final Long bucketSizeMetric = bucketSizeBytes.getValue0();
+      if (bucketSizeMetric != null) {
+        storageTypeMap.add(Map.of(storageType, bucketSizeMetric));
+      }
+    }
+    data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration,  Map.of("storageTypeSizeInBytes", storageTypeMap));
+
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
     dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());

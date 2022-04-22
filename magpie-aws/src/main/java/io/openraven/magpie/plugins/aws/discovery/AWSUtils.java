@@ -33,6 +33,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -193,6 +195,28 @@ public class AWSUtils {
         .dimensions(dimensions).build();
 
       return client.getMetricStatistics(request);
+    }
+  }
+
+  public static List<String> getS3AvailableSizeMetrics(String regionID, String bucketName, MagpieAWSClientCreator clientCreator) {
+
+    try (CloudWatchClient client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
+      List<String> availableMetrics = new ArrayList<>();
+      List<DimensionFilter> dimensions = Collections.singletonList(DimensionFilter.builder().name("BucketName").value(bucketName).build());
+
+      final var request = ListMetricsRequest.builder()
+        .namespace("AWS/S3")
+        .metricName("BucketSizeBytes")
+        .dimensions(dimensions)
+        .build();
+      ListMetricsResponse response = client.listMetrics(request);
+      response.metrics()
+        .forEach(metric ->
+          metric.dimensions().stream()
+            .filter(dimension -> "StorageType".equals(dimension.name()))
+            .map(Dimension::value)
+            .forEach(availableMetrics::add));
+      return availableMetrics;
     }
   }
 }
