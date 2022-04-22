@@ -145,18 +145,6 @@ public class BackupDiscovery implements AWSDiscovery {
     );
   }
 
-//  private void discoverTags(BackupClient client, BackupVaultListMember resource, MagpieAwsResource data) {
-//    final String keyname = "Tags";
-//    getAwsResponse(
-//      () -> client.listTagsPaginator(ListTagsRequest.builder().resourceArn(resource.backupVaultArn()).build())
-//        .stream()
-//        .map(ListTagsResponse::toBuilder)
-//        .collect(Collectors.toList()),
-//      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-//      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-//    );
-//  }
-//
   private void discoverTags(BackupClient client, BackupPlansListMember resource, MagpieAwsResource data, ObjectMapper mapper) {
     final String keyname = "Tags";
     getAwsResponse(

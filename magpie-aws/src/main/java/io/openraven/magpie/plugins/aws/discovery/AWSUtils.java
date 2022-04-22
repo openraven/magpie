@@ -210,13 +210,12 @@ public class AWSUtils {
         .dimensions(dimensions)
         .build();
       ListMetricsResponse response = client.listMetrics(request);
-      for (Metric metric : response.metrics()) {
-        for (Dimension dimension : metric.dimensions()) {
-          if ("StorageType".equals(dimension.name())) {
-            availableMetrics.add(dimension.value());
-          }
-        }
-      }
+      response.metrics()
+        .forEach(metric ->
+          metric.dimensions().stream()
+            .filter(dimension -> "StorageType".equals(dimension.name()))
+            .map(Dimension::value)
+            .forEach(availableMetrics::add));
       return availableMetrics;
     }
   }
