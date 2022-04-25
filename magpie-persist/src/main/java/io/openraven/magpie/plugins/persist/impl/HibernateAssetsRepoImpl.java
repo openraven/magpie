@@ -60,6 +60,22 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
     }
   }
 
+  public void upsert(List<Resource> resources) {
+    try {
+      entityManager.getTransaction().begin();
+
+      resources.forEach(entityManager::merge);
+
+      entityManager.flush();
+      entityManager.getTransaction().commit();
+      entityManager.clear();
+    } catch (Exception e) {
+      logger.error("Rolling back transaction failed due to: " + e.getMessage());
+      logger.debug("Details", e);
+      entityManager.getTransaction().rollback();
+    }
+  }
+
   @Override
   public void executeNative(String query) {
     try {
