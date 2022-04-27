@@ -1,5 +1,6 @@
 package io.openraven.magpie.core.cspm.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.openraven.magpie.core.config.MagpieConfig;
@@ -8,6 +9,7 @@ import io.openraven.magpie.core.cspm.model.PolicyContext;
 import io.openraven.magpie.core.cspm.model.PolicyMetadata;
 import io.openraven.magpie.core.cspm.model.Rule;
 import io.openraven.magpie.core.cspm.model.Policy;
+import io.openraven.magpie.core.plugins.PluginManager;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -63,17 +65,23 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
       .forEach(repository -> {
         String repositoryPath = getTargetProjectDirectoryPath(repository).toString();
 
-        var repositoryPolicies = loadPoliciesFromRepository(repositoryPath);
+        ArrayList<PolicyContext> repositoryPolicies = null;
+        try {
+          repositoryPolicies = loadPoliciesFromRepository(repositoryPath);
+        } catch (JsonProcessingException e) {
+          LOGGER.error("Couldn't process policies",e);
+        }
         policyContexts.addAll(repositoryPolicies);
       });
 
     return policyContexts;
   }
 
-  private List<Rule> loadRules(String rulesDirectory, List<String> ruleFileNames) {
+  private List<Rule> loadRules(String rulesDirectory, List<String> ruleFileNames) throws JsonProcessingException {
     List<Rule> rules = new ArrayList<>();
     final var persistConfig = config.getPlugins().get("magpie.persist");
-    final var schema = ((PersistConfig)persistConfig.getConfig()).getSchema();
+    final var conf = (PersistConfig)PluginManager.buildPluginConfig("PolicyService",PersistConfig.class, persistConfig.getConfig());
+    final var schema = conf.getSchema();
 
     for (String ruleFileName : ruleFileNames) {
       try {
@@ -97,7 +105,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return rules;
   }
 
-  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath) {
+  private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath) throws JsonProcessingException {
     File policiesDirectory = new File(repositoryPath + "/policies");
     File rulesDirectory = new File(repositoryPath + "/rules");
 
