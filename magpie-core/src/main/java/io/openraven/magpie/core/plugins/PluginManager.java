@@ -89,7 +89,7 @@ public class PluginManager {
     }
   }
 
-  private Object buildPluginConfig(String pluginId, Class<?> configType, Object config) throws JsonProcessingException {
+  public static Object buildPluginConfig(String pluginId, Class<?> configType, Object config) throws JsonProcessingException {
 
     if (configType == null || "Void".equals(configType.getSimpleName())) {
       return null;
