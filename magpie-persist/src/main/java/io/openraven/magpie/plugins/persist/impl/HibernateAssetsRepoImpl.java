@@ -20,6 +20,7 @@ import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
+import org.hibernate.Session;
 import org.hibernate.query.internal.NativeQueryImpl;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.slf4j.Logger;
@@ -62,9 +63,11 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
 
   public void upsert(List<Resource> resources) {
     try {
+
       entityManager.getTransaction().begin();
 
-      resources.forEach(entityManager::merge);
+      //using hibernate saveOrUpdate to improve batch performance
+      resources.forEach(r -> entityManager.unwrap(Session.class).saveOrUpdate(r));
 
       entityManager.flush();
       entityManager.getTransaction().commit();
