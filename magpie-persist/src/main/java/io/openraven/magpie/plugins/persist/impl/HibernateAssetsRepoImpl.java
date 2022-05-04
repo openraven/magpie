@@ -67,7 +67,7 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
       entityManager.getTransaction().begin();
 
       //using hibernate saveOrUpdate to improve batch performance
-      resources.forEach(r -> entityManager.unwrap(Session.class).saveOrUpdate(r));
+      resources.forEach(entityManager::merge);
 
       entityManager.flush();
       entityManager.getTransaction().commit();
