@@ -31,10 +31,6 @@ public class JdbcAssetsRepoImpl implements AssetsRepo {
   private Connection connection;
 
   public JdbcAssetsRepoImpl(PersistConfig persistConfig) {
-    getConnection(persistConfig);
-  }
-
-  private void getConnection(PersistConfig persistConfig) {
     try {
       Class.forName("org.postgresql.Driver");
       connection = DriverManager.getConnection("jdbc:postgresql://" + persistConfig.getHostname() + "/" + persistConfig.getDatabaseName(), persistConfig.getUser(), persistConfig.getPassword());
@@ -147,6 +143,7 @@ public class JdbcAssetsRepoImpl implements AssetsRepo {
     return fieldNameToValue;
   }
 
+  //todo these are probably too specific for Magpie, discuss solution if required to make the update query configurable
   private void populatePreparedStatement(Map<String, Object> fieldNameToValue, PreparedStatement preparedStatement) throws SQLException {
     preparedStatement.setString(1, String.valueOf(fieldNameToValue.get("documentId")));
     preparedStatement.setString(2, String.valueOf(fieldNameToValue.get("arn")));
