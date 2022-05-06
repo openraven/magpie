@@ -34,7 +34,9 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
   };
 
   private static final String TEST_RESOURCES_PROPERTY = "testResourcePath";
-  private static final String TEST_RESOURCES_SUBPATH = "/resources/tests";
+
+  //the top level resources is the maven resources dir
+  private static final String TEST_RESOURCES_SUBPATH = "/resources/resources/tests";
 
   @ParameterizedTest
   @MethodSource("getResourceFiles")
