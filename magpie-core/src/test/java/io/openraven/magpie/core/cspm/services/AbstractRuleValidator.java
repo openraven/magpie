@@ -137,6 +137,13 @@ public abstract class AbstractRuleValidator {
     return policyAcquisitionService.getTargetProjectDirectoryPath(getSecurityRulesRepository()).toString();
   }
 
+  /**
+   * If VM option 'repository' is set, this will be used as the
+   * security rules location, helpful for overriding the clone from Github.
+   * E.g using a local repo. e.g -Drepository="~/projects/security-rules"
+   *
+   * @return URL to the security rules repo or specified repo path
+   */
   private static String getSecurityRulesRepository() {
     String repository = System.getProperty(REPOSITORY_PROPERTY);
     if (repository == null) {
