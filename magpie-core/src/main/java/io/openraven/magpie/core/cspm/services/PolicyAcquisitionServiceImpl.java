@@ -106,8 +106,8 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
   }
 
   private ArrayList<PolicyContext> loadPoliciesFromRepository(String repositoryPath) throws JsonProcessingException {
-    File policiesDirectory = new File(repositoryPath + "/policies");
-    File rulesDirectory = new File(repositoryPath + "/rules");
+    File policiesDirectory = new File(repositoryPath + "/resources/policies");
+    File rulesDirectory = new File(repositoryPath + "/resources/rules");
 
     var policiesContexts = new ArrayList<PolicyContext>();
 
