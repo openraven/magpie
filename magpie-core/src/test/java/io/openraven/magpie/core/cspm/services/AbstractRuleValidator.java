@@ -22,6 +22,8 @@ import io.openraven.magpie.plugins.persist.PersistPlugin;
 import io.openraven.magpie.plugins.persist.impl.HibernateAssetsRepoImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.containers.JdbcDatabaseContainerProvider;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
 import java.util.Collection;
@@ -79,7 +81,7 @@ public abstract class AbstractRuleValidator {
     PolicyConfig policyConfig = new PolicyConfig();
     policyConfig.setRepositories(List.of(getSecurityRulesRepository()));
 
-    var persistConfig = new PluginConfig();
+    var persistConfig = new PluginConfig<PersistConfig>();
     var cfg = new PersistConfig();
     cfg.setSchema(DEFAULT_SCHEMA);
     persistConfig.setConfig(cfg);
@@ -97,11 +99,11 @@ public abstract class AbstractRuleValidator {
       .map(PolicyContext::getPolicy)
       .map(Policy::getRules)
       .flatMap(Collection::stream)
-      .collect(Collectors.toMap(Rule::getRuleId, Function.identity(), (ruleId1, ruleId2) -> ruleId1));
+      .collect(Collectors.toMap(Rule::getRefId, Function.identity(), (ruleId1, ruleId2) -> ruleId1));
   }
 
   protected static void populateAssetData(String assetsJson)  {
-    List<ObjectNode> resources = null;
+    List<ObjectNode> resources;
     try {
       resources = MAPPER.readValue(assetsJson, new TypeReference<List<ObjectNode>>(){});
     } catch (JsonProcessingException e) {

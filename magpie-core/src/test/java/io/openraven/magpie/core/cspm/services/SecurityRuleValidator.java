@@ -101,7 +101,7 @@ public class SecurityRuleValidator extends AbstractRuleValidator {
     analyzeRule(violations, ignoredRules, policy, rule);
 
     // All covered rules should be executed
-    assertEquals(0, ignoredRules.size(), () -> "Provided rule ignored: " + rule.getRuleId());
+    assertEquals(0, ignoredRules.size(), () -> "Provided rule ignored: " + rule.getRefId());
 
     return violations;
   }

@@ -1,4 +1,4 @@
-SELECT arn
+SELECT arn as assetid
   FROM magpie.awsusercredentialreport
   WHERE resourcetype = 'AWS::IAM::CredentialsReport'
     AND ((configuration->>'access_key_1_active' = 'true'
