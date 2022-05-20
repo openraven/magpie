@@ -1,4 +1,4 @@
-SELECT arn
+SELECT arn as assetid
   FROM magpie.awscloudtrail cloudtrail
   WHERE resourcetype = 'AWS::CloudTrail::Trail'
     AND NOT EXISTS

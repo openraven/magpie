@@ -22,11 +22,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
-  private static final String SQL_SCHEMA_TOKEN = "\\$\\{magpie_schema\\}";
+  private static final String SQL_SCHEMA_TOKEN = "\\$\\{magpie_schema}";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PolicyAcquisitionServiceImpl.class);
   private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
@@ -96,7 +95,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
 
 
         rules.add(yamlRule);
-        LOGGER.info("Successfully loaded rule {}", yamlRule.getRuleId());
+        LOGGER.info("Successfully loaded rule {}", yamlRule.getId());
       } catch (IOException yamlIOException) {
         LOGGER.error(yamlIOException.getMessage());
       }
@@ -116,10 +115,7 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
         var policy = loadPolicy(policyFile);
 
         if (policy != null) {
-          var policyRulesFiles = policy.getRules()
-            .stream()
-            .map(Rule::getId)
-            .collect(Collectors.toList());
+          var policyRulesFiles = new ArrayList<>(policy.getRuleIds());
 
           policy.setRules(loadRules(rulesDirectory.toString(), policyRulesFiles));
 
@@ -139,25 +135,11 @@ public class PolicyAcquisitionServiceImpl implements PolicyAcquisitionService {
     return policiesContexts;
   }
 
-  private ArrayList<Rule> getRulesFromRulesMap(Map<String, Rule> repositoryRulesMap, List<String> rulesIds) {
-    var rules = new ArrayList<Rule>();
-
-    rulesIds.forEach(rule -> {
-      if (repositoryRulesMap.containsKey(rule)) {
-        rules.add(repositoryRulesMap.get(rule));
-      } else {
-        LOGGER.error("Rule not found {}", rule);
-      }
-    });
-
-    return rules;
-  }
-
   private Policy loadPolicy(File file) {
     try {
       Policy policy = YAML_MAPPER.readValue(file, Policy.class);
 
-      LOGGER.info("Successfully loaded policy: {}", policy.getPolicyId());
+      LOGGER.info("Successfully loaded policy: {}", policy.getRefId());
 
       return policy;
     } catch (IOException yamlIOException) {

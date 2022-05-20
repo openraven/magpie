@@ -15,41 +15,44 @@
  */
 package io.openraven.magpie.core.cspm.model;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Policy {
-  private String id;
-  private String policyId;
-  private String policyName;
+
+  private UUID id;
+  private String refId;
+  private String name;
   private String cloudProvider;
   private String description;
-  private boolean enabled = true;
-  private List<Rule> rules = new ArrayList<>();
+  private boolean enabled;
+  private List<String> ruleIds;
+  private List<Rule> rules;
   private String version;
+  private boolean archived;
 
-  public String getId() {
+  public UUID getId() {
     return id;
   }
 
-  public void setId(String id) {
+  public void setId(UUID id) {
     this.id = id;
   }
 
-  public String getPolicyId() {
-    return policyId;
+  public String getRefId() {
+    return refId;
   }
 
-  public void setPolicyId(String policyId) {
-    this.policyId = policyId;
+  public void setRefId(String refId) {
+    this.refId = refId;
   }
 
-  public String getPolicyName() {
-    return policyName;
+  public String getName() {
+    return name;
   }
 
-  public void setPolicyName(String policyName) {
-    this.policyName = policyName;
+  public void setName(String name) {
+    this.name = name;
   }
 
   public String getCloudProvider() {
@@ -76,12 +79,12 @@ public class Policy {
     this.enabled = enabled;
   }
 
-  public List<Rule> getRules() {
-    return rules;
+  public List<String> getRuleIds() {
+    return ruleIds;
   }
 
-  public void setRules(List<Rule> rules) {
-    this.rules = rules;
+  public void setRuleIds(List<String> ruleIds) {
+    this.ruleIds = ruleIds;
   }
 
   public String getVersion() {
@@ -90,5 +93,21 @@ public class Policy {
 
   public void setVersion(String version) {
     this.version = version;
+  }
+
+  public boolean isArchived() {
+    return archived;
+  }
+
+  public void setArchived(boolean archived) {
+    this.archived = archived;
+  }
+
+  public List<Rule> getRules() {
+    return rules;
+  }
+
+  public void setRules(List<Rule> rules) {
+    this.rules = rules;
   }
 }

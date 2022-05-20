@@ -49,7 +49,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   }
 
   @Override
-  public ScanResults analyze(List<PolicyContext> policyContexts) throws Exception {
+  public ScanResults analyze(List<PolicyContext> policyContexts) {
     List<Violation> violations = new ArrayList<>();
     List<IgnoredRule> ignoredRules = new ArrayList<>();
     List<Policy> policies = new ArrayList<>();
@@ -66,19 +66,17 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                              List<Violation> policyViolations,
                              List<IgnoredRule> policyIgnoredRules) {
     if (!policy.isEnabled()) { // Not enabled
-      LOGGER.info("Policy '{}' disabled", policy.getPolicyName());
+      LOGGER.info("Policy '{}' disabled", policy.getName());
       return;
     }
 
     if (!cloudProviderAssetsAvailable(policy)) { // No cloud related assets
-      LOGGER.warn("No assets found for cloudProvider: {}, policy: {}", policy.getCloudProvider(), policy.getPolicyName());
+      LOGGER.warn("No assets found for cloudProvider: {}, policy: {}", policy.getCloudProvider(), policy.getName());
       return;
     }
 
-    LOGGER.info("Analyzing policy - {}", policy.getPolicyName());
-    policy.getRules().forEach(rule -> {
-      executeRule(policyViolations, policyIgnoredRules, policy, rule);
-    });
+    LOGGER.info("Analyzing policy - {}", policy.getName());
+    policy.getRules().forEach(rule -> executeRule(policyViolations, policyIgnoredRules, policy, rule));
   }
 
   private boolean cloudProviderAssetsAvailable(Policy policy) {
@@ -93,24 +91,24 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
                            Rule rule) {
     if (!rule.isEnabled()) {
       policyIgnoredRules.add(new IgnoredRule(policy, rule, DISABLED));
-      LOGGER.info("Rule '{}' disabled", rule.getRuleName());
+      LOGGER.info("Rule '{}' disabled", rule.getName());
       return;
     }
 
     if (rule.isManualControl()) {
       policyIgnoredRules.add(new IgnoredRule(policy, rule, MANUAL_CONTROL));
-      LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getRuleName());
+      LOGGER.info("Rule not analyzed (manually controlled) - {}", rule.getName());
       return;
     }
 
     var missingAssets = checkForMissingAssets(rule.getSql());
     if (!missingAssets.isEmpty()) { // Missing assets found
       policyIgnoredRules.add(new IgnoredRule(policy, rule, MISSING_ASSET));
-      LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getRuleName());
+      LOGGER.info("Missing assets for analyzing the rule, ignoring. [assets={}, rule={}]", missingAssets, rule.getName());
       return;
     }
 
-    LOGGER.info("Analyzing rule - {}", rule.getRuleName());
+    LOGGER.info("Analyzing rule - {}", rule.getName());
     LocalDateTime evaluatedAt = LocalDateTime.now();
 
     List<Map<String, Object>> results = assetsRepo.queryNative(rule.getSql());
@@ -129,7 +127,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
       Violation violation = new Violation();
       violation.setPolicy(policy);
       violation.setRule(rule);
-      violation.setAssetId(result.get(policy.getCloudProvider().toLowerCase(Locale.ROOT).equals("aws") ? "arn" : "assetid").toString()); // Assume Rules should always return this type of alias
+      violation.setAssetId(result.get("assetid").toString()); // Assume Rules should always return this type of alias
       violation.setInfo(rule.getDescription());
       violation.setError(evalErr.toString());
       violation.setEvaluatedAt(evaluatedAt);
@@ -185,7 +183,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
             dict.keySet().forEach(k -> map.put(k.toString(), dict.get(k)));
             results.add(map);
           } else {
-            LOGGER.warn("{} returned an invalid value, found {} but expected a dictionary", rule.getRuleName(), item.getClass().getName());
+            LOGGER.warn("{} returned an invalid value, found {} but expected a dictionary", rule.getName(), item.getClass().getName());
           }
         });
       } else {

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.UUID;
 
 import static io.openraven.magpie.core.cspm.analysis.IgnoredRule.IgnoredReason.DISABLED;
 import static java.util.stream.Collectors.groupingBy;
@@ -44,6 +45,9 @@ class PolicyAnalyzerServiceIT {
 
   // Tested class
   private final PolicyAnalyzerServiceImpl policyAnalyzerService = new PolicyAnalyzerServiceImpl();
+
+  private static final String POLICY_UUID = "567a208e-dc8f-40a0-a7bb-ca91b786bead";
+  private static final String RULE_UUID = "fd7f5a7a-53f1-d9a3-9684-fe860d9de223";
 
   private static AssetsRepo assetsRepo;
 
@@ -86,7 +90,7 @@ class PolicyAnalyzerServiceIT {
     // given
     String policyName = "disabled-policy";
     when(policy.isEnabled()).thenReturn(false);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
@@ -106,7 +110,7 @@ class PolicyAnalyzerServiceIT {
     String policyName = "no-asset-policy";
     String cloudProvider = "GCP";
     when(policy.isEnabled()).thenReturn(true);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policy.getCloudProvider()).thenReturn(cloudProvider);
     when(policyContext.getPolicy()).thenReturn(policy);
 
@@ -131,11 +135,11 @@ class PolicyAnalyzerServiceIT {
     String testRuleName = "test-rule-name";
 
     when(policy.isEnabled()).thenReturn(true);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policy.getCloudProvider()).thenReturn(cloudProvider);
     when(policy.getRules()).thenReturn(List.of(rule));
     when(rule.isEnabled()).thenReturn(false); // <-- disabled
-    when(rule.getRuleName()).thenReturn(testRuleName);
+    when(rule.getName()).thenReturn(testRuleName);
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
@@ -162,12 +166,12 @@ class PolicyAnalyzerServiceIT {
     String testRuleName = "test-rule-name";
 
     when(policy.isEnabled()).thenReturn(true);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policy.getCloudProvider()).thenReturn(cloudProvider);
     when(policy.getRules()).thenReturn(List.of(rule));
     when(rule.isEnabled()).thenReturn(true); // <-- Enabled now
     when(rule.isManualControl()).thenReturn(true); // <-- Manual
-    when(rule.getRuleName()).thenReturn(testRuleName);
+    when(rule.getName()).thenReturn(testRuleName);
     when(policyContext.getPolicy()).thenReturn(policy);
 
     // when
@@ -195,12 +199,12 @@ class PolicyAnalyzerServiceIT {
 
     when(policyContext.getPolicy()).thenReturn(policy);
     when(policy.isEnabled()).thenReturn(true);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policy.getCloudProvider()).thenReturn(cloudProvider);
     when(policy.getRules()).thenReturn(List.of(rule));
     when(rule.isEnabled()).thenReturn(true); // <-- Enabled now
     when(rule.isManualControl()).thenReturn(false); // <-- NOT Manual
-    when(rule.getRuleName()).thenReturn(testRuleName);
+    when(rule.getName()).thenReturn(testRuleName);
     when(rule.getSql()).thenReturn(getResourceAsString("/sql/rule-sql-with-missed-asset.sql"));
 
     // when
@@ -228,13 +232,13 @@ class PolicyAnalyzerServiceIT {
     String cloudProvider = "AWS";
     String testRuleName = "test-rule-name";
     String violatedAssetId = "arn:aws:iam::723176279592:root";
-    String policyId = "somePolicyId";
-    String ruleId = "someRuleId";
+    UUID policyId = UUID.fromString(POLICY_UUID);;
+    UUID ruleId = UUID.fromString(RULE_UUID);
     String ruleDescription = "some rule description";
 
     when(policyContext.getPolicy()).thenReturn(policy);
     when(policy.isEnabled()).thenReturn(true);
-    when(policy.getPolicyName()).thenReturn(policyName);
+    when(policy.getName()).thenReturn(policyName);
     when(policy.getCloudProvider()).thenReturn(cloudProvider);
     when(policy.getRules()).thenReturn(List.of(rule));
     when(policy.getId()).thenReturn(policyId);
@@ -242,7 +246,7 @@ class PolicyAnalyzerServiceIT {
     when(rule.isEnabled()).thenReturn(true); // <-- Enabled now
     when(rule.getId()).thenReturn(ruleId); // <-- Enabled now
     when(rule.isManualControl()).thenReturn(false); // <-- NOT Manual
-    when(rule.getRuleName()).thenReturn(testRuleName);
+    when(rule.getName()).thenReturn(testRuleName);
     when(rule.getSql()).thenReturn(getResourceAsString("/sql/rule-sql-with-available-asset.sql"));
 
     // when
