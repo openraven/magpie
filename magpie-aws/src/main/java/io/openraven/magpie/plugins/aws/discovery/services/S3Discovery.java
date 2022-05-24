@@ -101,7 +101,7 @@ public class S3Discovery implements AWSDiscovery {
     final String RESOURCE_TYPE = S3Bucket.RESOURCE_TYPE;
 
     try(final var client = configureS3Client(clientCreator, region)) {
-      final var bucketOpt = getBuckets(session, client, region, logger);
+      final var bucketOpt = getBuckets(session.getId()+account, client, region, logger);
       if (bucketOpt.isEmpty()) {
         logger.debug("No buckets found for {}", region);
         return;
@@ -159,14 +159,14 @@ public class S3Discovery implements AWSDiscovery {
     return builder.region(region).build();
   }
 
-  private Optional<List<Bucket>> getBuckets(Session session, S3Client client, Region bucketRegion, Logger logger) {
+  private Optional<List<Bucket>> getBuckets(String cacheKey, S3Client client, Region bucketRegion, Logger logger) {
     try {
       //
       // This method is executed whenever the bucket cache does not contain entries for a given session ID.  This ensures
       // that we only make this expensive computation the lesser of once per scan or once per timeout period (defined above).
       //
-      var buckets = bucketCache.get(session.getId(), () -> {
-        logger.debug("No cache found for {}, creating one now.", session);
+      var buckets = bucketCache.get(cacheKey, () -> {
+        logger.debug("No cache found for {}, creating one now.", cacheKey);
         var map = new HashMap<Region, List<Bucket>>();
         client.listBuckets().buckets().forEach(bucket -> {
           final var resp = client.getBucketLocation(GetBucketLocationRequest.builder().bucket(bucket.name()).build());

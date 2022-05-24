@@ -16,6 +16,7 @@
 package io.openraven.magpie.plugins.aws.discovery;
 
 import com.amazonaws.SdkClientException;
+import io.openraven.magpie.data.aws.backup.BackupPlan;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
@@ -27,41 +28,49 @@ import java.time.Instant;
 import java.time.Period;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class BackupUtils {
 
-  private static final Map<Region, BackupClient> CLIENTS = new ConcurrentHashMap<>();
+    private static final Period HISTORY = Period.ofDays(45);
+    public static final String UNSUPPORTED_RESOURCE_TYPE_STRING_INDICATOR = "Unsupported resource type";
 
-  private static final Period HISTORY = Period.ofDays(45);
-
-  public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator, Logger logger) {
-    var retries = 5;
-    while (retries > 0) {
-      try {
+    public static List<BackupJob.Builder> listBackupJobs(String arn, Region region, MagpieAWSClientCreator clientCreator, Logger logger) {
+        var retries = new AtomicInteger(5);
         List<BackupJob.Builder> jobs = new LinkedList<>();
-        try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
-          final var builder = ListBackupJobsRequest.builder()
-            .byResourceArn(arn)
-            .byCreatedAfter(Instant.now().minus(HISTORY))
-            .maxResults(1000)
-            .byState(BackupJobState.COMPLETED);
-          final var result = client.listBackupJobsPaginator(builder.build());
-          result.forEach(response -> jobs.addAll(response.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList())));
-          return jobs;
-        }
-      } catch (SdkClientException ex) {
-        retries --;
+        while (retries.get() > 0) {
+            try {
+                try (final var client = clientCreator.apply(BackupClient.builder()).region(region).build()) {
+                    final var builder = ListBackupJobsRequest.builder()
+                            .byResourceArn(arn)
+                            .byCreatedAfter(Instant.now().minus(HISTORY))
+                            .maxResults(1000)
+                            .byState(BackupJobState.COMPLETED);
+                    final var result = client.listBackupJobsPaginator(builder.build());
+                    result.forEach(response -> jobs.addAll(response.backupJobs().stream().map(BackupJob::toBuilder).collect(Collectors.toList())));
+                    break;
+                }
+            } catch (SdkClientException ex) {
 
-        if (retries == 0) {
-          throw ex;
-        }
+                if (retries.get() == 0) {
+                    throw ex;
+                }
 
-        logger.warn("Couldn't list backup jobs for {}, retrying {} more times", arn, retries);
-      }
+                logger.warn("Couldn't list backup jobs for {}, retrying {} more times", arn, retries);
+            }
+            // if we get any exceptions here we continue, although some are ok/expected
+            catch (Exception ex) {
+                // if we get "Unsupported resource type" this is a-ok (it just means we're trying to get backup jobs
+                // for resources AWS have told us to, but aren't released yet).
+                if (String.valueOf(ex.getMessage()).contains(UNSUPPORTED_RESOURCE_TYPE_STRING_INDICATOR)) {
+                    break;
+                }
+                DiscoveryExceptions.onDiscoveryException(BackupPlan.RESOURCE_TYPE, arn, region, ex);
+            }finally {
+                retries.decrementAndGet();
+            }
+        }
+        return jobs;
     }
-    return List.of();
-  }
 }
