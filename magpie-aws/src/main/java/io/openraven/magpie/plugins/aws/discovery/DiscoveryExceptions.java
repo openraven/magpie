@@ -16,29 +16,29 @@ public class DiscoveryExceptions {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DiscoveryExceptions.class);
 
-  static public void onDiscoveryException(String resourceType, String resourceName, Region region, AwsServiceException ex) {
+  static public void onDiscoveryException(String resourceType, String resourceName, Region region, AwsServiceException exception) {
     handleOrReportError(new EventBuilder().withMessage(resourceType + " AwsServiceException")
-      .withLevel(Event.Level.WARNING), resourceType, resourceName, region, ex);
+      .withLevel(Event.Level.WARNING), resourceType, resourceName, region, exception);
   }
 
-  static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkServiceException ex) {
+  static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkServiceException exception) {
     handleOrReportError(new EventBuilder().withMessage(resourceType + " SdkServiceException")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, ex);
+      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
   }
 
-  static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkException ex) {
+  static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkException exception) {
     handleOrReportError(new EventBuilder().withMessage(resourceType + " SdkException")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, ex);
+      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
   }
 
-  static public void onDiscoveryException(String resourceType, String resourceName, Region region, Exception ex) {
+  static public void onDiscoveryException(String resourceType, String resourceName, Region region, Exception exception) {
     handleOrReportError(new EventBuilder().withMessage(resourceType + " Exception")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, ex);
+      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
   }
 
-  private static void handleOrReportError(EventBuilder eventBuilder, String resourceType, String resourceName, Region region, Exception ex) {
-    if (!isManagedSdkException(resourceType, resourceName, ex)) {
-      logErrorAndReportToSentry(resourceType, resourceName, region, eventBuilder, ex);
+  private static void handleOrReportError(EventBuilder eventBuilder, String resourceType, String resourceName, Region region, Exception exception) {
+    if (!isManagedSdkException(resourceType, resourceName, exception)) {
+      logErrorAndReportToSentry(resourceType, resourceName, region, eventBuilder, exception);
     }
   }
 
