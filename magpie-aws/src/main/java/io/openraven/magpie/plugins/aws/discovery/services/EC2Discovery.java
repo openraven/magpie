@@ -90,7 +90,7 @@ public class EC2Discovery implements AWSDiscovery {
       discoverEIPs(mapper, session, client, region, emitter, account);
       discoverSecurityGroups(mapper, session, client, region, emitter, account, logger);
       discoverVolumes(mapper, session, client, region, emitter, account);
-//      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
+      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
       discoverNetworkAcls(mapper, session, client, region, emitter, account);
     }
   }
