@@ -28,8 +28,6 @@ import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
 import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
 import io.openraven.magpie.data.aws.ec2.Ec2Instance;
 import io.openraven.magpie.data.aws.ec2.Ec2NetworkAcl;
-import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
-import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -52,13 +50,7 @@ import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
-import software.amazon.awssdk.services.ec2.model.Ec2Exception;
-import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.Snapshot;
 import software.amazon.awssdk.services.ec2.model.Tag;
 
 import javax.annotation.Nullable;
@@ -72,7 +64,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class EC2Discovery implements AWSDiscovery {
@@ -89,8 +80,6 @@ public class EC2Discovery implements AWSDiscovery {
       discoverEc2Instances(mapper, session, client, region, emitter, account, clientCreator, logger);
       discoverEIPs(mapper, session, client, region, emitter, account);
       discoverSecurityGroups(mapper, session, client, region, emitter, account, logger);
-      discoverVolumes(mapper, session, client, region, emitter, account);
-      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
       discoverNetworkAcls(mapper, session, client, region, emitter, account);
     }
   }
@@ -221,72 +210,6 @@ public class EC2Discovery implements AWSDiscovery {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
 
-  }
-
-  private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
-    final String RESOURCE_TYPE = EC2Volume.RESOURCE_TYPE;
-    try {
-      client.describeVolumesPaginator().stream()
-        .flatMap(r -> r.volumes().stream())
-        .forEach(volume -> {
-          String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
-          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
-            .withResourceName(volume.volumeId())
-            .withResourceId(volume.volumeId())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(volume.toBuilder()))
-            .withAccountId(account)
-            .withAwsRegion(region.toString())
-            .withTags(getConvertedTags(volume.tags(), mapper))
-            .build();
-
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
-        });
-    } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
-    }
-  }
-
-  private void discoverSnapshots(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, Logger logger) {
-    final String RESOURCE_TYPE = EC2Snapshot.RESOURCE_TYPE;
-
-    try {
-      client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()
-        .forEach(snapshot -> {
-          String arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
-          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
-            .withResourceName(snapshot.snapshotId())
-            .withResourceId(snapshot.snapshotId())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(snapshot.toBuilder()))
-            .withAccountId(account)
-            .withAwsRegion(region.toString())
-            .withTags(getConvertedTags(snapshot.tags(), mapper))
-            .build();
-
-          discoverSnapshotVolumes(client, data, snapshot);
-
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
-        });
-    } catch (Ec2Exception ex) {
-      logger.info("Error discovering snapshots", ex);
-    } catch (SdkServiceException | SdkClientException ex) {
-      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
-    }
-  }
-
-  private void discoverSnapshotVolumes(Ec2Client client, MagpieAwsResource data, Snapshot snapshot) {
-    final String keyname = "volumes";
-    var snapshotFilter = Filter.builder().name("snapshot-id").values(List.of(snapshot.snapshotId())).build();
-
-    getAwsResponse(
-      () -> client.describeVolumesPaginator(DescribeVolumesRequest.builder().filters(List.of(snapshotFilter)).build())
-        .stream()
-        .map(DescribeVolumesResponse::toBuilder)
-        .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
   }
 
   private void discoverNetworkAcls(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
