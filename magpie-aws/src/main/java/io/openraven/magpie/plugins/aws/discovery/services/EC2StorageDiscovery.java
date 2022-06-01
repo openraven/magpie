@@ -81,8 +81,6 @@ public class EC2StorageDiscovery implements AWSDiscovery {
             .withTags(getConvertedTags(snapshot.tags(), mapper))
             .build();
 
-          discoverSnapshotVolumes(client, data, snapshot);
-
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
         });
     } catch (Ec2Exception ex) {
@@ -90,20 +88,6 @@ public class EC2StorageDiscovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
-  }
-
-  private void discoverSnapshotVolumes(Ec2Client client, MagpieAwsResource data, Snapshot snapshot) {
-    final String keyname = "volumes";
-    var snapshotFilter = Filter.builder().name("snapshot-id").values(List.of(snapshot.snapshotId())).build();
-
-    getAwsResponse(
-      () -> client.describeVolumesPaginator(DescribeVolumesRequest.builder().filters(List.of(snapshotFilter)).build())
-        .stream()
-        .map(DescribeVolumesResponse::toBuilder)
-        .collect(Collectors.toList()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-    );
   }
 
   private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
