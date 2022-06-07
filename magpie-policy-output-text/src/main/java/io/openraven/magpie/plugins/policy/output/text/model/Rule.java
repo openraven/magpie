@@ -25,7 +25,7 @@ public class Rule {
   private final String type = "asset";
   private String id;
   private String ruleId;
-  private String ruleName;
+  private String name;
   private String description;
   private Severity severity;
   private boolean enabled = true;
@@ -67,11 +67,11 @@ public class Rule {
   }
 
   public String getRuleName() {
-    return ruleName;
+    return name;
   }
 
-  public void setRuleName(String ruleName) {
-    this.ruleName = ruleName;
+  public void setName(String name) {
+    this.name = name;
   }
 
   public String getType() {
