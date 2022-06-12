@@ -82,7 +82,7 @@ public class JsonReportPlugin implements PolicyOutputPlugin<Void> {
       var ignoredRules = ignoredRulesMap.get(policy);
 
       ObjectNode policyNode = MAPPER.createObjectNode();
-      policyNode.put("name", policy.getPolicyName());
+      policyNode.put("name", policy.getName());
       policyNode.put("violationsCount", policyViolations == null ? 0 : policyViolations.size());
 
       generateViolation(policy, policyViolations, policyNode);
@@ -100,7 +100,7 @@ public class JsonReportPlugin implements PolicyOutputPlugin<Void> {
 
       ignoredRules.forEach(rule -> {
         ObjectNode ignoredRuleNode = MAPPER.createObjectNode();
-        ignoredRuleNode.put("name", rule.getRule().getRuleName());
+        ignoredRuleNode.put("name", rule.getRule().getName());
         ignoredRuleNode.put("file", rule.getRule().getFileName());
         ignoredRuleNode.put("reason", rule.getIgnoredReason().getReason());
         ignoredRulesArray.add(ignoredRuleNode);
@@ -117,7 +117,7 @@ public class JsonReportPlugin implements PolicyOutputPlugin<Void> {
         Rule violatedRule = policyViolation.getRule();
 
         ObjectNode violatedRuleNode = MAPPER.createObjectNode();
-        violatedRuleNode.put("name", violatedRule.getRuleName());
+        violatedRuleNode.put("name", violatedRule.getName());
         violatedRuleNode.put("file", violatedRule.getFileName());
         violatedRuleNode.put("severety", violatedRule.getSeverity().getTitle());
 
@@ -139,7 +139,7 @@ public class JsonReportPlugin implements PolicyOutputPlugin<Void> {
       disabledPolicies.forEach(policy -> {
         ObjectNode policyNode = MAPPER.createObjectNode();
         policyNode.put("Policy GUID", policy.getId());
-        policyNode.put("Policy name", policy.getPolicyName());
+        policyNode.put("Policy name", policy.getName());
         disabledPoliciesNode.add(policyNode);
       });
     }
