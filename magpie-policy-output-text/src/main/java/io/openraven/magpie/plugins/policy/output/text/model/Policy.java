@@ -20,8 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Policy {
   private String id;
-  private String policyId;
-  private String policyName;
+  private String refId;
+  private String name;
   private String cloudProvider;
   private String description;
   private boolean enabled = true;
@@ -35,20 +35,20 @@ public class Policy {
     this.id = id;
   }
 
-  public String getPolicyId() {
-    return policyId;
+  public String getRefId() {
+    return refId;
   }
 
-  public void setPolicyId(String policyId) {
-    this.policyId = policyId;
+  public void setRefId(String refId) {
+    this.refId = refId;
   }
 
-  public String getPolicyName() {
-    return policyName;
+  public String getName() {
+    return name;
   }
 
-  public void setPolicyName(String policyName) {
-    this.policyName = policyName;
+  public void setName(String name) {
+    this.name = name;
   }
 
   public String getCloudProvider() {
@@ -91,15 +91,15 @@ public class Policy {
     Policy policy = (Policy) o;
 
     if (id != null ? !id.equals(policy.id) : policy.id != null) return false;
-    if (policyId != null ? !policyId.equals(policy.policyId) : policy.policyId != null) return false;
-    return policyName != null ? policyName.equals(policy.policyName) : policy.policyName == null;
+    if (refId != null ? !refId.equals(policy.refId) : policy.refId != null) return false;
+    return name != null ? name.equals(policy.name) : policy.name == null;
   }
 
   @Override
   public int hashCode() {
     int result = id != null ? id.hashCode() : 0;
-    result = 31 * result + (policyId != null ? policyId.hashCode() : 0);
-    result = 31 * result + (policyName != null ? policyName.hashCode() : 0);
+    result = 31 * result + (refId != null ? refId.hashCode() : 0);
+    result = 31 * result + (name != null ? name.hashCode() : 0);
     return result;
   }
 
@@ -107,8 +107,8 @@ public class Policy {
   public String toString() {
     return "Policy{" +
       "id='" + id + '\'' +
-      ", policyId='" + policyId + '\'' +
-      ", policyName='" + policyName + '\'' +
+      ", policyId='" + refId + '\'' +
+      ", policyName='" + name + '\'' +
       ", cloudProvider='" + cloudProvider + '\'' +
       ", description='" + description + '\'' +
       ", enabled=" + enabled +

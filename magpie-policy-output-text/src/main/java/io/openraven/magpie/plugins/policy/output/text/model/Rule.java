@@ -17,15 +17,12 @@ package io.openraven.magpie.plugins.policy.output.text.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Rule {
   private final String type = "asset";
   private String id;
-  private String ruleId;
-  private String ruleName;
+  private String refId;
+  private String name;
   private String description;
   private Severity severity;
   private boolean enabled = true;
@@ -58,20 +55,20 @@ public class Rule {
     this.id = id;
   }
 
-  public String getRuleId() {
-    return ruleId;
+  public String getRefId() {
+    return refId;
   }
 
-  public void setRuleId(String ruleId) {
-    this.ruleId = ruleId;
+  public void setRefId(String refId) {
+    this.refId = refId;
   }
 
-  public String getRuleName() {
-    return ruleName;
+  public String getName() {
+    return name;
   }
 
-  public void setRuleName(String ruleName) {
-    this.ruleName = ruleName;
+  public void setName(String name) {
+    this.name = name;
   }
 
   public String getType() {

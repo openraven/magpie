@@ -28,7 +28,6 @@ import io.openraven.magpie.plugins.policy.output.text.model.Rule;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,14 +89,14 @@ public class TextReportPlugin implements PolicyOutputPlugin<Void> {
 
     ignoredRules.forEach(ignoredRule -> {
       System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n",
-        "", TRIM_BY_COLUMN_FUNCTION.apply(ignoredRule.getRule().getRuleName(), COLUMN_WIDTH),
+        "", TRIM_BY_COLUMN_FUNCTION.apply(ignoredRule.getRule().getName(), COLUMN_WIDTH),
         TRIM_BY_COLUMN_FUNCTION.apply(ignoredRule.getRule().getFileName(), FILE_NAME_COLUMN_WIDTH),
         ignoredRule.getIgnoredReason().getReason());
     });
   }
 
   private void processViolations(Policy policy, List<Violation> policyViolations) {
-    System.out.printf("%-30s%-40s\n", "Policy name", policy.getPolicyName());
+    System.out.printf("%-30s%-40s\n", "Policy name", policy.getName());
     System.out.printf("%-30s%-40s\n", "No. of violations", policyViolations.size());
 
     System.out.printf("%-30s\n", "Violations");
@@ -114,7 +113,7 @@ public class TextReportPlugin implements PolicyOutputPlugin<Void> {
       System.out.printf("%-2s%-" + COLUMN_WIDTH + "s%-" + FILE_NAME_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n",
         "", resourceID,
         TRIM_BY_COLUMN_FUNCTION.apply(violatedRule.getFileName(), FILE_NAME_COLUMN_WIDTH),
-        TRIM_BY_COLUMN_FUNCTION.apply(violatedRule.getRuleName(), COLUMN_WIDTH));
+        TRIM_BY_COLUMN_FUNCTION.apply(violatedRule.getName(), COLUMN_WIDTH));
     });
     System.out.println("");
   }
@@ -128,7 +127,7 @@ public class TextReportPlugin implements PolicyOutputPlugin<Void> {
         "", "Policy GUID", "Policy name");
       disabledPolicies.forEach(policy -> {
         System.out.printf("%-2s%-" + GUID_COLUMN_WIDTH + "s%-" + COLUMN_WIDTH + "s\n",
-          "", policy.getId(), policy.getPolicyName());
+          "", policy.getId(), policy.getName());
       });
       System.out.printf("\n");
     }
