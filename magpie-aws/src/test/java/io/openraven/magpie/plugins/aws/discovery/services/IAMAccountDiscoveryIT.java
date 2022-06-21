@@ -1,7 +1,6 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
