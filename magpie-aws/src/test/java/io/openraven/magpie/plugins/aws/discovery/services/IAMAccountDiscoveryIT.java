@@ -1,6 +1,7 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
@@ -30,7 +31,7 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
 
   @Test
-  public void testAccountDiscovery() {
+  public void testAccountDiscovery() throws JsonProcessingException {
     // given
     createAccountAliases(alias);
     createPasswordPolicy();
@@ -64,14 +65,14 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
       passwordPolicy.toString());
   }
 
-  private void assertAccount(MagpieEnvelope envelope) {
+  private void assertAccount(MagpieEnvelope envelope) throws JsonProcessingException {
     var contents = envelopeCapture.getValue().getContents();
+    System.out.println(MAPPER.writeValueAsString(contents));
     assertNotNull(contents.get("documentId").asText());
     assertEquals("arn:aws:organizations::account", contents.get("arn").asText());
     assertEquals(alias, contents.get("resourceName").asText());
     assertEquals("AWS::Account", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 
   private void createPasswordPolicy() {

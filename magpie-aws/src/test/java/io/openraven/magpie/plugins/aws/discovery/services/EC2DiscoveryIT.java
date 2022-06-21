@@ -36,6 +36,12 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
     }
   };
 
+  private final EC2StorageDiscovery ec2StorageDiscovery = new EC2StorageDiscovery() {
+    // We override this to make it a no-op since we can't perform Backup calls on the free version of Localstack.
+    public void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
+    }
+  };
+
   @Mock
   private Emitter emitter;
 
@@ -65,6 +71,17 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
 
     // when
     ec2Discovery.discover(
+      MAPPER,
+      SESSION,
+      BASE_REGION,
+      emitter,
+      LOGGER,
+      ACCOUNT,
+      ClientCreators.localClientCreator(BASE_REGION)
+    );
+
+    // when
+    ec2StorageDiscovery.discover(
       MAPPER,
       SESSION,
       BASE_REGION,
