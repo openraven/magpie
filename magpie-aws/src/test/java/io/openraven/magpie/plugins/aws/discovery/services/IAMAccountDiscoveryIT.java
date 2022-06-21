@@ -31,7 +31,7 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
   private ArgumentCaptor<MagpieEnvelope> envelopeCapture;
 
   @Test
-  public void testAccountDiscovery() throws JsonProcessingException {
+  public void testAccountDiscovery() {
     // given
     createAccountAliases(alias);
     createPasswordPolicy();
@@ -65,9 +65,8 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
       passwordPolicy.toString());
   }
 
-  private void assertAccount(MagpieEnvelope envelope) throws JsonProcessingException {
+  private void assertAccount(MagpieEnvelope envelope) {
     var contents = envelopeCapture.getValue().getContents();
-    System.out.println(MAPPER.writeValueAsString(contents));
     assertNotNull(contents.get("documentId").asText());
     assertEquals("arn:aws:organizations::account", contents.get("arn").asText());
     assertEquals(alias, contents.get("resourceName").asText());
