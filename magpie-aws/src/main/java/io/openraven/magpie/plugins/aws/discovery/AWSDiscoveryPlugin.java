@@ -94,19 +94,21 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
 
     if (config.getAssumedRoles() == null || config.getAssumedRoles().isEmpty()) {
-      final var account = StsClient.create().getCallerIdentity().account();
-      enabledPlugins.forEach(plugin -> {
-        final var regions = getRegionsForDiscovery(plugin);
-        regions.forEach(region -> {
-          try {
-            final var clientCreator = ClientCreators.localClientCreator(region);
-            plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
-          } catch (Exception ex) {
-            logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
-            logger.debug("Details", ex);
-          }
+      try(final var client = StsClient.create()) {
+        final var account = client.getCallerIdentity().account();
+        enabledPlugins.forEach(plugin -> {
+          final var regions = getRegionsForDiscovery(plugin);
+          regions.forEach(region -> {
+            try {
+              final var clientCreator = ClientCreators.localClientCreator(region);
+              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+            } catch (Exception ex) {
+              logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
+              logger.debug("Details", ex);
+            }
+          });
         });
-      });
+      }
     } else {
       config.getAssumedRoles().forEach(role -> {
         enabledPlugins.forEach(plugin -> {

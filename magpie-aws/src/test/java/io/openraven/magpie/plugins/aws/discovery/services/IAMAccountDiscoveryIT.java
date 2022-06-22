@@ -71,7 +71,6 @@ public class IAMAccountDiscoveryIT extends BaseIAMServiceIT {
     assertEquals(alias, contents.get("resourceName").asText());
     assertEquals("AWS::Account", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
-    assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
   }
 
   private void createPasswordPolicy() {
