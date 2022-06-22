@@ -66,7 +66,7 @@ AWS plugin utilizes the AWS Java SDK and will search for credentials as describe
 
 Assuming you have read credentials set up, you can start discovery by running:
 ```shell
-./magpie
+./magpie.sh
 ```
 ### DMAP
 Runing `magpie-dmap` requires that DMAP-Predictions be running locally.  The easiest way is through Docker:
@@ -91,7 +91,7 @@ Magpie allows for complex configurations to be enabled via the YAML-based config
 The simplest Magpie configuration is shown below. This configuration enables AWS discovery with a JSON output to `stdout`. To write to a file
 simply redirect the output:
 ```shell
-./magpie > output.json
+./magpie.sh > output.json
 ```
 Log messages are printed to `stderr` and will still show up as console output.
 
@@ -135,14 +135,14 @@ named `MAGPIE_CONFIG` and with a specially formed JSON object or array. For exam
 with the default configuration:
 
 ```bash
-> MAGPIE_CONFIG="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" ./magpie
+> MAGPIE_CONFIG="{'/plugins/magpie.aws.discovery/config/services': ['s3']}" ./magpie.sh
 ```
 The value of `MAGPIE_CONFIG` must be a JSON object where the key is a [JSON Pointer](https://tools.ietf.org/html/rfc6901)
 and the value is legal JSON which should be inserted into the location referenced by the pointer.
 
 In the case where multiple overrides are required you may instead use an array of the above formatted objects as such:
 ```bash
-> MAGPIE_CONFIG="[{'/plugins/magpie.aws.discovery/enabled', false }, {'/plugins/magpie.aws.discovery/config/services': ['s3']}]" ./magpie
+> MAGPIE_CONFIG="[{'/plugins/magpie.aws.discovery/enabled', false }, {'/plugins/magpie.aws.discovery/config/services': ['s3']}]" ./magpie.sh
 ```
 
 #### Multiple Overrides
@@ -152,7 +152,7 @@ will be applied in Java's natural String ordering (lexicographic).  For example:
 ```bash
 > export MAGPIE_CONFIG_1="[...]"
 > export MAGPIE_CONFIG_2="[...]"
-> ./magpie
+> ./magpie.sh
 ```
 Both variables will be applied, if any duplicate JSON Pointers are provided the last one applied will win.
 
