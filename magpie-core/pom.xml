@@ -58,7 +58,7 @@
       <scope>compile</scope>
     </dependency>
 
-    <!-- TODO: design - are we able to avoid wiring AWS into the core package? magpie-aws / magpie-dmap plugin? -->
+    <!-- TODO: design - are we able to avoid wiring AWS into the core package? magpie-aws plugin? -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>lambda</artifactId>
