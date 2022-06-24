@@ -6,8 +6,6 @@
 - [Building Magpie](#building-magpie)
   * [Clone and build Magpie](#clone-and-build-magpie)
 - [Running Magpie](#running-magpie)
-  * [DMAP](#dmap)
-    + [DMAP Requirements](#dmap-requirements)
   * [Configuration](#configuration)
     + [Overriding config.yaml](#overriding-configyaml)
     + [Multiple Overrides](#multiple-overrides)
@@ -26,8 +24,6 @@ Magpie is a free, open-source framework and a collection of community developed 
 We also heard that many people were frustrated with their existing security tools that couldn't be extended  and couldn't work well with their other systems, so decided to create this Magpie framework and refactor and sync our core AWS commercial discovery code as the first plugin.
 
 We plan to actively contribute additional modules to make Magpie a credible free open source alternative to commercial CSPM’s and welcome the community to join us in adding to the framework and building plugins.
-
-Magpie also contains Open Raven's DMAP technology, which allows users to enumerate and identify *non native* services running on EC2 instances using a combination of port fingerprinting (think Nmap's OS fingerprinting, but on the application layer instead of the transport layer) and a little machine learning (decision trees).
 
 ## Overview
 
@@ -68,16 +64,6 @@ Assuming you have read credentials set up, you can start discovery by running:
 ```shell
 ./magpie
 ```
-### DMAP
-Runing `magpie-dmap` requires that DMAP-Predictions be running locally.  The easiest way is through Docker:
-```shell
-docker run -p 10234:10234 -d quay.io/openraven/dmap-predictions
-```
-
-#### DMAP Requirements
-- IAM roles for creating lambda roles and managing lambda functions
-- EC2 assets persisted into PostgreSQL (via the Magpie peristence plugin)
-- Locally running DMAP-Predictions service
 
 
 ### Configuration
