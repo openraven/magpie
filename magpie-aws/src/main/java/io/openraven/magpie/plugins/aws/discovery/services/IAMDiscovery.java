@@ -77,7 +77,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "iam";
   private static final String AWS_LINE_SEPARATOR = "\n";
-  public static final String CREDENTIALS_REPORT = "::credentialsreport";
+  public static final String CREDENTIALS_REPORT = "::CredentialsReport";
 
   @Override
   public String service() {
