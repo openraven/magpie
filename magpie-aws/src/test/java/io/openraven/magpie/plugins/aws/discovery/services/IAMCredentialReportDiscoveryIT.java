@@ -47,7 +47,7 @@ class IAMCredentialReportDiscoveryIT extends BaseIAMServiceIT {
     var contents = envelopeCapture.getValue().getContents();
 
     assertNotNull(contents.get("documentId"));
-    assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER), contents.get("arn").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER).concat("::credentialsreport"), contents.get("arn").asText());
     assertEquals(TEST_USER, contents.get("resourceName").asText());
     assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER), contents.get("resourceId").asText());
     assertEquals("AWS::IAM::CredentialsReport", contents.get("resourceType").asText());
