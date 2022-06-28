@@ -178,7 +178,7 @@ public class IAMDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = IamPolicy.RESOURCE_TYPE;
 
     try {
-      client.listPoliciesPaginator(ListPoliciesRequest.builder().scope(PolicyScopeType.LOCAL).build()).policies().forEach(policy -> {
+      client.listPoliciesPaginator(ListPoliciesRequest.builder().scope(PolicyScopeType.ALL).build()).policies().forEach(policy -> {
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, policy.arn())
           .withResourceName(policy.policyName())
           .withResourceId(policy.policyId())
