@@ -55,7 +55,7 @@ public class Ec2Subnet extends AWSResource {
   }
 
   public Ec2Subnet(String accountId, String region, Subnet subnet) {
-    this.arn = format("arn:aws:ec2:%s:%s:vpc/%s", region, accountId, subnet.subnetArn());
+    this.arn = subnet.subnetArn();
     this.awsAccountId = accountId;
     this.awsRegion = region;
     this.resourceId = subnet.subnetId();
