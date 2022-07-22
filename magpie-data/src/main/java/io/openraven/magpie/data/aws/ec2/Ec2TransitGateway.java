@@ -32,7 +32,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.openraven.magpie.data.aws.transitgateway;
+package io.openraven.magpie.data.aws.ec2;
 
 import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.shared.PayloadUtils;
@@ -42,17 +42,19 @@ import static java.lang.String.format;
 
 @javax.persistence.Entity
 @javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = TransitGatewayGateway.TABLE_NAME)
-public class TransitGatewayGateway extends AWSResource {
+@javax.persistence.Table(name = Ec2TransitGateway.TABLE_NAME)
+
+
+public class Ec2TransitGateway extends AWSResource {
 
   protected static final String TABLE_NAME = "awsec2transitgateway";
   public static final String RESOURCE_TYPE = "AWS::EC2::TransitGateway";
 
-  public TransitGatewayGateway() {
+  public Ec2TransitGateway() {
     this.resourceType = RESOURCE_TYPE;
   }
 
-  public TransitGatewayGateway(String account, String region, TransitGateway transit) {
+  public Ec2TransitGateway(String account, String region, TransitGateway transit) {
     this.awsRegion = region;
     this.awsAccountId = account;
     this.arn = format("arn:aws:ec2:%s:%s:transit-gateway/%s", region, account,
@@ -60,6 +62,6 @@ public class TransitGatewayGateway extends AWSResource {
     this.resourceName = transit.transitGatewayId();
     this.resourceId = transit.transitGatewayId();
     this.configuration = PayloadUtils.update(transit);
-    this.resourceType = TransitGatewayGateway.RESOURCE_TYPE;
+    this.resourceType = Ec2TransitGateway.RESOURCE_TYPE;
   }
 }
