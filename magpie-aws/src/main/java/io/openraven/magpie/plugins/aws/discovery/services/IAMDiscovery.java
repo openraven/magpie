@@ -62,11 +62,10 @@ import software.amazon.awssdk.services.iam.model.Role;
 import software.amazon.awssdk.services.iam.model.Tag;
 import software.amazon.awssdk.services.iam.model.User;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -110,11 +109,13 @@ public class IAMDiscovery implements AWSDiscovery {
         // As workaround request each role to enrich the data
         Role role = client.getRole(builder -> builder.roleName(listedRole.roleName()).build()).role();
 
+        JsonNode roleConfig = mapper.valueToTree(role.toBuilder());
+
         var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, role.arn())
           .withResourceName(role.roleName())
           .withResourceId(role.roleId())
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(mapper.valueToTree(role.toBuilder()))
+          .withConfiguration(roleConfig)
           .withCreatedIso(role.createDate())
           .withAccountId(account)
           .withAwsRegion(region.toString())
@@ -125,6 +126,12 @@ public class IAMDiscovery implements AWSDiscovery {
 
         discoverAttachedPolicies(client, data, role);
         discoverInlinePolicies(mapper, client, data, role);
+
+        Optional<JsonNode> assumeRolePolicyDocument = Optional.ofNullable(roleConfig.get("assumeRolePolicyDocument"));
+
+        assumeRolePolicyDocument.ifPresent( policy ->
+          AWSUtils.update(data.supplementaryConfiguration, Map.of("assumeRolePolicy",  AWSUtils.parsePolicyDocument(mapper, policy.textValue())))
+        );
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":role"), data.toJsonNode()));
       });
@@ -142,7 +149,7 @@ public class IAMDiscovery implements AWSDiscovery {
         .collect(Collectors.toList()),
       (resp) -> resp.forEach(policy -> inlinePolicies.add(ImmutableMap.of(
         "name", mapper.valueToTree(policy.policyName()),
-        "policyDocument", parsePolicyDocument(mapper, policy.policyDocument())))),
+        "policyDocument", AWSUtils.parsePolicyDocument(mapper, policy.policyDocument())))),
       (noresp) -> {
       }
     );
@@ -150,13 +157,6 @@ public class IAMDiscovery implements AWSDiscovery {
     AWSUtils.update(data.supplementaryConfiguration, Map.of("inlinePolicies", inlinePolicies));
   }
 
-  private JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
-    try {
-      return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Unable to parse inline policy document: " + policyDocument, e);
-    }
-  }
 
   private void discoverAttachedPolicies(IamClient client, MagpieAwsResource data, Role role) {
     List<ImmutableMap<String, String>> attachedPolicies = new ArrayList<>();
@@ -212,7 +212,8 @@ public class IAMDiscovery implements AWSDiscovery {
             .versionId(policyVersion.versionId())
             .build()),
           (innerResp) -> {
-            AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument", parsePolicyDocument(mapper, innerResp.policyVersion().document()))));
+            AWSUtils.update(data.supplementaryConfiguration, Map.of("attachedPolicies", Map.of("policyDocument",
+              AWSUtils.parsePolicyDocument(mapper, innerResp.policyVersion().document()))));
             // PROD-2760 requires the encoded policy doc under this key
             AWSUtils.update(data.supplementaryConfiguration, Map.of("policyDocument", innerResp.policyVersion().document()));
         },
