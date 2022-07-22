@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.aws.ec2.Ec2Subnet;
 import io.openraven.magpie.data.aws.ec2.Ec2VpcPeeringConnection;
 import io.openraven.magpie.data.aws.ec2.Ec2VpcResource;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
@@ -54,6 +55,7 @@ public class VPCDiscovery implements AWSDiscovery {
     try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
       discoverVpcs(mapper, session, client, region, emitter, account);
       discoverVpcPeeringConnections(mapper, session, client, region, emitter, account);
+      discoverSubnets(mapper, session, client, region, emitter, account);
     }
   }
 
@@ -84,6 +86,27 @@ public class VPCDiscovery implements AWSDiscovery {
           .build();
 
         discoverFlowLogs(client, data, vpc);
+
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
+      });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverSubnets(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = Ec2Subnet.RESOURCE_TYPE;
+    try {
+      client.describeSubnetsPaginator().subnets().forEach(subnet -> {
+        var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, subnet.subnetArn())
+          .withResourceName(subnet.subnetId())
+          .withResourceId(subnet.subnetId())
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(mapper.valueToTree(subnet.toBuilder()))
+          .withAccountId(account)
+          .withAwsRegion(region.toString())
+          .withTags(getConvertedTags(subnet.tags(), mapper))
+          .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService()), data.toJsonNode()));
       });
