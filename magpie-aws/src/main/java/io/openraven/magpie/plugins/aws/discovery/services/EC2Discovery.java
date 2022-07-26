@@ -257,7 +257,7 @@ public class EC2Discovery implements AWSDiscovery {
             .withTags(getConvertedTags(transitGateway.tags(), mapper))
             .build();
 
-          discoverTransit(client, data, transitGateway);
+          discoverTransit(client, data);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":TransitGateway"), data.toJsonNode()));
         });
@@ -266,13 +266,13 @@ public class EC2Discovery implements AWSDiscovery {
     }
   }
 
-  private void discoverTransit(Ec2Client client, MagpieAwsResource data, TransitGateway transitGateway) {
+  private void discoverTransit(Ec2Client client, MagpieAwsResource data) {
     final String keyname = "transit";
 
     getAwsResponse(
       () -> client.describeTransitGateways(DescribeTransitGatewaysRequest.builder().build()),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+      resp -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      noresp -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
   }
 
