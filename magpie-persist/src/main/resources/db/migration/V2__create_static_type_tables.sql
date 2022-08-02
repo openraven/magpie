@@ -73,7 +73,6 @@ create table awsusercredentialreport () INHERITS (aws);
 create table awsssminstance () INHERITS (aws);
 create table orvnshadowaccount () INHERITS (aws);
 create table awswatchloggroup () INHERITS (aws);
-create table awsorganizationscp () INHERITS (aws);
 
 -- GCP TYPES;
 create table gcpbigqueryreservation () INHERITS (gcp);
