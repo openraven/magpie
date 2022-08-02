@@ -76,6 +76,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "iam";
   private static final String AWS_LINE_SEPARATOR = "\n";
+  private static final String CREDENTIALS_REPORT = "::CredentialsReport";
 
   @Override
   public String service() {
@@ -485,7 +486,7 @@ public class IAMDiscovery implements AWSDiscovery {
 
       var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, credential.arn)
         .withResourceName(credential.user)
-        .withResourceId(credential.arn)
+        .withResourceId(credential.arn.concat(CREDENTIALS_REPORT))
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(mapper.valueToTree(credential))
         .withAccountId(account)

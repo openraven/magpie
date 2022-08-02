@@ -28,6 +28,7 @@ import io.openraven.magpie.data.aws.ec2.EC2SecurityGroup;
 import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
 import io.openraven.magpie.data.aws.ec2.Ec2Instance;
 import io.openraven.magpie.data.aws.ec2.Ec2NetworkAcl;
+import io.openraven.magpie.data.aws.ec2.Ec2TransitGateway;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -49,9 +50,10 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
-import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
+import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -64,6 +66,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class EC2Discovery implements AWSDiscovery {
@@ -81,6 +84,7 @@ public class EC2Discovery implements AWSDiscovery {
       discoverEIPs(mapper, session, client, region, emitter, account);
       discoverSecurityGroups(mapper, session, client, region, emitter, account, logger);
       discoverNetworkAcls(mapper, session, client, region, emitter, account);
+      discoverTransitGateway(mapper, session, client, region, emitter, account);
     }
   }
 
@@ -234,6 +238,42 @@ public class EC2Discovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private void discoverTransitGateway(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+    final String RESOURCE_TYPE = Ec2TransitGateway.RESOURCE_TYPE;
+
+    try {
+      client.describeTransitGateways().transitGateways().forEach(transitGateway -> {
+          String arn = format("arn:aws:ec2:%s:%s:transit-gateway/%s", region, account,
+            transitGateway.transitGatewayId());
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
+            .withResourceName(transitGateway.transitGatewayId())
+            .withResourceId(transitGateway.transitGatewayId())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(transitGateway.toBuilder()))
+            .withAccountId(account)
+            .withAwsRegion(region.toString())
+            .withTags(getConvertedTags(transitGateway.tags(), mapper))
+            .build();
+
+          discoverTransit(client, data);
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":TransitGateway"), data.toJsonNode()));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverTransit(Ec2Client client, MagpieAwsResource data) {
+    final String keyname = "transit";
+
+    getAwsResponse(
+      () -> client.describeTransitGateways(DescribeTransitGatewaysRequest.builder().build()),
+      resp -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      noresp -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
   }
 
   private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
