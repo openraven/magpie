@@ -17,7 +17,6 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
@@ -59,8 +58,6 @@ import software.amazon.awssdk.services.s3.model.PolicyStatus;
 import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,8 +97,8 @@ public class S3Discovery implements AWSDiscovery {
 
     final String RESOURCE_TYPE = S3Bucket.RESOURCE_TYPE;
 
-    try(final var client = configureS3Client(clientCreator, region)) {
-      final var bucketOpt = getBuckets(session.getId()+account, client, region, logger);
+    try (final var client = configureS3Client(clientCreator, region)) {
+      final var bucketOpt = getBuckets(session.getId() + account, client, region, logger);
       if (bucketOpt.isEmpty()) {
         logger.debug("No buckets found for {}", region);
         return;
@@ -176,8 +173,8 @@ public class S3Discovery implements AWSDiscovery {
           var region =
             Region.US_EAST_1.toString().equals(resp.locationConstraintAsString())
               || resp.locationConstraintAsString().isEmpty()
-            ? Region.US_EAST_1
-            : Region.of(location.toString());
+              ? Region.US_EAST_1
+              : Region.of(location.toString());
           logger.debug("Associating {} to region {}", bucket.name(), region);
           var list = map.getOrDefault(region, new LinkedList<>());
           list.add(bucket);
@@ -334,7 +331,7 @@ public class S3Discovery implements AWSDiscovery {
     final String keyname2 = "BucketPolicy";
     getAwsResponse(
       () -> client.getBucketPolicy(GetBucketPolicyRequest.builder().bucket(resource.name()).build()).policy(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, parsePolicyDocument(mapper, resp))),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, AWSUtils.parsePolicyDocument(mapper, resp))),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname2, noresp))
     );
   }
@@ -381,7 +378,7 @@ public class S3Discovery implements AWSDiscovery {
         storageTypeMap.add(Map.of(storageType, bucketSizeMetric));
       }
     }
-    data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration,  Map.of("storageTypeSizeInBytes", storageTypeMap));
+    data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration, Map.of("storageTypeSizeInBytes", storageTypeMap));
 
     List<Dimension> dimensions = new ArrayList<>();
     dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
@@ -405,11 +402,4 @@ public class S3Discovery implements AWSDiscovery {
     }
   }
 
-  private JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
-    try {
-      return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Unable to parse inline policy document: " + policyDocument, e);
-    }
-  }
 }

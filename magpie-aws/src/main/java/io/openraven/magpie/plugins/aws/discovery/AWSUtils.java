@@ -16,7 +16,9 @@
 
 package io.openraven.magpie.plugins.aws.discovery;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.javatuples.Pair;
@@ -26,11 +28,20 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.*;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.DimensionFilter;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 import software.amazon.awssdk.utils.builder.ToCopyableBuilder;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -56,12 +67,10 @@ public class AWSUtils {
     try {
       R ret = fn.get();
       resp.accept(ret);
-    }
-    catch (SdkServiceException ex) {
+    } catch (SdkServiceException ex) {
       if (ex.statusCode() >= 400 && ex.statusCode() < 500) {
         noresp.accept(NULL_NODE);
-      }
-      else {
+      } else {
         throw ex;
       }
     }
@@ -176,7 +185,7 @@ public class AWSUtils {
 
   }
 
-  public static GetMetricStatisticsResponse getCloudwatchMetricStatistics( String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+  public static GetMetricStatisticsResponse getCloudwatchMetricStatistics(String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
 
     try (final var client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
 
@@ -217,6 +226,14 @@ public class AWSUtils {
             .map(Dimension::value)
             .forEach(availableMetrics::add));
       return availableMetrics;
+    }
+  }
+
+  public static JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
+    try {
+      return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Unable to parse policy document: " + policyDocument, e);
     }
   }
 }
