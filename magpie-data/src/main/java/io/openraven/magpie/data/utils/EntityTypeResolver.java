@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DatabindContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.jsontype.impl.TypeIdResolverBase;
+import io.openraven.magpie.data.exception.MissingEntityTypeException;
 import org.reflections.Reflections;
 
 import java.io.IOException;
@@ -94,7 +95,7 @@ public class EntityTypeResolver extends TypeIdResolverBase {
             return context.constructSpecializedType(baseType, typeMap.get(id));
         }
 
-        throw new IOException("Cannot find class for type id \"" + id + "\"");
+        throw new MissingEntityTypeException("Cannot find class for type id \"" + id + "\"");
     }
 
     @Override
