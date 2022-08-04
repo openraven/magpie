@@ -90,7 +90,7 @@ public class EntityTypeResolver extends TypeIdResolverBase {
     }
 
     @Override
-    public JavaType typeFromId(DatabindContext context, String id) throws IOException {
+    public JavaType typeFromId(DatabindContext context, String id) throws MissingEntityTypeException {
         if (typeMap.containsKey(id)) {
             return context.constructSpecializedType(baseType, typeMap.get(id));
         }
