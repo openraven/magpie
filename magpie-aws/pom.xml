@@ -13,12 +13,12 @@
     <project.version>${project.version}</project.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <sentry.version>1.7.28</sentry.version>
+    <sentry.version>6.3.0</sentry.version>
     <javatuples.version>1.2</javatuples.version>
     <aws-sigv4-auth-cassandra-java-driver-plugin.version>4.0.3</aws-sigv4-auth-cassandra-java-driver-plugin.version>
-    <sentry.version>1.7.28</sentry.version>
-    <mockito.version>3.10.0</mockito.version>
-    <unirest-java.version>3.13.6</unirest-java.version>
+    <mockito.version>4.6.1</mockito.version>
+    <unirest-java.version>3.13.10</unirest-java.version>
+    <logback-classic.version>1.2.9</logback-classic.version>
   </properties>
 
   <dependencies>
@@ -38,11 +38,11 @@
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
-      <dependency>
-          <groupId>software.amazon.awssdk</groupId>
-          <artifactId>sso</artifactId>
-          <version>${aws.sdk.version}</version>
-      </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sso</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>athena</artifactId>
@@ -297,7 +297,7 @@
     <dependency>
       <groupId>io.sentry</groupId>
       <artifactId>sentry</artifactId>
-      <version>1.7.28</version>
+      <version>${sentry.version}</version>
     </dependency>
 
     <!-- Test scope -->
@@ -309,7 +309,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
+      <version>${logback-classic.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

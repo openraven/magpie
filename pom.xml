@@ -29,7 +29,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <jackson.version>2.12.7</jackson.version>
     <testcontainer.version>1.16.2</testcontainer.version>
-    <aws.sdk.version>2.17.93</aws.sdk.version>
+    <aws.sdk.version>2.17.243</aws.sdk.version>
   </properties>
 
   <licenses>
