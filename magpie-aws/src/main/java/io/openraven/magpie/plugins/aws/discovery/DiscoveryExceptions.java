@@ -1,9 +1,9 @@
 package io.openraven.magpie.plugins.aws.discovery;
 
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,28 +17,27 @@ public class DiscoveryExceptions {
   private static final Logger LOGGER = LoggerFactory.getLogger(DiscoveryExceptions.class);
 
   static public void onDiscoveryException(String resourceType, String resourceName, Region region, AwsServiceException exception) {
-    handleOrReportError(new EventBuilder().withMessage(resourceType + " AwsServiceException")
-      .withLevel(Event.Level.WARNING), resourceType, resourceName, region, exception);
+    var event = createEvent(resourceType + " AwsServiceException", SentryLevel.WARNING);
+    handleOrReportError(event, resourceType, resourceName, region, exception);
   }
 
   static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkServiceException exception) {
-    handleOrReportError(new EventBuilder().withMessage(resourceType + " SdkServiceException")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
+    handleOrReportError(createEvent(resourceType + " SdkServiceException",SentryLevel.ERROR), resourceType, resourceName, region, exception);
   }
 
   static public void onDiscoveryException(String resourceType, String resourceName, Region region, SdkException exception) {
-    handleOrReportError(new EventBuilder().withMessage(resourceType + " SdkException")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
+    handleOrReportError(createEvent(resourceType + " SdkException",
+      SentryLevel.ERROR), resourceType, resourceName, region, exception);
   }
 
   static public void onDiscoveryException(String resourceType, String resourceName, Region region, Exception exception) {
-    handleOrReportError(new EventBuilder().withMessage(resourceType + " Exception")
-      .withLevel(Event.Level.ERROR), resourceType, resourceName, region, exception);
+    handleOrReportError(createEvent(resourceType + " Exception",
+      SentryLevel.ERROR), resourceType, resourceName, region, exception);
   }
 
-  private static void handleOrReportError(EventBuilder eventBuilder, String resourceType, String resourceName, Region region, Exception exception) {
+  private static void handleOrReportError(SentryEvent sentryEvent, String resourceType, String resourceName, Region region, Exception exception) {
     if (!isManagedSdkException(resourceType, resourceName, exception)) {
-      logErrorAndReportToSentry(resourceType, resourceName, region, eventBuilder, exception);
+      logErrorAndReportToSentry(resourceType, resourceName, region, sentryEvent, exception);
     }
   }
 
@@ -81,11 +80,19 @@ public class DiscoveryExceptions {
   }
 
   private static void logErrorAndReportToSentry(String resourceType, String resourceName, Region region,
-                                                EventBuilder eventBuilder, Exception exception) {
+                                                SentryEvent sentryEvent, Exception exception) {
     LOGGER.error("{} - " + exception.getClass().getTypeName() + " on {} in {}, with error {}", resourceType, resourceName, region, exception.getMessage());
-    Sentry.capture(eventBuilder
-      .withExtra("Resource", String.valueOf(resourceType))
-      .withSentryInterface(new ExceptionInterface(exception)));
+    sentryEvent.setExtra("Resource", String.valueOf(resourceType));
+    sentryEvent.setThrowable(exception);
+    Sentry.captureEvent(sentryEvent);
   }
 
+  private static SentryEvent createEvent(String messageString, SentryLevel warning) {
+      var result = new SentryEvent();
+      result.setLevel(warning);
+      var message = new Message();
+      message.setMessage(messageString);
+      result.setMessage(message);
+      return result;
+  }
 }

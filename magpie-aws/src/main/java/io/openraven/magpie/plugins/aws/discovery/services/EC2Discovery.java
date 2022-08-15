@@ -35,9 +35,9 @@ import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import kong.unirest.HttpResponse;
 import kong.unirest.HttpStatus;
 import kong.unirest.Unirest;
@@ -50,10 +50,10 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
-import software.amazon.awssdk.services.lambda.LambdaClient;
-import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
-import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeTransitGatewaysRequest;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Tag;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -365,23 +365,28 @@ public class EC2Discovery implements AWSDiscovery {
       logger.error("Error while getting IP owner for {}", cidr, e);
       //TODO: really want to move this sentry event into shared discovery exceptions
       //but the refactor of that class is in an active branch - will pick it up later
-      Sentry.capture(new EventBuilder().withMessage("WHOIS owner lookup exception while running EC2 SecurityGroup discovery")
-        .withLevel(Event.Level.ERROR)
-        .withExtra("Resource", resourceARN)
-        .withExtra("CIDR", cidr)
-        .withExtra("Reason", e)
-        .withSentryInterface(new ExceptionInterface(e)));
+        SentryEvent event = new SentryEvent(e);
+        var message = new Message();
+        message.setMessage("WHOIS owner lookup exception while running EC2 SecurityGroup discovery");
+        event.setMessage(message);
+        event.setLevel(SentryLevel.ERROR);
+        event.setExtra("Resource", resourceARN);
+        event.setExtra("CIDR", cidr);
+        event.setExtra("Reason", e);
+        Sentry.captureEvent(event);
 
       return Optional.empty();
     } catch (IllegalArgumentException e) {
       logger.warn("Malformed whois output: <<{}>>", whoisResponse, e);
       //TODO: really want to move this sentry event into shared discovery exceptions
       //but the refactor of that class is in an active branch - will pick it up later
-      Sentry.capture(new EventBuilder().withMessage("Malformed whois output")
-        .withLevel(Event.Level.ERROR)
-        .withExtra("Resource", resourceARN)
-        .withExtra("CIDR", cidr)
-        .withSentryInterface(new ExceptionInterface(e)));
+        SentryEvent event = new SentryEvent(e);
+        var message = new Message();
+        message.setMessage("Malformed whois output");
+        event.setMessage(message);
+        event.setLevel(SentryLevel.ERROR);
+        event.setExtra("Resource", resourceARN);
+        event.setExtra("CIDR", cidr);
       return Optional.empty();
     }
   }
@@ -414,9 +419,13 @@ public class EC2Discovery implements AWSDiscovery {
           whoisCache.put(cidr, whoisResp);
           return whoisResp;
         } else {
-          Sentry.capture(new EventBuilder().withMessage("whois look rate limited")
-            .withLevel(Event.Level.WARNING)
-            .withExtra("CIDR", cidr));
+            SentryEvent event = new SentryEvent();
+            var message = new Message();
+            message.setMessage("whois look rate limited");
+            event.setMessage(message);
+            event.setLevel(SentryLevel.WARNING);
+            event.setExtra("CIDR", cidr);
+            Sentry.captureEvent(event);
           return null;
         }
       } catch (JsonProcessingException e) {
