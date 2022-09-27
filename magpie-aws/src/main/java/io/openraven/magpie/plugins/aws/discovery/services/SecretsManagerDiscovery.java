@@ -16,13 +16,12 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.secretsmanager.SecretsManagerSecret;
-import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -31,17 +30,16 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.iam.model.GetGroupPolicyRequest;
-import software.amazon.awssdk.services.iam.model.ListGroupPoliciesRequest;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.DescribeSecretRequest;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
+import software.amazon.awssdk.services.secretsmanager.model.Tag;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
-import static java.lang.String.format;
 
 public class SecretsManagerDiscovery implements AWSDiscovery {
 
@@ -74,6 +72,7 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
               .withCreatedIso(secret.createdDate())
               .withAccountId(account)
               .withAwsRegion(region.toString())
+              .withTags(getConvertedTags(secret.tags(), mapper))
               .build();
 
             discoverSecrets(data, client);
@@ -83,6 +82,11 @@ public class SecretsManagerDiscovery implements AWSDiscovery {
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
+    return mapper.convertValue(tags.stream().collect(
+      Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
   }
 
   public void discoverSecrets(MagpieAwsResource data, SecretsManagerClient client) {
