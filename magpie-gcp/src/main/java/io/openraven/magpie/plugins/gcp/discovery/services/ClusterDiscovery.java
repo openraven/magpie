@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.container.v1.ClusterManagerClient;
+import com.google.cloud.container.v1.ClusterManagerSettings;
 import com.google.container.v1.ListClustersResponse;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class ClusterDiscovery implements GCPDiscovery {
   private static final String SERVICE = "cluster";
@@ -39,10 +42,12 @@ public class ClusterDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Cluster.RESOURCE_TYPE;
+    var builder = ClusterManagerSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create()) {
+    try (ClusterManagerClient clusterManagerClient = ClusterManagerClient.create(builder.build())) {
       ListClustersResponse response = clusterManagerClient.listClusters(
         String.format("projects/%s/locations/-", projectId));
 

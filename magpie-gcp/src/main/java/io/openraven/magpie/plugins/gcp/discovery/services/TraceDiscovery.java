@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.trace.v1.TraceServiceClient;
+import com.google.cloud.trace.v1.TraceServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -29,6 +31,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class TraceDiscovery implements GCPDiscovery {
   private static final String SERVICE = "trace";
@@ -38,10 +41,12 @@ public class TraceDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Trace.RESOURCE_TYPE;
+    var builder = TraceServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (TraceServiceClient traceServiceClient = TraceServiceClient.create()) {
+    try (TraceServiceClient traceServiceClient = TraceServiceClient.create(builder.build())) {
       for (var trace : traceServiceClient.listTraces(projectId).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, trace.getTraceId())
           .withProjectId(projectId)

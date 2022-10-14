@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.cloud.automl.v1.AutoMlClient;
+import com.google.cloud.automl.v1.AutoMlSettings;
 import com.google.cloud.automl.v1.Dataset;
 import com.google.cloud.automl.v1.Model;
 import com.google.cloud.memcache.v1.LocationName;
@@ -27,13 +29,14 @@ import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.automl.AutoMLDataset;
 import io.openraven.magpie.data.gcp.automl.AutoMLModel;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class AutoMLDiscovery implements GCPDiscovery {
   private static final String SERVICE = "autoML";
@@ -45,8 +48,10 @@ public class AutoMLDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (AutoMlClient client = AutoMlClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = AutoMlSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (AutoMlClient client = AutoMlClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         discoverDatasets(mapper, projectId, location, session, emitter, client, logger);
         discoverModels(mapper, projectId, location, session, emitter, client, logger);

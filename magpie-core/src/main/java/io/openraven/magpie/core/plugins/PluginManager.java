@@ -18,10 +18,7 @@ package io.openraven.magpie.core.plugins;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openraven.magpie.api.OriginPlugin;
-import io.openraven.magpie.api.IntermediatePlugin;
 import io.openraven.magpie.api.MagpiePlugin;
-import io.openraven.magpie.api.TerminalPlugin;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
 import org.slf4j.Logger;
@@ -110,7 +107,8 @@ public class PluginManager {
       }
     }
 
-    return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+//    return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+      return config;
   }
 
   public List<MagpiePlugin<?>> byType(Class<? extends MagpiePlugin> clazz) {

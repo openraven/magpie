@@ -17,9 +17,14 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.monitoring.v3.AlertPolicyServiceClient;
+import com.google.cloud.monitoring.v3.AlertPolicyServiceSettings;
 import com.google.cloud.monitoring.v3.GroupServiceClient;
+import com.google.cloud.monitoring.v3.GroupServiceSettings;
 import com.google.cloud.monitoring.v3.ServiceMonitoringServiceClient;
+import com.google.cloud.monitoring.v3.ServiceMonitoringServiceSettings;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.monitoring.v3.AlertPolicy;
 import com.google.monitoring.v3.Group;
@@ -36,6 +41,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class MonitoringDiscovery implements GCPDiscovery {
   private static final String SERVICE = "monitoring";
@@ -45,16 +51,18 @@ public class MonitoringDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverMonitoringGroups(mapper, projectId, session, emitter);
-    discoverAlertPolicies(mapper, projectId, session, emitter);
-    discoverServices(mapper, projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    discoverMonitoringGroups(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverAlertPolicies(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverServices(mapper, projectId, session, emitter, maybeCredentialsProvider);
   }
 
-  private void discoverMonitoringGroups(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverMonitoringGroups(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = MonitoringGroup.RESOURCE_TYPE;
+    var builder = GroupServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (GroupServiceClient groupServiceClient = GroupServiceClient.create()) {
+    try (GroupServiceClient groupServiceClient = GroupServiceClient.create(builder.build())) {
       for (Group group : groupServiceClient.listGroups(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, group.getName())
           .withProjectId(projectId)
@@ -69,10 +77,12 @@ public class MonitoringDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverAlertPolicies(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverAlertPolicies(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = MonitoringAlertPolicy.RESOURCE_TYPE;
+    var builder = AlertPolicyServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (AlertPolicyServiceClient alertPolicyServiceClient = AlertPolicyServiceClient.create()) {
+    try (AlertPolicyServiceClient alertPolicyServiceClient = AlertPolicyServiceClient.create(builder.build())) {
       for (AlertPolicy alertPolicy : alertPolicyServiceClient.listAlertPolicies(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, alertPolicy.getName())
           .withProjectId(projectId)
@@ -87,10 +97,12 @@ public class MonitoringDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverServices(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverServices(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = MonitoringService.RESOURCE_TYPE;
+    var builder = ServiceMonitoringServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var serviceMonitoringServiceClient = ServiceMonitoringServiceClient.create()) {
+    try (var serviceMonitoringServiceClient = ServiceMonitoringServiceClient.create(builder.build())) {
       for (var service : serviceMonitoringServiceClient.listServices(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, service.getName())
           .withProjectId(projectId)

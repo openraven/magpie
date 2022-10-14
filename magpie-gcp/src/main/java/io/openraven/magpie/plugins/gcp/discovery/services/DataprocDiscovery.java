@@ -17,6 +17,8 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.dataproc.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class DataprocDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dataproc";
@@ -69,20 +72,22 @@ public class DataprocDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     AVAILABLE_LOCATIONS.forEach(location -> {
-      discoverClusters(mapper, projectId, session, emitter, location);
-      discoverJobs(mapper, projectId, session, emitter, location);
+      discoverClusters(mapper, projectId, session, emitter, location, maybeCredentialsProvider);
+      discoverJobs(mapper, projectId, session, emitter, location, maybeCredentialsProvider);
     });
   }
 
-  private void discoverClusters(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location) {
+  private void discoverClusters(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = DataProcCluster.RESOURCE_TYPE;
 
     try {
-      var clusterControllerConfig = location.equals("global") ?
-        ClusterControllerSettings.newBuilder().build() :
-        ClusterControllerSettings.newBuilder()
+        final ClusterControllerSettings.Builder builder = ClusterControllerSettings.newBuilder();
+        maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+        var clusterControllerConfig = location.equals("global") ?
+        builder.build() :
+        builder
           .setEndpoint("<LOCATION>-dataproc.googleapis.com:443".replace("<LOCATION>", location))
           .build();
       try (var client = ClusterControllerClient.create(clusterControllerConfig)){
@@ -103,13 +108,15 @@ public class DataprocDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverJobs(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location) {
+  private void discoverJobs(ObjectMapper mapper, String projectId, Session session, Emitter emitter, String location, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = DataProcJob.RESOURCE_TYPE;
 
     try {
-      var clusterControllerConfig = location.equals("global") ?
-        JobControllerSettings.newBuilder().build() :
-        JobControllerSettings.newBuilder()
+        final JobControllerSettings.Builder builder = JobControllerSettings.newBuilder();
+        maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+        var clusterControllerConfig = location.equals("global") ?
+        builder.build() :
+        builder
           .setEndpoint("<LOCATION>-dataproc.googleapis.com:443".replace("<LOCATION>", location))
           .build();
       try (var client = JobControllerClient.create(clusterControllerConfig)){

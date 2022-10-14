@@ -17,10 +17,12 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.datalabeling.v1beta1.AnnotatedDataset;
 import com.google.cloud.datalabeling.v1beta1.DataItem;
 import com.google.cloud.datalabeling.v1beta1.DataLabelingServiceClient;
+import com.google.cloud.datalabeling.v1beta1.DataLabelingServiceSettings;
 import com.google.cloud.datalabeling.v1beta1.Dataset;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
@@ -37,6 +39,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DataLabelingDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dataLabeling";
@@ -46,8 +49,10 @@ public class DataLabelingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (DataLabelingServiceClient dataLabelingServiceClient = DataLabelingServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = DataLabelingServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (DataLabelingServiceClient dataLabelingServiceClient = DataLabelingServiceClient.create(builder.build())) {
       discoverDatasets(mapper, projectId, session, emitter, dataLabelingServiceClient);
       discoverInstructions(mapper, projectId, session, emitter, dataLabelingServiceClient);
       discoverAnnotationSpecSet(mapper, projectId, session, emitter, dataLabelingServiceClient);

@@ -17,11 +17,13 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.servicedirectory.v1.Endpoint;
 import com.google.cloud.servicedirectory.v1.LocationName;
 import com.google.cloud.servicedirectory.v1.Namespace;
 import com.google.cloud.servicedirectory.v1.RegistrationServiceClient;
+import com.google.cloud.servicedirectory.v1.RegistrationServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class ServiceDirectoryDiscovery implements GCPDiscovery {
   private static final String SERVICE = "serviceDirectory";
@@ -76,10 +79,12 @@ public class ServiceDirectoryDiscovery implements GCPDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Service.RESOURCE_TYPE;
+    var builder = RegistrationServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (RegistrationServiceClient registrationServiceClient = RegistrationServiceClient.create()) {
+    try (RegistrationServiceClient registrationServiceClient = RegistrationServiceClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {  // Discover services in all namespaces for all locations
         String parent = LocationName.of(projectId, location).toString();
 

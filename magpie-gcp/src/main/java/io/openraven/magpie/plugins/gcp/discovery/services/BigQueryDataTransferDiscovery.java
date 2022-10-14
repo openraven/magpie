@@ -17,22 +17,25 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.datatransfer.v1.DataTransferServiceClient;
+import com.google.cloud.bigquery.datatransfer.v1.DataTransferServiceSettings;
 import com.google.cloud.bigquery.datatransfer.v1.LocationName;
 import com.google.cloud.bigquery.datatransfer.v1.TransferRun;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.bigquery.BigQueryDataTransfer;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BigQueryDataTransferDiscovery implements GCPDiscovery {
   private static final String SERVICE = "bigQueryDataTransfer";
@@ -71,10 +74,11 @@ public class BigQueryDataTransferDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = BigQueryDataTransfer.RESOURCE_TYPE;
-
-    try (DataTransferServiceClient client = DataTransferServiceClient.create()) {
+    var builder = DataTransferServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (DataTransferServiceClient client = DataTransferServiceClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         LocationName parent = LocationName.of(projectId, location);
         for (var dataSource : client.listTransferConfigs(parent).iterateAll()) {

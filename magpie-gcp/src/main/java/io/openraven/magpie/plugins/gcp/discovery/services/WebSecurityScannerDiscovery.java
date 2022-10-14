@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.websecurityscanner.v1.*;
 import io.openraven.magpie.api.Emitter;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class WebSecurityScannerDiscovery implements GCPDiscovery {
   private static final String SERVICE = "webSecurityScanner";
@@ -40,10 +42,12 @@ public class WebSecurityScannerDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = WebSecurity.RESOURCE_TYPE;
+    var builder = WebSecurityScannerSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (WebSecurityScannerClient webSecurityScannerClient = WebSecurityScannerClient.create()) {
+    try (WebSecurityScannerClient webSecurityScannerClient = WebSecurityScannerClient.create(builder.build())) {
       ListScanConfigsRequest request =
         ListScanConfigsRequest.newBuilder()
           .setParent(String.format("projects/%s", projectId))

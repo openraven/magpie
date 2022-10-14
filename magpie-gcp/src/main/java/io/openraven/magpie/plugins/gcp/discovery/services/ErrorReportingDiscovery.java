@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.errorreporting.v1beta1.ErrorStatsServiceClient;
+import com.google.cloud.errorreporting.v1beta1.ErrorStatsServiceSettings;
 import com.google.devtools.clouderrorreporting.v1beta1.ProjectName;
 import com.google.devtools.clouderrorreporting.v1beta1.QueryTimeRange;
 import io.openraven.magpie.api.Emitter;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class ErrorReportingDiscovery implements GCPDiscovery {
   private static final String SERVICE = "errorReporting";
@@ -40,10 +43,11 @@ public class ErrorReportingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = ErrorReporting.RESOURCE_TYPE;
-
-    try (var client = ErrorStatsServiceClient.create()) {
+    var builder = ErrorStatsServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var client = ErrorStatsServiceClient.create(builder.build())) {
       client.listGroupStats(ProjectName.of(projectId), QueryTimeRange.newBuilder().build()).iterateAll()
         .forEach(groupStat -> {
           var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, groupStat.getGroup().getName())

@@ -1,8 +1,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.compute.v1.Project;
 import com.google.cloud.compute.v1.ProjectClient;
+import com.google.cloud.compute.v1.ProjectSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -13,6 +15,7 @@ import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ProjectDiscovery implements GCPDiscovery {
   private static final String SERVICE = "project";
@@ -24,10 +27,11 @@ public class ProjectDiscovery implements GCPDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = ProjectInfo.RESOURCE_TYPE;
-
-    try (ProjectClient projectClient = ProjectClient.create()) {
+    var builder = ProjectSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (ProjectClient projectClient = ProjectClient.create(builder.build())) {
       Project project = projectClient.getProject(projectId);
 
       String assetId = "project::%s";

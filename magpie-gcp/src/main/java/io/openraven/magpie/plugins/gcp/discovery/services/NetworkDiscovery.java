@@ -17,11 +17,14 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.compute.v1.Network;
 import com.google.cloud.compute.v1.NetworkClient;
+import com.google.cloud.compute.v1.NetworkSettings;
 import com.google.cloud.compute.v1.Subnetwork;
 import com.google.cloud.compute.v1.SubnetworkClient;
+import com.google.cloud.compute.v1.SubnetworkSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -33,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class NetworkDiscovery implements GCPDiscovery {
   private static final String SERVICE = "vpc";
@@ -43,11 +47,16 @@ public class NetworkDiscovery implements GCPDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.vpc.Network.RESOURCE_TYPE;
-
-    try (NetworkClient networkClient = NetworkClient.create();
-         SubnetworkClient subnetworkClient = SubnetworkClient.create()) {
+    var networkSettingsBuilder = NetworkSettings.newBuilder();
+    var subnetworkSettingsBuilder = SubnetworkSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(provider -> {
+        networkSettingsBuilder.setCredentialsProvider(provider);
+        subnetworkSettingsBuilder.setCredentialsProvider(provider);
+    });
+    try (NetworkClient networkClient = NetworkClient.create(networkSettingsBuilder.build());
+         SubnetworkClient subnetworkClient = SubnetworkClient.create(subnetworkSettingsBuilder.build())) {
       networkClient.listNetworks(projectId).iterateAll().forEach(network -> {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, network.getName())
           .withProjectId(projectId)

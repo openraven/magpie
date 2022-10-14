@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.kms.v1.CryptoKey;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
+import com.google.cloud.kms.v1.KeyManagementServiceSettings;
 import com.google.cloud.kms.v1.LocationName;
 import com.google.iam.v1.Policy;
 import io.openraven.magpie.api.Emitter;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class KMSDiscovery implements GCPDiscovery {
   private static final String SERVICE = "kms";
@@ -86,9 +89,11 @@ public class KMSDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = KmsKeyring.RESOURCE_TYPE;
-    try (KeyManagementServiceClient keyManagementServiceClient = KeyManagementServiceClient.create()) {
+    var builder = KeyManagementServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (KeyManagementServiceClient keyManagementServiceClient = KeyManagementServiceClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         String parent = LocationName.of(projectId, location).toString();
 

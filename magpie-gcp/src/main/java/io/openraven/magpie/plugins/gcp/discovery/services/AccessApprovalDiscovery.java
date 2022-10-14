@@ -17,19 +17,22 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.accessapproval.v1.AccessApprovalAdminClient;
+import com.google.cloud.accessapproval.v1.AccessApprovalAdminSettings;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.access.AccessApproval;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class AccessApprovalDiscovery implements GCPDiscovery {
   private static final String SERVICE = "accessApproval";
@@ -39,10 +42,11 @@ public class AccessApprovalDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = AccessApproval.RESOURCE_TYPE;
-
-    try (var accessApprovalAdminClient = AccessApprovalAdminClient.create()) {
+    var builder = AccessApprovalAdminSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var accessApprovalAdminClient = AccessApprovalAdminClient.create(builder.build())) {
       for (var approvalRequest : accessApprovalAdminClient.listApprovalRequests(ProjectName.of(projectId).toString()).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, approvalRequest.getName())
           .withProjectId(projectId)

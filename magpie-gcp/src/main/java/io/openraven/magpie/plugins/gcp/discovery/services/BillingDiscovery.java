@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.billing.v1.BillingAccount;
 import com.google.cloud.billing.v1.CloudBillingClient;
+import com.google.cloud.billing.v1.CloudBillingSettings;
 import com.google.cloud.billing.v1.ProjectBillingInfo;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BillingDiscovery implements GCPDiscovery {
   private static final String SERVICE = "billing";
@@ -41,10 +44,12 @@ public class BillingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.billing.BillingAccount.RESOURCE_TYPE;
+    var builder = CloudBillingSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = CloudBillingClient.create()) {
+    try (var client = CloudBillingClient.create(builder.build())) {
       for (var billingAccount : client.listBillingAccounts().iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, billingAccount.getName())
           .withProjectId(projectId)

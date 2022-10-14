@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.rpc.UnimplementedException;
 import com.google.cloud.gaming.v1alpha.GameServerDeploymentsServiceClient;
 import com.google.cloud.gaming.v1alpha.RealmsServiceClient;
+import com.google.cloud.gaming.v1alpha.RealmsServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class GameServicesDiscovery implements GCPDiscovery {
   private static final String SERVICE = "gameServices";
@@ -40,10 +43,12 @@ public class GameServicesDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = GameService.RESOURCE_TYPE;
+    var builder = RealmsServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var realmsServiceClient = RealmsServiceClient.create()) {
+    try (var realmsServiceClient = RealmsServiceClient.create(builder.build())) {
       String formattedParent = GameServerDeploymentsServiceClient.formatLocationName(projectId, "global");
 
       for (var realm : realmsServiceClient.listRealms(formattedParent).iterateAll()) {

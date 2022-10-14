@@ -17,20 +17,23 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.asset.v1.AssetServiceClient;
+import com.google.cloud.asset.v1.AssetServiceSettings;
 import com.google.cloud.asset.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.asset.Asset;
 import io.openraven.magpie.data.gcp.asset.AssetFeed;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class AssetDiscovery implements GCPDiscovery {
   private static final String SERVICE = "asset";
@@ -40,8 +43,10 @@ public class AssetDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (AssetServiceClient assetServiceClient = AssetServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = AssetServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (AssetServiceClient assetServiceClient = AssetServiceClient.create(builder.build())) {
       discoverFeeds(mapper, projectId, session, emitter, assetServiceClient);
       discoverAssets(mapper, projectId, session, emitter, assetServiceClient);
     } catch (IOException e) {

@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.dialogflow.v2.ConversationsClient;
+import com.google.cloud.dialogflow.v2.ConversationsSettings;
 import com.google.cloud.dialogflow.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class DialogflowDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dialogflow";
@@ -39,10 +42,12 @@ public class DialogflowDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = DialogflowConversation.RESOURCE_TYPE;
+    var builder = ConversationsSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (ConversationsClient conversationsClient = ConversationsClient.create()) {
+    try (ConversationsClient conversationsClient = ConversationsClient.create(builder.build())) {
       for (var conversation : conversationsClient.listConversations(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, conversation.getName())
           .withProjectId(projectId)

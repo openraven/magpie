@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -30,8 +31,10 @@ import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BigQueryDiscovery implements GCPDiscovery {
   private static final String SERVICE = "bigQuery";
@@ -41,9 +44,17 @@ public class BigQueryDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    BigQuery bigQuery = BigQueryOptions.getDefaultInstance().getService();
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = BigQueryOptions.newBuilder();
 
+    maybeCredentialsProvider.ifPresent(googleCredentialsProvider -> {
+        try {
+            builder.setCredentials(googleCredentialsProvider.getCredentials());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    });
+    BigQuery bigQuery = builder.build().getService();
     final String RESOURCE_TYPE = BigQueryDataset.RESOURCE_TYPE;
     bigQuery.listDatasets(projectId).iterateAll()
       .forEach(datasetProxy -> {

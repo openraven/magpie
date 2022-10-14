@@ -3,7 +3,8 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.iam.v1.IamScopes;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.services.sqladmin.SQLAdmin;
 import com.google.api.services.sqladmin.model.InstancesListResponse;
 import com.google.auth.http.HttpCredentialsAdapter;
@@ -18,8 +19,8 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class SqlDiscovery implements GCPDiscovery {
   private static final String SERVICE = "sql";
@@ -31,11 +32,11 @@ public class SqlDiscovery implements GCPDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = SqlInstance.RESOURCE_TYPE;
 
     try {
-      SQLAdmin sqlAdmin = initService();
+      SQLAdmin sqlAdmin = initService(maybeCredentialsProvider);
 
       var request = sqlAdmin.instances().list(projectId);
 
@@ -63,11 +64,13 @@ public class SqlDiscovery implements GCPDiscovery {
     }
   }
 
-  private static SQLAdmin initService() throws GeneralSecurityException, IOException {
-    GoogleCredentials credential =
-      GoogleCredentials.getApplicationDefault()
-        .createScoped(Collections.singleton(IamScopes.CLOUD_PLATFORM));
-
+  private static SQLAdmin initService(Optional<CredentialsProvider> maybeCredentialsProvider) throws GeneralSecurityException, IOException {
+    GoogleCredentials credential;
+    if(maybeCredentialsProvider.isPresent()){
+      credential = (GoogleCredentials) maybeCredentialsProvider.get().getCredentials();
+    } else {
+      credential = GoogleCredentials.getApplicationDefault();
+    }
     return new SQLAdmin.Builder(
       GoogleNetHttpTransport.newTrustedTransport(),
       JacksonFactory.getDefaultInstance(),

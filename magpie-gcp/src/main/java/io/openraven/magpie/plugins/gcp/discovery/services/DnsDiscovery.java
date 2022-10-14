@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.dns.*;
 import io.openraven.magpie.api.Emitter;
@@ -27,8 +28,10 @@ import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DnsDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dns";
@@ -38,10 +41,17 @@ public class DnsDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = DnsZone.RESOURCE_TYPE;
-
-    var dnsInstance = DnsOptions.getDefaultInstance().getService();
+    var builder = DnsOptions.newBuilder();
+    maybeCredentialsProvider.ifPresent(provider -> {
+        try {
+            builder.setCredentials(provider.getCredentials());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    });
+    var dnsInstance = builder.build().getService();
 
     dnsInstance.listZones().iterateAll().forEach(zone -> {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, zone.getName())

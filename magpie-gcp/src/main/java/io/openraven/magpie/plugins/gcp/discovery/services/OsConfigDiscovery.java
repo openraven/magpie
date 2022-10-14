@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.osconfig.v1.OsConfigServiceClient;
+import com.google.cloud.osconfig.v1.OsConfigServiceSettings;
 import com.google.cloud.osconfig.v1.PatchJobs;
 import com.google.cloud.osconfig.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class OsConfigDiscovery implements GCPDiscovery {
   private static final String SERVICE = "osConfig";
@@ -43,8 +46,10 @@ public class OsConfigDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (OsConfigServiceClient client = OsConfigServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = OsConfigServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (OsConfigServiceClient client = OsConfigServiceClient.create(builder.build())) {
       discoverPatchJobs(mapper, projectId, session, emitter, client);
       discoverPatchDeployments(mapper, projectId, session, emitter, client);
     } catch (IOException e) {
