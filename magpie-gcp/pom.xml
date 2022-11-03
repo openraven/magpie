@@ -13,7 +13,6 @@
     <project.version>0.1.0-SNAPSHOT</project.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <sentry.version>1.7.28</sentry.version>
     <javatuples.version>1.2</javatuples.version>
   </properties>
 
@@ -49,7 +48,7 @@
     <dependency>
       <groupId>io.sentry</groupId>
       <artifactId>sentry</artifactId>
-      <version>1.7.28</version>
+      <version>${sentry.version}</version>
     </dependency>
 
     <!-- Test scope -->

@@ -173,7 +173,11 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
     this.logger = logger;
     this.config = config;
 
-    Sentry.init();
+    try {
+      Sentry.init();
+    } catch (IllegalArgumentException ex) {
+      logger.warn("Could not initialize Sentry: {}", ex.getMessage());
+    }
   }
 
   @Override
