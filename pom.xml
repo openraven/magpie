@@ -30,6 +30,7 @@
     <jackson.version>2.12.7</jackson.version>
     <testcontainer.version>1.16.2</testcontainer.version>
     <aws.sdk.version>2.17.243</aws.sdk.version>
+    <sentry.version>6.3.0</sentry.version>
   </properties>
 
   <licenses>

@@ -1,9 +1,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.exception;
 
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +13,11 @@ public class DiscoveryExceptions {
 
   static public void onDiscoveryException(String resourceType, Exception ex) {
     logger.error("{} - Exception , with error {}", resourceType, ex.getMessage());
-    Sentry.capture(new EventBuilder().withMessage(resourceType + " Exception")
-      .withLevel(Event.Level.WARNING)
-      .withFingerprint(String.valueOf(resourceType), String.valueOf(ex.getMessage()))
-      .withExtra("Resource", String.valueOf(resourceType))
-      .withSentryInterface(new ExceptionInterface(ex)));
+    final var event = new SentryEvent();
+    event.setLevel(SentryLevel.WARNING);
+    final var message = new Message();
+    message.setMessage(resourceType + ":" + ex.getMessage());
+    event.setMessage(message);
+    Sentry.captureEvent(event);
   }
 }
