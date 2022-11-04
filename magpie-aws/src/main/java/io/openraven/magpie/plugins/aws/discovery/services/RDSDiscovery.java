@@ -24,6 +24,7 @@ import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.rds.RDSInstance;
 import io.openraven.magpie.data.aws.rds.RDSSnapshot;
+import io.openraven.magpie.data.aws.rds.RDSProxy;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -38,6 +39,7 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
@@ -68,8 +70,33 @@ public class RDSDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
 
     try (final var client = clientCreator.apply(RdsClient.builder()).build()) {
+      discoverDbProxy(mapper, session, region, emitter, account, client);
       discoverDbSnapshot(mapper, session, region, emitter, account, client);
       discoverDbInstances(mapper, session, region, emitter, logger, account, client, clientCreator);
+    }
+  }
+
+  private void discoverDbProxy(ObjectMapper mapper, Session session, Region region, Emitter emitter, String account, RdsClient client) {
+    final String RESOURCE_TYPE = RDSProxy.RESOURCE_TYPE;
+
+    try {
+      client.describeDBProxiesPaginator(DescribeDbProxiesRequest.builder().build()).dbProxies().stream()
+        .forEach(dbProxy -> {
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, dbProxy.dbProxyArn())
+            .withResourceName(dbProxy.dbProxyName())
+            .withResourceId(dbProxy.dbProxyArn())
+            .withResourceType(RESOURCE_TYPE)
+            .withConfiguration(mapper.valueToTree(dbProxy.toBuilder()))
+            .withCreatedIso(dbProxy.createdDate())
+            .withAccountId(account)
+            .withAwsRegion(region.toString())
+            .build();
+
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbProxy"), data.toJsonNode()));
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
 
@@ -119,6 +146,7 @@ public class RDSDiscovery implements AWSDiscovery {
           discoverInstanceDbClusters(client, db, data);
           discoverInstanceDbSnapshots(client, db, data);
           discoverInstanceSize(db, data, logger, clientCreator);
+          discoverInstanceDbProxies(client, db, data);
 
           discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator, logger);
 
@@ -128,6 +156,7 @@ public class RDSDiscovery implements AWSDiscovery {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
+
 
   private void discoverTags(RdsClient client, DBInstance resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
@@ -147,6 +176,14 @@ public class RDSDiscovery implements AWSDiscovery {
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
+  }
+
+  private void discoverInstanceDbProxies(RdsClient client, DBInstance resource, MagpieAwsResource data){
+    getAwsResponse(
+      () -> client.describeDBProxies(DescribeDbProxiesRequest.builder().dbProxyName(resource.dbInstanceIdentifier()).build()),
+        (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
+        (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
+      );
   }
 
   private void discoverInstanceDbSnapshots(RdsClient client, DBInstance resource, MagpieAwsResource data) {
