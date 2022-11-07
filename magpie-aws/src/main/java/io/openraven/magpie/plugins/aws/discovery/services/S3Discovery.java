@@ -54,6 +54,8 @@ import software.amazon.awssdk.services.s3.model.GetBucketVersioningRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketWebsiteRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectLockConfigurationRequest;
 import software.amazon.awssdk.services.s3.model.GetPublicAccessBlockRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryptionRule;
+import software.amazon.awssdk.services.s3.model.GetBucketEncryptionResponse;
 import software.amazon.awssdk.services.s3.model.PolicyStatus;
 import software.amazon.awssdk.services.s3.model.Tag;
 
@@ -126,6 +128,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverObjectLockConfiguration(client, bucket, data);
         discoverReplication(client, bucket, data);
         discoverPublic(client, bucket, data, logger);
+        discoverIsEncrypted(client, bucket, data, logger);
         discoverVersioning(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data, clientCreator);
@@ -249,6 +252,31 @@ public class S3Discovery implements AWSDiscovery {
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
+  }
+
+  private void discoverIsEncrypted(S3Client client, Bucket resource, MagpieAwsResource data, Logger logger) {
+    boolean hasEncryptionConfiguration = false;
+    boolean hasBucketEncryptionKeyEnabled = false;
+    try {
+      GetBucketEncryptionResponse bucketEnc = client.getBucketEncryption(GetBucketEncryptionRequest.builder().bucket(resource.name()).build());
+      List<ServerSideEncryptionRule> rules = bucketEnc.serverSideEncryptionConfiguration().rules();
+      for (ServerSideEncryptionRule rule : rules) {
+        if (rule.bucketKeyEnabled()) {
+          hasBucketEncryptionKeyEnabled = true;
+          break;
+        }
+      }
+      hasEncryptionConfiguration = true;
+    } catch (SdkServiceException ex) {
+      if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
+        throw ex;
+      }
+      logger.warn("Failure on S3 isEncrypted discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
+    }
+    AWSUtils.update(data.supplementaryConfiguration,
+      Map.of("isEncrypted", hasEncryptionConfiguration && hasBucketEncryptionKeyEnabled,
+        "hasEncryptionConfiguration", hasEncryptionConfiguration,
+        "hasBucketEncryptionKeyEnabled", hasBucketEncryptionKeyEnabled));
   }
 
   private void discoverVersioning(S3Client client, Bucket resource, MagpieAwsResource data) {
