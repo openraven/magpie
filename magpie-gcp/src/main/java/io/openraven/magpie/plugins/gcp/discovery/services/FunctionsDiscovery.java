@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.functions.v1.CloudFunctionsServiceClient;
+import com.google.cloud.functions.v1.CloudFunctionsServiceSettings;
 import com.google.cloud.functions.v1.ListFunctionsRequest;
 import com.google.cloud.functions.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class FunctionsDiscovery implements GCPDiscovery {
   private static final String SERVICE = "functions";
@@ -40,10 +43,12 @@ public class FunctionsDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Function.RESOURCE_TYPE;
+    var builder = CloudFunctionsServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (CloudFunctionsServiceClient clusterManagerClient = CloudFunctionsServiceClient.create()) {
+    try (CloudFunctionsServiceClient clusterManagerClient = CloudFunctionsServiceClient.create(builder.build())) {
       var response = clusterManagerClient.listFunctions(
         ListFunctionsRequest.newBuilder().
           setParent(LocationName.of(projectId, "-").toString())

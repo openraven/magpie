@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.scheduler.v1beta1.CloudSchedulerClient;
+import com.google.cloud.scheduler.v1beta1.CloudSchedulerSettings;
 import com.google.cloud.scheduler.v1beta1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class SchedulerDiscovery implements GCPDiscovery {
   private static final String SERVICE = "scheduler";
@@ -65,10 +68,12 @@ public class SchedulerDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = SchedulerJob.RESOURCE_TYPE;
+    var builder = CloudSchedulerSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var cloudSchedulerClient = CloudSchedulerClient.create()) {
+    try (var cloudSchedulerClient = CloudSchedulerClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
           var parent = LocationName.of(projectId, location);

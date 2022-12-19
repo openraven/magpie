@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.devtools.containeranalysis.v1beta1.GrafeasV1Beta1Client;
+import com.google.cloud.devtools.containeranalysis.v1beta1.GrafeasV1Beta1Settings;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class ContainerAnalysisDiscovery implements GCPDiscovery {
   private static final String SERVICE = "containerAnalysis";
@@ -40,8 +43,10 @@ public class ContainerAnalysisDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (var client = GrafeasV1Beta1Client.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = GrafeasV1Beta1Settings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var client = GrafeasV1Beta1Client.create(builder.build())) {
       discoverOccurrences(mapper, projectId, session, emitter, client);
       discoverNotes(mapper, projectId, session, emitter, client);
     } catch (IOException e) {

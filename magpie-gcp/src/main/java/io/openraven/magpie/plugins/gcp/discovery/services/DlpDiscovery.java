@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.dlp.v2.DlpServiceClient;
+import com.google.cloud.dlp.v2.DlpServiceSettings;
 import com.google.privacy.dlp.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class DlpDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dlp";
@@ -40,8 +43,10 @@ public class DlpDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (DlpServiceClient dlpServiceClient = DlpServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = DlpServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (DlpServiceClient dlpServiceClient = DlpServiceClient.create(builder.build())) {
       discoverJobTrigger(mapper, projectId, session, emitter, dlpServiceClient);
       discoverDlpJobs(mapper, projectId, session, emitter, dlpServiceClient);
     } catch (IOException e) {

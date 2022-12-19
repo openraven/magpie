@@ -17,9 +17,12 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.spanner.admin.database.v1.DatabaseAdminClient;
+import com.google.cloud.spanner.admin.database.v1.DatabaseAdminSettings;
 import com.google.cloud.spanner.admin.instance.v1.InstanceAdminClient;
+import com.google.cloud.spanner.admin.instance.v1.InstanceAdminSettings;
 import com.google.spanner.admin.database.v1.Backup;
 import com.google.spanner.admin.database.v1.Database;
 import com.google.spanner.admin.instance.v1.Instance;
@@ -28,14 +31,15 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.spanner.SpannerInstance;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SpannerDiscovery implements GCPDiscovery {
   private static final String SERVICE = "spanner";
@@ -45,10 +49,17 @@ public class SpannerDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = SpannerInstance.RESOURCE_TYPE;
+    var instanceAdminSettingsBuilder = InstanceAdminSettings.newBuilder();
+    var databaseAdminSettingsBuilder = DatabaseAdminSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(provider ->
+    {
+        instanceAdminSettingsBuilder.setCredentialsProvider(provider);
+        databaseAdminSettingsBuilder.setCredentialsProvider(provider);
+    });
 
-    try (var client = InstanceAdminClient.create()) {
+    try (var client = InstanceAdminClient.create(instanceAdminSettingsBuilder.build())) {
       ProjectName projectName = ProjectName.of(projectId);
 
       client.listInstances(projectName).iterateAll().forEach(instance -> {
@@ -57,8 +68,7 @@ public class SpannerDiscovery implements GCPDiscovery {
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(instance))
           .build();
-
-        try (var databaseAdminClient = DatabaseAdminClient.create()) {
+        try (var databaseAdminClient = DatabaseAdminClient.create(databaseAdminSettingsBuilder.build())) {
           discoverBackups(instance, data, databaseAdminClient);
           discoverDatabases(instance, data, databaseAdminClient);
         } catch (IOException e) {

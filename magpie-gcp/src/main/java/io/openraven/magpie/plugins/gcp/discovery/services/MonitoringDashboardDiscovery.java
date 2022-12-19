@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.monitoring.dashboard.v1.DashboardsServiceClient;
+import com.google.cloud.monitoring.dashboard.v1.DashboardsServiceSettings;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.monitoring.dashboard.v1.ListDashboardsRequest;
 import io.openraven.magpie.api.Emitter;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class MonitoringDashboardDiscovery implements GCPDiscovery {
   private static final String SERVICE = "monitoringDashboard";
@@ -40,10 +43,12 @@ public class MonitoringDashboardDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = MonitoringDashboard.RESOURCE_TYPE;
+    var builder = DashboardsServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (DashboardsServiceClient dashboardsServiceClient = DashboardsServiceClient.create()) {
+    try (DashboardsServiceClient dashboardsServiceClient = DashboardsServiceClient.create(builder.build())) {
       var request = ListDashboardsRequest.newBuilder()
         .setParent(ProjectName.of(projectId).toString())
         .build();

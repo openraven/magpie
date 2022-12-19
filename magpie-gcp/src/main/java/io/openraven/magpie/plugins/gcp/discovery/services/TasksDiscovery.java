@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.iot.v1.LocationName;
 import com.google.cloud.tasks.v2.CloudTasksClient;
+import com.google.cloud.tasks.v2.CloudTasksSettings;
 import com.google.cloud.tasks.v2.Queue;
 import com.google.cloud.tasks.v2.Task;
 import io.openraven.magpie.api.Emitter;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class TasksDiscovery implements GCPDiscovery {
   private static final String SERVICE = "tasks";
@@ -75,10 +78,12 @@ public class TasksDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = TaskQueue.RESOURCE_TYPE;
+    var builder = CloudTasksSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (CloudTasksClient cloudTasksClient = CloudTasksClient.create()) {
+    try (CloudTasksClient cloudTasksClient = CloudTasksClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
           LocationName parent = LocationName.of(projectId, location);

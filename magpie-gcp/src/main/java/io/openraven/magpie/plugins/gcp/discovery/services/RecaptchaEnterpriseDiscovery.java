@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.recaptchaenterprise.v1.RecaptchaEnterpriseServiceClient;
+import com.google.cloud.recaptchaenterprise.v1.RecaptchaEnterpriseServiceSettings;
 import com.google.recaptchaenterprise.v1.Key;
 import com.google.recaptchaenterprise.v1.ListKeysRequest;
 import com.google.recaptchaenterprise.v1.ProjectName;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class RecaptchaEnterpriseDiscovery implements GCPDiscovery {
   private static final String SERVICE = "recaptchaEnterprise";
@@ -41,11 +44,13 @@ public class RecaptchaEnterpriseDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = RecaptchaEnterpriseKey.RESOURCE_TYPE;
+    var builder = RecaptchaEnterpriseServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
     try (RecaptchaEnterpriseServiceClient recaptchaEnterpriseServiceClient =
-           RecaptchaEnterpriseServiceClient.create()) {
+           RecaptchaEnterpriseServiceClient.create(builder.build())) {
       ListKeysRequest request =
         ListKeysRequest.newBuilder()
           .setParent(ProjectName.of(projectId).toString())

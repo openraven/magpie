@@ -19,6 +19,7 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.services.iam.v1.Iam;
 import com.google.api.services.iam.v1.IamScopes;
 import com.google.api.services.iam.v1.model.ListRolesResponse;
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class IamDiscovery implements GCPDiscovery {
   private static final String SERVICE = "iam";
@@ -50,9 +52,9 @@ public class IamDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     try {
-      Iam iamService = initService();
+      Iam iamService = initService(maybeCredentialsProvider);
 
       discoverServiceAccounts(iamService, mapper, projectId, session, emitter);
       discoverRoles(iamService, mapper, projectId, session, emitter);
@@ -128,10 +130,14 @@ public class IamDiscovery implements GCPDiscovery {
     } while (response.getNextPageToken() != null);
   }
 
-  private static Iam initService() throws GeneralSecurityException, IOException {
-    GoogleCredentials credential =
-      GoogleCredentials.getApplicationDefault()
-        .createScoped(Collections.singleton(IamScopes.CLOUD_PLATFORM));
+  private static Iam initService(Optional<CredentialsProvider> maybeCredentialsProvider) throws GeneralSecurityException, IOException {
+    GoogleCredentials credential;
+    if(maybeCredentialsProvider.isPresent()){
+        credential = (GoogleCredentials) maybeCredentialsProvider.get().getCredentials();
+    } else {
+        credential = GoogleCredentials.getApplicationDefault();
+    }
+    credential.createScoped(Collections.singleton(IamScopes.CLOUD_PLATFORM));
 
     return new Iam.Builder(
       GoogleNetHttpTransport.newTrustedTransport(),

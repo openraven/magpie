@@ -23,13 +23,62 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
-import io.openraven.magpie.plugins.gcp.discovery.services.*;
-import io.sentry.Sentry;
+import io.openraven.magpie.plugins.gcp.discovery.services.AccessApprovalDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.AssetDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.AutoMLDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.BigQueryDataTransferDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.BigQueryDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.BigQueryReservationDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.BigTableDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.BillingDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.CloudBuildDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ClusterDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ComputeEngineDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ContainerAnalysisDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DataCatalogDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DataLabelingDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DataprocDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DialogflowDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DlpDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.DnsDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ErrorReportingDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.FirewallDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.FunctionsDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.GCPDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.GameServicesDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.IamDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.IoTDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.KMSDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.LoggingDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.MemcacheDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.MonitoringDashboardDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.MonitoringDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.NetworkDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.OsConfigDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ProjectDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.PubSubDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.PubSubLiteDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.RecaptchaEnterpriseDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.RedisDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ResourceManagerDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.SchedulerDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.SecretDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.ServiceDirectoryDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.SpannerDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.SqlDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.StorageDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.TasksDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.TenantDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.TraceDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.TranslateDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.VisionDiscovery;
+import io.openraven.magpie.plugins.gcp.discovery.services.WebSecurityScannerDiscovery;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 
 public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
@@ -74,7 +123,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
     new IoTDiscovery(),
     new LoggingDiscovery(),
     new DataCatalogDiscovery(),
-    new TalentDiscovery(),
+    new TenantDiscovery(),
     new TasksDiscovery(),
     new TranslateDiscovery(),
     new TraceDiscovery(),
@@ -102,7 +151,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
       .forEach(gcpDiscovery -> {
         try {
           logger.debug("Discovering service: {}, class: {}", gcpDiscovery.service(), gcpDiscovery.getClass());
-          gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger);
+          gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger, Optional.ofNullable(config.getCredentialsProvider()));
         } catch (Exception ex) {
           logger.error("Discovery error in service {} - {}", gcpDiscovery.service(), ex.getMessage());
           logger.debug("Details", ex);
@@ -113,23 +162,23 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
       .filter(service -> isEnabled(service.service()))
       .forEach(service -> {
       try {
-        service.discoverWrapper(MAPPER, null, session, emitter, logger);
+        service.discoverWrapper(MAPPER, null, session, emitter, logger, Optional.ofNullable(config.getCredentialsProvider()));
       } catch (PermissionDeniedException permissionDeniedException) {
         logger.error("{} While discovering {} service", permissionDeniedException.getMessage(), service.service());
       }
     });
   }
 
-  List<String> getProjectList() {
-    var projects = new ArrayList<String>();
-
-    try (ProjectsClient projectsClient = ProjectsClient.create()) {
-      projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
-    } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException("Project::List", e);
-    }
-
-    return  projects;
+  public List<String> getProjectList() {
+    return config.getProjectListProvider().orElse(() -> {
+          var projects = new ArrayList<String>();
+          try (ProjectsClient projectsClient = ProjectsClient.create()) {
+              projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
+          } catch (IOException e) {
+              DiscoveryExceptions.onDiscoveryException("Project::List", e);
+          }
+          return projects;
+      }).get();
   }
 
   @Override
@@ -139,8 +188,8 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
 
   @Override
   public void init(GCPDiscoveryConfig config, Logger logger) {
-    Sentry.init();
-
+//    Sentry.init();
+    logger.info("In init");
     this.logger = logger;
     this.config = config;
   }

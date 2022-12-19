@@ -17,9 +17,13 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.pubsub.v1.SchemaServiceClient;
+import com.google.cloud.pubsub.v1.SchemaServiceSettings;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
+import com.google.cloud.pubsub.v1.SubscriptionAdminSettings;
 import com.google.cloud.pubsub.v1.TopicAdminClient;
+import com.google.cloud.pubsub.v1.TopicAdminSettings;
 import com.google.pubsub.v1.ProjectName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -28,13 +32,14 @@ import io.openraven.magpie.data.gcp.pubsub.PubSubSchema;
 import io.openraven.magpie.data.gcp.pubsub.PubSubSnapshots;
 import io.openraven.magpie.data.gcp.pubsub.PubSubSubscription;
 import io.openraven.magpie.data.gcp.pubsub.PubSubTopic;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class PubSubDiscovery implements GCPDiscovery {
   private static final String SERVICE = "pubSub";
@@ -44,16 +49,18 @@ public class PubSubDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverSchemas(mapper, projectId, session, emitter);
-    discoverTopics(mapper, projectId, session, emitter);
-    discoverSubscriptionsAndSnapshots(mapper, projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    discoverSchemas(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverTopics(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverSubscriptionsAndSnapshots(mapper, projectId, session, emitter, maybeCredentialsProvider);
   }
 
-  private void discoverSchemas(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverSchemas(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = PubSubSchema.RESOURCE_TYPE;
+    var builder = SchemaServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = SchemaServiceClient.create()) {
+    try (var client = SchemaServiceClient.create(builder.build())) {
       for (var schema : client.listSchemas(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, schema.getName())
           .withProjectId(projectId)
@@ -68,10 +75,12 @@ public class PubSubDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverTopics(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverTopics(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = PubSubTopic.RESOURCE_TYPE;
+    var builder = TopicAdminSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = TopicAdminClient.create()) {
+    try (var client = TopicAdminClient.create(builder.build())) {
       for (var topic : client.listTopics(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, topic.getName())
           .withProjectId(projectId)
@@ -86,8 +95,10 @@ public class PubSubDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverSubscriptionsAndSnapshots(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    try (var client = SubscriptionAdminClient.create()) {
+  private void discoverSubscriptionsAndSnapshots(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = SubscriptionAdminSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var client = SubscriptionAdminClient.create(builder.build())) {
       discoverSubscriptions(mapper, projectId, session, emitter, client);
       discoverSnapshots(mapper, projectId, session, emitter, client);
     } catch (IOException e) {

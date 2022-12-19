@@ -17,8 +17,12 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.logging.v2.ConfigClient;
+import com.google.cloud.logging.v2.ConfigSettings;
 import com.google.cloud.logging.v2.MetricsClient;
+import com.google.cloud.logging.v2.MetricsSettings;
 import com.google.logging.v2.LocationName;
 import com.google.logging.v2.ProjectName;
 import io.openraven.magpie.api.Emitter;
@@ -35,6 +39,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class LoggingDiscovery implements GCPDiscovery {
   private static final String SERVICE = "logging";
@@ -44,15 +49,16 @@ public class LoggingDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverMetrics(mapper, projectId, session, emitter);
-    discoverConfigClientResources(mapper, projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    discoverMetrics(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverConfigClientResources(mapper, projectId, session, emitter, maybeCredentialsProvider);
   }
 
-  private void discoverMetrics(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverMetrics(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = LoggingMetric.RESOURCE_TYPE;
-
-    try (MetricsClient metricsClient = MetricsClient.create()) {
+    var builder = MetricsSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (MetricsClient metricsClient = MetricsClient.create(builder.build())) {
       String parent = ProjectName.of(projectId).toString();
       for (var metric : metricsClient.listLogMetrics(parent).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, metric.getName())
@@ -68,8 +74,10 @@ public class LoggingDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverConfigClientResources(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
-    try (ConfigClient configClient = ConfigClient.create()) {
+  private void discoverConfigClientResources(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = ConfigSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (ConfigClient configClient = ConfigClient.create(builder.build())) {
       discoverSinks(mapper, projectId, session, emitter, configClient);
       discoverBuckets(mapper, projectId, session, emitter, configClient);
       discoverExclusions(mapper, projectId, session, emitter, configClient);

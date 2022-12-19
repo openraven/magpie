@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.talent.v4.ProjectName;
 import com.google.cloud.talent.v4.TenantServiceClient;
+import com.google.cloud.talent.v4.TenantServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -30,8 +32,9 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
-public class TalentDiscovery implements GCPDiscovery {
+public class TenantDiscovery implements GCPDiscovery {
   private static final String SERVICE = "talent";
 
   @Override
@@ -39,10 +42,12 @@ public class TalentDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Tenant.RESOURCE_TYPE;
+    var builder = TenantServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var tenantServiceClient = TenantServiceClient.create()) {
+    try (var tenantServiceClient = TenantServiceClient.create(builder.build())) {
       for (var tenant : tenantServiceClient.listTenants(ProjectName.of(projectId)).iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, tenant.getName())
           .withProjectId(projectId)

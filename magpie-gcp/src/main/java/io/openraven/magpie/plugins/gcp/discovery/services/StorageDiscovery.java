@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.Policy;
 import com.google.cloud.storage.Bucket;
@@ -30,7 +31,9 @@ import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class StorageDiscovery implements GCPDiscovery {
   private static final String SERVICE = "storage";
@@ -40,10 +43,18 @@ public class StorageDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = StorageBucket.RESOURCE_TYPE;
 
-    Storage storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+    final StorageOptions.Builder builder = StorageOptions.newBuilder();
+    try {
+        if(maybeCredentialsProvider.isPresent()){
+            builder.setCredentials(maybeCredentialsProvider.get().getCredentials());
+        }
+    }catch(IOException ioException) {
+        throw new RuntimeException(ioException);
+    }
+    Storage storage = builder.setProjectId(projectId).build().getService();
     storage.list().iterateAll().forEach(bucket -> {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, bucket.getName())
         .withProjectId(projectId)

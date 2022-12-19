@@ -17,11 +17,13 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigquery.reservation.v1.Assignment;
 import com.google.cloud.bigquery.reservation.v1.LocationName;
 import com.google.cloud.bigquery.reservation.v1.Reservation;
 import com.google.cloud.bigquery.reservation.v1.ReservationServiceClient;
+import com.google.cloud.bigquery.reservation.v1.ReservationServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -35,6 +37,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BigQueryReservationDiscovery implements GCPDiscovery {
   private static final String SERVICE = "bigQueryReservation";
@@ -73,8 +76,10 @@ public class BigQueryReservationDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (var client = ReservationServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder =  ReservationServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var client = ReservationServiceClient.create(builder.build())) {
       discoverReservations(mapper, projectId, session, emitter, client);
       discoverCapacityCommitments(mapper, projectId, session, emitter, client);
     } catch (IOException e) {

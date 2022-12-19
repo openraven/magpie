@@ -17,21 +17,33 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
-import com.google.cloud.resourcemanager.v3.*;
+import com.google.cloud.resourcemanager.v3.Folder;
+import com.google.cloud.resourcemanager.v3.FoldersClient;
+import com.google.cloud.resourcemanager.v3.FoldersSettings;
+import com.google.cloud.resourcemanager.v3.Organization;
+import com.google.cloud.resourcemanager.v3.OrganizationsClient;
+import com.google.cloud.resourcemanager.v3.OrganizationsSettings;
+import com.google.cloud.resourcemanager.v3.Project;
+import com.google.cloud.resourcemanager.v3.ProjectName;
+import com.google.cloud.resourcemanager.v3.ProjectsClient;
+import com.google.cloud.resourcemanager.v3.ProjectsSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.resource.ResourceManagerFolder;
 import io.openraven.magpie.data.gcp.resource.ResourceManagerOrganization;
 import io.openraven.magpie.data.gcp.resource.ResourceManagerProject;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class ResourceManagerDiscovery implements GCPDiscovery {
   private static final String SERVICE = "resourceManager";
@@ -41,16 +53,18 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverOrganization(mapper, projectId, session, emitter);
-    discoverProjects(mapper, projectId, session, emitter);
-    discoverFolders(mapper, projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    discoverOrganization(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverProjects(mapper, projectId, session, emitter, maybeCredentialsProvider);
+    discoverFolders(mapper, projectId, session, emitter, maybeCredentialsProvider);
   }
 
-  private void discoverOrganization(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverOrganization(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = ResourceManagerOrganization.RESOURCE_TYPE;
+    var builder = OrganizationsSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = OrganizationsClient.create()) {
+    try (var client = OrganizationsClient.create(builder.build())) {
       for (var organization : client.searchOrganizations("").iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, organization.getName())
           .withProjectId(projectId)
@@ -73,10 +87,12 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, client.getIamPolicy(organization.getName()).toBuilder()));
   }
 
-  private void discoverProjects(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverProjects(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = ResourceManagerProject.RESOURCE_TYPE;
+    var builder = ProjectsSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = ProjectsClient.create()) {
+    try (var client = ProjectsClient.create(builder.build())) {
       for (var project : client.searchProjects("").iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, project.getName())
           .withProjectId(projectId)
@@ -100,10 +116,12 @@ public class ResourceManagerDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, client.getIamPolicy(resource).toBuilder()));
   }
 
-  private void discoverFolders(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverFolders(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = ResourceManagerFolder.RESOURCE_TYPE;
+    var builder = FoldersSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (var client = FoldersClient.create()) {
+    try (var client = FoldersClient.create(builder.build())) {
       for (var folder : client.searchFolders("").iterateAll()) {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, folder.getName())
           .withProjectId(projectId)

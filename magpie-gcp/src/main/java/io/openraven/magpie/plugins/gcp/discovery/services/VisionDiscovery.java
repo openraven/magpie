@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.vision.v1.LocationName;
 import com.google.cloud.vision.v1.ProductSearchClient;
+import com.google.cloud.vision.v1.ProductSearchSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -31,6 +33,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class VisionDiscovery implements GCPDiscovery {
   private static final String SERVICE = "vision";
@@ -46,8 +49,10 @@ public class VisionDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (ProductSearchClient productSearchClient = ProductSearchClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = ProductSearchSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (ProductSearchClient productSearchClient = ProductSearchClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         discoverProducts(mapper, projectId, session, emitter, productSearchClient, location);
         discoverProductSets(mapper, projectId, session, emitter, productSearchClient, location);

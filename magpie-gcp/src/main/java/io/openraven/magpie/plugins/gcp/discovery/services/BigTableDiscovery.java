@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.bigtable.admin.v2.BigtableInstanceAdminClient;
+import com.google.cloud.bigtable.admin.v2.BigtableInstanceAdminSettings;
 import com.google.cloud.bigtable.admin.v2.models.Cluster;
 import com.google.cloud.bigtable.admin.v2.models.Instance;
 import com.google.cloud.bigtable.admin.v2.models.PartialListInstancesException;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BigTableDiscovery implements GCPDiscovery {
   private static final String SERVICE = "bigTable";
@@ -43,10 +46,13 @@ public class BigTableDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = BigTableInstance.RESOURCE_TYPE;
+    var builder = BigtableInstanceAdminSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    builder.setProjectId(projectId);
 
-    try (BigtableInstanceAdminClient client = BigtableInstanceAdminClient.create(projectId)) {
+    try (BigtableInstanceAdminClient client = BigtableInstanceAdminClient.create(builder.build())) {
       List<Instance> instances = new ArrayList<>();
       try {
         instances = client.listInstances();

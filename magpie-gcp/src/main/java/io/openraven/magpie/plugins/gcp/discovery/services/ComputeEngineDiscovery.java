@@ -17,6 +17,7 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.compute.v1.*;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider.create;
 
@@ -40,16 +42,29 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    discoverInstances(mapper, projectId, session, emitter);
-    discoverDisks(mapper, projectId, session, emitter);
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+      try (var diskClient = DiskClient.create();
+           var instancesClient = InstanceClient.create();
+           var zoneClient = ZoneClient.create()) {
+          try {
+              discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient);
+          }catch (IOException e) {
+              DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
+          }
+          try {
+              discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
+          }catch (IOException e) {
+              DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
+          }
+      } catch (IOException e) {
+          DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::ClientAllocation", e);
+      }
   }
 
-  private void discoverInstances(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverInstances(ObjectMapper mapper, String projectId, Session session, Emitter emitter, InstanceClient instancesClient, ZoneClient zoneClient) throws IOException {
     final String RESOURCE_TYPE = ComputeInstance.RESOURCE_TYPE;
 
-    try (var instancesClient = InstanceClient.create();
-         var zoneClient = ZoneClient.create()) {
+
       // On2 - we are listing all instances in all zones
       zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
 
@@ -67,16 +82,11 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
           });
 
       });
-    } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
-    }
   }
 
-  private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter) {
+  private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DiskClient diskClient, ZoneClient zoneClient) throws IOException {
     final String RESOURCE_TYPE = ComputeDisk.RESOURCE_TYPE;
 
-    try (var diskClient = DiskClient.create();
-         var zoneClient = ZoneClient.create()) {
       // On2 - we are listing all disks in all zones
       zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
 
@@ -94,8 +104,5 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
           });
 
       });
-    } catch (IOException e) {
-      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
     }
-  }
 }

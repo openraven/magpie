@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.rpc.UnimplementedException;
 import com.google.cloud.pubsublite.proto.LocationName;
 import com.google.cloud.pubsublite.v1.AdminServiceClient;
+import com.google.cloud.pubsublite.v1.AdminServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class PubSubLiteDiscovery implements GCPDiscovery {
   private static final String SERVICE = "pubSubLite";
@@ -41,8 +44,10 @@ public class PubSubLiteDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (var client =  AdminServiceClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = AdminServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (var client =  AdminServiceClient.create(builder.build())) {
       discoverSubscriptions(mapper, projectId, session, emitter, client);
       discoverTopic(mapper, projectId, session, emitter, client);
     } catch (IOException e) {

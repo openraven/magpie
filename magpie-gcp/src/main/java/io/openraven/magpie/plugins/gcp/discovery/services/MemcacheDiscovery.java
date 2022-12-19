@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.memcache.v1.CloudMemcacheClient;
+import com.google.cloud.memcache.v1.CloudMemcacheSettings;
 import com.google.cloud.memcache.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class MemcacheDiscovery implements GCPDiscovery {
   private static final String SERVICE = "memcache";
@@ -39,10 +42,12 @@ public class MemcacheDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = MemcacheInstance.RESOURCE_TYPE;
+    var builder = CloudMemcacheSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (CloudMemcacheClient cloudMemcacheClient = CloudMemcacheClient.create()) {
+    try (CloudMemcacheClient cloudMemcacheClient = CloudMemcacheClient.create(builder.build())) {
       String parent = LocationName.of(projectId, "-").toString();
       cloudMemcacheClient.listInstances(parent).iterateAll()
         .forEach(element -> {

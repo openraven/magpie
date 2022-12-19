@@ -17,8 +17,10 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.translate.v3.LocationName;
 import com.google.cloud.translate.v3.TranslationServiceClient;
+import com.google.cloud.translate.v3.TranslationServiceSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class TranslateDiscovery implements GCPDiscovery {
   private static final String SERVICE = "`translate`";
@@ -41,10 +44,12 @@ public class TranslateDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Glossary.RESOURCE_TYPE;
+    var builder = TranslationServiceSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (TranslationServiceClient translationServiceClient = TranslationServiceClient.create()) {
+    try (TranslationServiceClient translationServiceClient = TranslationServiceClient.create(builder.build())) {
       try {
         AVAILABLE_LOCATIONS.forEach(location -> {
           String parent = LocationName.of(projectId, location).toString();

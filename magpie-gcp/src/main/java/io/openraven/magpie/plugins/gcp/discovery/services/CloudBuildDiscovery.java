@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.devtools.cloudbuild.v1.CloudBuildClient;
+import com.google.cloud.devtools.cloudbuild.v1.CloudBuildSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class CloudBuildDiscovery implements GCPDiscovery {
   private static final String SERVICE = "cloudBuild";
@@ -39,8 +42,10 @@ public class CloudBuildDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
-    try (CloudBuildClient cloudBuildClient = CloudBuildClient.create()) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
+    var builder = CloudBuildSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
+    try (CloudBuildClient cloudBuildClient = CloudBuildClient.create(builder.build())) {
       discoverBuildTriggers(mapper, projectId, session, emitter, cloudBuildClient);
       discoverBuilds(mapper, projectId, session, emitter, cloudBuildClient);
     } catch (IOException e) {

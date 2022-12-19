@@ -17,9 +17,11 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.rpc.NotFoundException;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.datacatalog.v1.DataCatalogClient;
+import com.google.cloud.datacatalog.v1.DataCatalogSettings;
 import com.google.cloud.datacatalog.v1.Entry;
 import com.google.cloud.datacatalog.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
@@ -34,6 +36,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DataCatalogDiscovery implements GCPDiscovery {
   private static final String SERVICE = "dataCatalog";
@@ -78,10 +81,12 @@ public class DataCatalogDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = DataCatalog.RESOURCE_TYPE;
+    var builder = DataCatalogSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (DataCatalogClient dataCatalogClient = DataCatalogClient.create()) {
+    try (DataCatalogClient dataCatalogClient = DataCatalogClient.create(builder.build())) {
       AVAILABLE_LOCATIONS.forEach(location -> {
         try {
           String parent = LocationName.of(projectId, location).toString();

@@ -17,7 +17,9 @@
 package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.redis.v1.CloudRedisClient;
+import com.google.cloud.redis.v1.CloudRedisSettings;
 import com.google.cloud.redis.v1.LocationName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class RedisDiscovery implements GCPDiscovery {
   private static final String SERVICE = "redis";
@@ -39,10 +42,12 @@ public class RedisDiscovery implements GCPDiscovery {
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = RedisInstance.RESOURCE_TYPE;
+    var builder = CloudRedisSettings.newBuilder();
+    maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (CloudRedisClient cloudRedisClient = CloudRedisClient.create()) {
+    try (CloudRedisClient cloudRedisClient = CloudRedisClient.create(builder.build())) {
       String parent = LocationName.of(projectId, "-").toString();
       cloudRedisClient.listInstances(parent).iterateAll()
         .forEach(element -> {
