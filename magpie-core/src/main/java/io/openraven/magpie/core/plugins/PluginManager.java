@@ -107,7 +107,11 @@ public class PluginManager {
       }
     }
 
-//    return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+      // TODO: Investigate why the GCP Plugin doesn't require this line but AWS Discovery does.
+      if ("magpie.aws.discovery".equals(pluginId))  {
+        return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+      }
+
       return config;
   }
 

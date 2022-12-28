@@ -483,10 +483,10 @@ public class IAMDiscovery implements AWSDiscovery {
 
     for (int i = 1; i < reportLines.length; i++) {
       var credential = new IAMCredential(reportLines[i]);
-
-      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, credential.arn)
+      final var synthetic_arn = credential.arn.concat(CREDENTIALS_REPORT);
+      var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, synthetic_arn)
         .withResourceName(credential.user)
-        .withResourceId(credential.arn.concat(CREDENTIALS_REPORT))
+        .withResourceId(synthetic_arn)
         .withResourceType(RESOURCE_TYPE)
         .withConfiguration(mapper.valueToTree(credential))
         .withAccountId(account)
