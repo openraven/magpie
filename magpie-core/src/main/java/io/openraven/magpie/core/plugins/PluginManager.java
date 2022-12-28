@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.MagpiePlugin;
 import io.openraven.magpie.core.config.ConfigException;
 import io.openraven.magpie.core.config.MagpieConfig;
+import org.python.google.common.collect.Lists;
+import org.python.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +109,12 @@ public class PluginManager {
       }
     }
 
-//    return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+      // TODO: Investigate why the GCP Plugin doesn't require this line but AWS Discovery and the Persistence Plugin do.
+      final var pluginList = Sets.newHashSet("magpie.aws.discovery", "magpie.persist");
+      if (pluginList.contains(pluginId))  {
+        return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
+      }
+
       return config;
   }
 
