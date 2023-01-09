@@ -22,19 +22,19 @@ public class GDriveResource extends Resource {
     nullable = false, unique = true)
   public String documentId;
 
-  @Column(name = "arn", columnDefinition = "TEXT")
-  public String arn;
+  @Column(name = "assetid", columnDefinition = "TEXT")
+  public String assetId;
   @Column(name = "resourcename", columnDefinition = "TEXT")
   public String resourceName;
-  @Column(name = "resourceid", columnDefinition = "TEXT")
-  public String resourceId;
 
   // this needs to be updatable = false due to its use a a discriminator
   @Column(name = "resourcetype", columnDefinition = "TEXT", updatable = false)
   public String resourceType;
+  @Column(name = "drive", columnDefinition = "TEXT", updatable = false)
+  public String drive;
 
-  @Column(name = "accountid", columnDefinition = "TEXT")
-  public String accountId;
+  @Column(name = "domain", columnDefinition = "TEXT")
+  public String domain;
   @Column(name = "creatediso", columnDefinition = "TIMESTAMPTZ")
   public Instant createdIso;
   @Column(name = "updatediso", columnDefinition = "TIMESTAMPTZ")
@@ -74,12 +74,12 @@ public class GDriveResource extends Resource {
     this.documentId = documentId;
   }
 
-  public String getArn() {
-    return arn;
+  public String getAssetId() {
+    return assetId;
   }
 
-  public void setArn(String arn) {
-    this.arn = arn;
+  public void setAssetId(String fileId) {
+    this.assetId = assetId;
   }
 
   public String getResourceName() {
@@ -90,14 +90,6 @@ public class GDriveResource extends Resource {
     this.resourceName = resourceName;
   }
 
-  public String getResourceId() {
-    return resourceId;
-  }
-
-  public void setResourceId(String resourceId) {
-    this.resourceId = resourceId;
-  }
-
   public String getResourceType() {
     return resourceType;
   }
@@ -106,12 +98,21 @@ public class GDriveResource extends Resource {
     this.resourceType = resourceType;
   }
 
-  public String getAccountId() {
-    return accountId;
+  public String getDomain() {
+    return domain;
   }
 
-  public void setAccountId(String awsAccountId) {
-    this.accountId = accountId;
+  public void setDomain(String domain) {
+    this.domain = domain;
+  }
+
+
+  public void setDrive(String space) {
+    this.drive = drive;
+  }
+
+  public String getDrive() {
+    return drive;
   }
 
   public Instant getCreatedIso() {
