@@ -17,7 +17,6 @@
     <module>magpie-cli</module>
     <module>magpie-aws</module>
     <module>magpie-gcp</module>
-    <module>magpie-gdrive</module>
     <module>magpie-json</module>
     <module>magpie-persist</module>
     <module>magpie-policy-output-text</module>
