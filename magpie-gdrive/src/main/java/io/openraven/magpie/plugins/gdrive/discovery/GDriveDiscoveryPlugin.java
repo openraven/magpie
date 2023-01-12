@@ -2,7 +2,6 @@ package io.openraven.magpie.plugins.gdrive.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.PermissionDeniedException;
-import com.google.cloud.resourcemanager.v3.ProjectsClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
@@ -26,9 +25,6 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
     new SharedDriveDiscovery(),
     new DriveDiscovery());
 
-  private static final List<GDriveDiscovery> SINGLE_DISCOVERY_LIST = List.of(
-    new ResourceManagerDiscovery());
-
   GDriveDiscovery config;
 
   private Logger logger;
@@ -42,34 +38,12 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
       .forEach(gDriveDiscovery -> {
         try {
           logger.debug("Discovering service: {}, class: {}", gDriveDiscovery.service(), gDriveDiscovery.getClass());
-          gDriveDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger, Optional.ofNullable(config.getCredentialsProvider()));
+          gDriveDiscovery.discoverWrapper(MAPPER, driveId, session, emitter, logger);
         } catch (Exception ex) {
           logger.error("Discovery error in service {} - {}", gDriveDiscovery.service(), ex.getMessage());
           logger.debug("Details", ex);
         }
       }));
-
-    SINGLE_DISCOVERY_LIST.stream()
-      .filter(service -> isEnabled(service.service()))
-      .forEach(service -> {
-        try {
-          service.discoverWrapper(MAPPER, null, session, emitter, logger, Optional.ofNullable(config.getCredentialsProvider()));
-        } catch (PermissionDeniedException permissionDeniedException) {
-          logger.error("{} While discovering {} service", permissionDeniedException.getMessage(), service.service());
-        }
-      });
-  }
-
-  public List<String> getProjectList() {
-    return config.getProjectListProvider().orElse(() -> {
-      var projects = new ArrayList<String>();
-      try (ProjectsClient projectsClient = ProjectsClient.create()) {
-        projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
-      } catch (IOException e) {
-        DiscoveryExceptions.onDiscoveryException("Project::List", e);
-      }
-      return projects;
-    }).get();
   }
 
   @Override
