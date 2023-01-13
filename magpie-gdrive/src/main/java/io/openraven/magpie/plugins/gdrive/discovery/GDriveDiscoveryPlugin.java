@@ -46,15 +46,17 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
       }));
   }
 
+  /* get drives in a workspace? iterate through those*/
+
   public List<String> getDriveList() {
     return config.getDriveListProvider().orElse(() -> {
-      var projects = new ArrayList<String>();
+      var drives = new ArrayList<String>();
       try (ProjectsClient projectsClient = ProjectsClient.create()) {
-        projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
+        projectsClient.searchProjects("").iterateAll().forEach(project -> drives.add(project.getProjectId()));
       } catch (IOException e) {
-        DiscoveryExceptions.onDiscoveryException("Project::List", e);
+        DiscoveryExceptions.onDiscoveryException("Drives::List", e);
       }
-      return projects;
+      return drives;
     }).get();
   }
 
