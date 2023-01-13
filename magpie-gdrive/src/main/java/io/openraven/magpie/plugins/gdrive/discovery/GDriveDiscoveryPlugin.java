@@ -25,25 +25,37 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
     new SharedDriveDiscovery(),
     new DriveDiscovery());
 
-  GDriveDiscovery config;
+  GDriveDiscoveryConfig config;
 
   private Logger logger;
 
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    getProjectList().forEach(project -> PER_PROJECT_DISCOVERY_LIST
+    getDriveList().forEach(project -> PER_PROJECT_DISCOVERY_LIST
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gDriveDiscovery -> {
         try {
           logger.debug("Discovering service: {}, class: {}", gDriveDiscovery.service(), gDriveDiscovery.getClass());
-          gDriveDiscovery.discoverWrapper(MAPPER, driveId, session, emitter, logger);
+          gDriveDiscovery.discoverWrapper(MAPPER, session, emitter, logger);
         } catch (Exception ex) {
           logger.error("Discovery error in service {} - {}", gDriveDiscovery.service(), ex.getMessage());
           logger.debug("Details", ex);
         }
       }));
+  }
+
+  public List<String> getDriveList() {
+    return config.getDriveListProvider().orElse(() -> {
+      var projects = new ArrayList<String>();
+      try (ProjectsClient projectsClient = ProjectsClient.create()) {
+        projectsClient.searchProjects("").iterateAll().forEach(project -> projects.add(project.getProjectId()));
+      } catch (IOException e) {
+        DiscoveryExceptions.onDiscoveryException("Project::List", e);
+      }
+      return projects;
+    }).get();
   }
 
   @Override

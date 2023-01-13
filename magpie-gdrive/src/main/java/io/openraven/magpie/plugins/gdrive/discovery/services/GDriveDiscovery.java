@@ -13,13 +13,13 @@ import java.util.Optional;
 public interface GDriveDiscovery {
   String service();
 
-  default void discoverWrapper(ObjectMapper mapper, String driveId, Session session, Emitter emitter, Logger logger) {
+  default void discoverWrapper(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     logger.debug("Starting {} discovery ", service());
-    discover(mapper, driveId, session, emitter, logger);
+    discover(mapper, session, emitter, logger);
     logger.debug("Completed {} discovery", service());
   }
 
-  void discover(ObjectMapper mapper, String driveId, Session session, Emitter emitter, Logger logger);
+  void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger);
 
   default String fullService() {
     return GDriveDiscoveryPlugin.ID + ":" + service();

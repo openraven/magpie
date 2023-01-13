@@ -18,8 +18,10 @@ import java.util.function.Supplier;
 public class GDriveDiscoveryConfig {
   private List<String> drives = List.of();
   private List<String> services = List.of();
+  private Optional<Supplier<List<String>>> driveListProvider = Optional.empty();
 
-    public List<String> getDrives() {return drives;}
+
+  public List<String> getDrives() {return drives;}
 
   public List<String> getServices() {
     return services;
@@ -29,4 +31,11 @@ public class GDriveDiscoveryConfig {
     this.services = services == null ? List.of() : services;
   }
 
+  public Optional<Supplier<List<String>>> getDriveListProvider() {
+    return this.driveListProvider;
+  }
+
+  public void setDriveListProvider(Supplier<List<String>> driveListProvider) {
+    this.driveListProvider = Optional.ofNullable(driveListProvider);
+  }
 }
