@@ -16,6 +16,7 @@
     + [AWS](#aws)
       - [Per region discovery](#per-region-discovery)
     + [GCP](#gcp)
+    + [Google Drive](#gdrive)
   * [Saving data to PostgreSQL](#saving-data-to-postgresql)
 
 ## What is Magpie?
@@ -183,6 +184,8 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Cloudsearch
 - [x] Cloudtrail
 - [x] CloudWatch
+- [x] CloudWatch Logs
+- [x] Config
 - [x] DynamoDB
 - [x] EB
 - [x] ECS
@@ -192,6 +195,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] ELB
 - [x] ELBv2
 - [x] EMR
+- [x] ENI
 - [x] ESS
 - [x] FSX
 - [x] Glacier
@@ -203,6 +207,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] Lightsail
 - [x] QLDB
 - [x] RDS
+- [x] RDS Proxy
 - [x] Redshift
 - [x] Route 53
 - [x] Secrets Manager
@@ -210,6 +215,7 @@ Magpie supports AWS as a core plugin out of the box. Checked boxes are complete 
 - [x] SNS
 - [x] SSM
 - [x] Storage Gateway
+- [x] Transit Gateway
 - [x] VPC
 
 ##### Per region discovery
@@ -292,7 +298,15 @@ Magpie also supports GCP as a core plugin out of the box. Checked boxes are comp
 - [x]  Web Security Scanner
 - [x]  reCAPTCHA Enterprise
 
-##### Authentcation
+##### Google Drive
+
+Magpie also supports Google Drive as a core plugin out of the box. Checked boxes are complete and available today.
+
+- [x] Drives
+- [x] Shared Drives
+
+
+##### Authentication
 To use this plugin save .json file with authentication key to file then set environment variable:
 ```
 export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE

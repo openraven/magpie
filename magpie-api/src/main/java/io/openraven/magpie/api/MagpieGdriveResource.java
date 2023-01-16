@@ -231,6 +231,7 @@ public class MagpieGdriveResource {
       this.discoveryMeta = mapper.createObjectNode();
     }
 
+
     public MagpieGdriveResource.MagpieGdriveResourceBuilder withResourceName(String resourceName) {
       this.resourceName = resourceName;
       return this;

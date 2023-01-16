@@ -5,6 +5,7 @@ layers:
     plugins:
       - magpie.aws.discovery
       - magpie.gcp.discovery
+      - magpie.gdrive.discovery
   output:
     type: terminal
     dequeue: default
@@ -47,6 +48,12 @@ plugins:
     enabled: false
     config:
       services:
+  magpie.gdrive.discovery:
+    enabled: false
+    config:
+      services:
+#       - drive
+#       - shareddrive
   magpie.json:
     enabled: true
     config:

@@ -6,14 +6,14 @@ import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 
 import io.openraven.magpie.api.Emitter;
+import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.MagpieGdriveResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.gcp.storage.StorageBucket;
 import io.openraven.magpie.data.gdrive.drive.Drive;
 import io.openraven.magpie.plugins.gdrive.discovery.GDriveUtils;
 import io.openraven.magpie.plugins.gdrive.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.batch.BatchClient;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,12 +31,28 @@ public class DriveDiscovery implements GDriveDiscovery{
   }
 
   @Override
-  public void discover(mapper, driveId, session, emitter, logger) {
-    try (final var client = clientCreator.apply(BatchClient.builder()).build()) {
-      discoverComputeEnvironments(mapper, session, client, region, emitter, account);
-      discoverJobQueues(mapper, session, client, region, emitter, account);
-      discoverJobDefinitions(mapper, session, client, region, emitter, account);
+  public void discover(mapper, session, emitter, logger) {
+    final String RESOURCE_TYPE = Drive.RESOURCE_TYPE;
+
+    final StorageOptions.Builder builder = StorageOptions.newBuilder();
+    try {
+      if(maybeCredentialsProvider.isPresent()){
+        builder.setCredentials(maybeCredentialsProvider.get().getCredentials());
+      }
+    }catch(IOException ioException) {
+      throw new RuntimeException(ioException);
     }
+    Drive drive = builder.setDomain(domain).build().getService();
+    drive.list().iterateAll().forEach(drive -> {
+      var data = new MagpieGdriveResource.MagpieGdriveResourceBuilder(mapper)
+        .withDomain(domain)
+        .withResourceType(RESOURCE_TYPE)
+        .withConfiguration(GDriveUtils.asJsonNode(drive))
+        .build();
+
+
+      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":drive"), data.toJsonNode()));
+    });
   }
 
 }
