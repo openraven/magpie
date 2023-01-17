@@ -10,6 +10,7 @@ import io.openraven.magpie.plugins.gdrive.discovery.exception.GDriveDiscoveryExc
 import io.openraven.magpie.plugins.gdrive.discovery.services.DriveDiscovery;
 import io.openraven.magpie.plugins.gdrive.discovery.services.GDriveDiscovery;
 import io.openraven.magpie.plugins.gdrive.discovery.services.SharedDriveDiscovery;
+import com.google.api.services.drive.DriveScopes;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.util.Optional;
 public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig> {
   public final static String ID = "magpie.gdrive.discovery";
   protected static final ObjectMapper MAPPER = GDriveUtils.createObjectMapper();
+  private static final String SCOPES = "https://www.googleapis.com/auth/drive";
 
   private static final List<GDriveDiscovery> PER_PROJECT_DISCOVERY_LIST = List.of(
     new SharedDriveDiscovery(),
