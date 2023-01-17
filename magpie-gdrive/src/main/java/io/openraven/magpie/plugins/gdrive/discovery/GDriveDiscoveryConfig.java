@@ -4,6 +4,7 @@ import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.gax.core.CredentialsProvider;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import java.util.List;
@@ -19,12 +20,22 @@ public class GDriveDiscoveryConfig {
   private List<String> drives = List.of();
   private List<String> services = List.of();
   private Optional<Supplier<List<String>>> driveListProvider = Optional.empty();
+  private CredentialsProvider credentialsProvider;
+
 
 
   public List<String> getDrives() {return drives;}
 
   public List<String> getServices() {
     return services;
+  }
+
+  public CredentialsProvider getCredentialsProvider() {
+    return credentialsProvider;
+  }
+
+  public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
+    this.credentialsProvider = credentialsProvider;
   }
 
   public void setServices(List<String> services) {
