@@ -45,7 +45,7 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
         }
       }));
   }
-  
+
   public List<String> getDriveList() {
     return config.getDriveListProvider().orElse(() -> {
       var drives = new ArrayList<String>();

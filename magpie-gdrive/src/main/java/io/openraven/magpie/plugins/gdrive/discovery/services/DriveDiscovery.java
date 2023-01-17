@@ -3,13 +3,11 @@ package io.openraven.magpie.plugins.gdrive.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
-import com.google.appengine.repackaged.com.google.common.base.Pair;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.MagpieGdriveResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.data.gcp.storage.StorageBucket;
 import io.openraven.magpie.data.gdrive.drive.Drive;
 import io.openraven.magpie.plugins.gdrive.discovery.GDriveUtils;
 import io.openraven.magpie.plugins.gdrive.discovery.VersionedMagpieEnvelopeProvider;
