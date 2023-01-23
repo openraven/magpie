@@ -26,8 +26,7 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
     return SERVICE;
   }
 
-  @Override
-  public void discoverSharedDrives(mapper, session, emitter, logger) {
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
     final String RESOURCE_TYPE = SharedDrive.RESOURCE_TYPE;
 
   }

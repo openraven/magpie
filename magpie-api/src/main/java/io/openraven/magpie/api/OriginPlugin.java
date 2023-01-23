@@ -22,6 +22,9 @@ package io.openraven.magpie.api;
 
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+
 /**
  * OriginPlugin kicks off the discovery process and emits discovered assets via the supplied Emitter.   {@link #discover(Session, Emitter) discover}
  * is invoked once per session. An OriginPlugin may emit any number of assets by calling {@link Emitter#emit(MagpieEnvelope) Emitter.emit}
@@ -36,5 +39,5 @@ public interface OriginPlugin<T> extends MagpiePlugin<T> {
    * @param session The unique {@link Session} for this discovery session.
    * @param emitter The emitter used to pass discovered assets into the discovery pipeline.
    */
-  void discover(Session session, Emitter emitter);
+  void discover(Session session, Emitter emitter) throws GeneralSecurityException, IOException;
 }
