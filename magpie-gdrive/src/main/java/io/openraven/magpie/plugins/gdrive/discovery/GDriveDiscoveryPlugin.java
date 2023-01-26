@@ -1,17 +1,12 @@
 package io.openraven.magpie.plugins.gdrive.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.gax.rpc.PermissionDeniedException;
 import com.google.api.services.drive.DriveScopes;
-import com.google.api.services.drive.model.TeamDriveList;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.plugins.gdrive.discovery.exception.DiscoveryExceptions;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import io.openraven.magpie.plugins.gdrive.discovery.exception.GDriveDiscoveryException;
-import io.openraven.magpie.plugins.gdrive.discovery.services.DriveDiscovery;
 import io.openraven.magpie.plugins.gdrive.discovery.services.GDriveDiscovery;
 import io.openraven.magpie.plugins.gdrive.discovery.services.SharedDriveDiscovery;
 import com.google.api.services.drive.Drive;
@@ -24,19 +19,14 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
-import com.google.api.services.drive.Drive;
 
-import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.DriveList;
-import com.google.api.services.drive.model.File;
-import com.google.api.services.drive.model.FileList;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig> {
   public final static String ID = "magpie.gdrive.discovery";
@@ -48,8 +38,7 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
 
 
   private static final List<GDriveDiscovery> PER_PROJECT_DISCOVERY_LIST = List.of(
-    new SharedDriveDiscovery(),
-    new DriveDiscovery());
+    new SharedDriveDiscovery());
 
   GDriveDiscoveryConfig config;
 

@@ -151,4 +151,4 @@ create table gpcfunction () INHERITS (gcp);
 
 -- GDrive TYPES;
 
-create table gdrivedrive () INHERITS (gdrive);
+create table gdriveshareddrive () INHERITS (gdrive);

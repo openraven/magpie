@@ -7,7 +7,6 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.MagpieGdriveResource;
 import io.openraven.magpie.api.Session;
-import io.openraven.magpie.data.gdrive.drive.Drive;
 import io.openraven.magpie.data.gdrive.shareddrive.SharedDrive;
 import io.openraven.magpie.plugins.gdrive.discovery.GDriveUtils;
 import io.openraven.magpie.plugins.gdrive.discovery.VersionedMagpieEnvelopeProvider;
