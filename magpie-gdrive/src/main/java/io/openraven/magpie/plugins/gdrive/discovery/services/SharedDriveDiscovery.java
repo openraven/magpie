@@ -49,7 +49,13 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
       final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
       Drive drive = new Drive.Builder(new NetHttpTransport(), JSON_FACTORY, requestInitializer).build();
       DriveList driveResults = drive.drives().list().execute();
-
+      driveResults.forEach(driveItem -> {
+        var data = new MagpieGdriveResource.MagpieGdriveResourceBuilder(mapper, driveItem.getName())
+          .withProjectId(domain)
+          .withResourceType(RESOURCE_TYPE)
+          .withConfiguration(GDriveUtils.asJsonNode(driveItem))
+          .build();
+      });
     } catch (IOException IOException) {
       throw new RuntimeException("Credential File Not Found");
     } catch (GeneralSecurityException e) {
