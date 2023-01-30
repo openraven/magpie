@@ -43,13 +43,13 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
 
   @Override
   public void discover(Session session, Emitter emitter) throws GeneralSecurityException, IOException {
-    getDriveList().forEach(project -> PER_PROJECT_DISCOVERY_LIST
+    getDriveList().forEach(projectId -> PER_PROJECT_DISCOVERY_LIST
       .stream()
       .filter(service -> isEnabled(service.service()))
       .forEach(gDriveDiscovery -> {
         try {
           logger.debug("Discovering service: {}, class: {}", gDriveDiscovery.service(), gDriveDiscovery.getClass());
-          gDriveDiscovery.discoverWrapper(MAPPER, session, emitter, logger);
+          gDriveDiscovery.discoverWrapper(MAPPER, session, emitter, logger, projectId);
         } catch (Exception ex) {
           logger.error("Discovery error in service {} - {}", gDriveDiscovery.service(), ex.getMessage());
           logger.debug("Details", ex);

@@ -20,6 +20,7 @@ import io.openraven.magpie.data.gdrive.shareddrive.SharedDrive;
 import io.openraven.magpie.plugins.gdrive.discovery.GDriveDiscoveryPlugin;
 import io.openraven.magpie.plugins.gdrive.discovery.GDriveUtils;
 import io.openraven.magpie.plugins.gdrive.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gdrive.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.FileInputStream;
@@ -40,22 +41,25 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger) {
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String projectId) {
     final String RESOURCE_TYPE = SharedDrive.RESOURCE_TYPE;
     HttpRequestInitializer requestInitializer = null;
     try {
       ServiceAccountCredentials serviceAccountCredentials = ServiceAccountCredentials.fromStream(new FileInputStream("/Users/tara/credentials/oss-test.json"));
       requestInitializer = new HttpCredentialsAdapter(serviceAccountCredentials);
       final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-      Drive drive = new Drive.Builder(new NetHttpTransport(), JSON_FACTORY, requestInitializer).build();
+      Drive drive = new Drive.Builder(new NetHttpTransport(), JSON_FACTORY, requestInitializer).setApplicationName(projectId).build();
       DriveList driveResults = drive.drives().list().execute();
-      driveResults.forEach(driveItem -> {
-        var data = new MagpieGdriveResource.MagpieGdriveResourceBuilder(mapper, driveItem.getName())
-          .withProjectId(domain)
+      List<com.google.api.services.drive.model.Drive> drivers = driveResults.getDrives();
+      for (com.google.api.services.drive.model.Drive driveList : drivers) {
+        var data = new MagpieGdriveResource.MagpieGdriveResourceBuilder(mapper, driveList.getId())
+          .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
-          .withConfiguration(GDriveUtils.asJsonNode(driveItem))
+          .withConfiguration(GDriveUtils.asJsonNode(driveList))
           .build();
-      });
+
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":shareddrive"), data.toJsonNode()));
+      }
     } catch (IOException IOException) {
       throw new RuntimeException("Credential File Not Found");
     } catch (GeneralSecurityException e) {

@@ -148,7 +148,3 @@ create table gcpvpcnetwork () INHERITS (gcp);
 create table gpcdataproccluster () INHERITS (gcp);
 create table gpcdataprocjob () INHERITS (gcp);
 create table gpcfunction () INHERITS (gcp);
-
--- GDrive TYPES;
-
-create table gdriveshareddrive () INHERITS (gdrive);
