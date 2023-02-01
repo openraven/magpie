@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.services.drive.DriveScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
@@ -22,14 +23,11 @@ import com.google.api.services.drive.model.DriveList;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig> {
   public final static String ID = "magpie.gdrive.discovery";
   protected static final ObjectMapper MAPPER = GDriveUtils.createObjectMapper();
-  private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
   private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
 
@@ -60,10 +58,9 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
   //get drive list contained in a workspace
 
   public List<String> getDriveList() throws IOException, GeneralSecurityException {
-
     final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-    ServiceAccountCredentials serviceAccountCredentials = ServiceAccountCredentials.fromStream(new FileInputStream("/Users/tara/credentials/oss-test.json"));
-    HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(serviceAccountCredentials);
+    GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(Arrays.asList("https://www.googleapis.com/auth/drive"));
+    HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
     Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).build();
     DriveList driveResults = service.drives().list().execute();
     return config.getDriveListProvider().orElse(() -> {
