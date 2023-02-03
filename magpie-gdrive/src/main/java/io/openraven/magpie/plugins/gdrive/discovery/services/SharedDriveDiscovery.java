@@ -35,6 +35,7 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
 
   private static final String SERVICE = "shareddrive";
   private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+  public static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
 
 
 
@@ -44,10 +45,10 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
     return SERVICE;
   }
 
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String projectId) {
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String projectId) throws IOException, GeneralSecurityException {
     final String RESOURCE_TYPE = SharedDrive.RESOURCE_TYPE;
-    try {
-      GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(Arrays.asList("https://www.googleapis.com/auth/drive"));
+
+      GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(SCOPES);
       HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
       final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
       Drive drive = new Drive.Builder(new NetHttpTransport(), JSON_FACTORY, requestInitializer).setApplicationName(projectId).build();
@@ -62,12 +63,8 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":shareddrive"), data.toJsonNode()));
       }
-    } catch (IOException IOException) {
-      throw new RuntimeException("Credential File Not Found");
-    } catch (GeneralSecurityException e) {
-      e.printStackTrace();
     }
 
   }
 
-}
+

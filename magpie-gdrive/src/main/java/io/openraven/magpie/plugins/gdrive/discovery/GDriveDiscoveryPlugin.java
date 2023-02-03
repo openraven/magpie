@@ -2,8 +2,11 @@ package io.openraven.magpie.plugins.gdrive.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.DriveScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.openraven.magpie.api.Emitter;
@@ -28,7 +31,9 @@ import java.util.*;
 public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig> {
   public final static String ID = "magpie.gdrive.discovery";
   protected static final ObjectMapper MAPPER = GDriveUtils.createObjectMapper();
-  private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+  public static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+  public static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
+
 
 
   private static final List<GDriveDiscovery> PER_PROJECT_DISCOVERY_LIST = List.of(
@@ -58,9 +63,11 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
   //get drive list contained in a workspace
 
   public List<String> getDriveList() throws IOException, GeneralSecurityException {
-    final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-    GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(Arrays.asList("https://www.googleapis.com/auth/drive"));
+
+
+    GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(SCOPES);
     HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
+    final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
     Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).build();
     DriveList driveResults = service.drives().list().execute();
     return config.getDriveListProvider().orElse(() -> {
