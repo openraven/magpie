@@ -22,7 +22,6 @@ public class GDriveDiscoveryConfig {
   private List<String> drives = List.of();
   private List<String> services = List.of();
   private Optional<Supplier<List<String>>> driveListProvider = Optional.empty();
-  private CredentialsProvider credentialsProvider;
 
 
 
@@ -33,13 +32,6 @@ public class GDriveDiscoveryConfig {
     return services;
   }
 
-  public CredentialsProvider getCredentialsProvider() {
-    return credentialsProvider;
-  }
-
-  public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
-    this.credentialsProvider = credentialsProvider;
-  }
 
   public void setServices(List<String> services) {
     this.services = services == null ? List.of() : services;

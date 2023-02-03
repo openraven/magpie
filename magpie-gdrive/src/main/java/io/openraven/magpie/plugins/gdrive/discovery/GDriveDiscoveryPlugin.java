@@ -1,6 +1,7 @@
 package io.openraven.magpie.plugins.gdrive.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.DriveScopes;
@@ -63,7 +64,6 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
   //get drive list contained in a workspace
 
   public List<String> getDriveList() throws IOException, GeneralSecurityException {
-
 
     GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(SCOPES);
     HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
