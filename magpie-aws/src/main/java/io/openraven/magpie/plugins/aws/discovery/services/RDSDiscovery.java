@@ -40,7 +40,6 @@ import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRespo
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.*;
-import software.amazon.awssdk.services.rds.model.DescribeDbClustersRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbSnapshotsRequest;
 import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
@@ -73,6 +72,7 @@ public class RDSDiscovery implements AWSDiscovery {
       discoverDbProxy(mapper, session, region, emitter, account, client);
       discoverDbSnapshot(mapper, session, region, emitter, account, client);
       discoverDbInstances(mapper, session, region, emitter, logger, account, client, clientCreator);
+      discoverDbAuoraClusters(mapper, session, region, emitter, logger, account, client, clientCreator);
     }
   }
 
@@ -128,27 +128,61 @@ public class RDSDiscovery implements AWSDiscovery {
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
-          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, db.dbInstanceArn())
-            .withResourceName(db.dbInstanceIdentifier())
-            .withResourceId(db.dbInstanceArn())
+          if (!db.engine().startsWith("aurora")) {
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, db.dbInstanceArn())
+              .withResourceName(db.dbInstanceIdentifier())
+              .withResourceId(db.dbInstanceArn())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(db.toBuilder()))
+              .withCreatedIso(db.instanceCreateTime())
+              .withAccountId(account)
+              .withAwsRegion(region.toString())
+              .build();
+
+            if (db.instanceCreateTime() == null) {
+              logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
+            }
+
+            discoverTags(client, db, data, mapper);
+            discoverInstanceDbSnapshots(client, db, data);
+            discoverInstanceSize(db, data, logger, clientCreator);
+            discoverInstanceDbProxies(client, db, data);
+
+            discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator, logger);
+
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
+          }
+        });
+    } catch (SdkServiceException | SdkClientException ex) {
+      DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
+    }
+  }
+
+  private void discoverDbAuoraClusters(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, RdsClient client, MagpieAWSClientCreator clientCreator) {
+    final String RESOURCE_TYPE = RDSInstance.RESOURCE_TYPE;
+    try {
+      client.describeDBClustersPaginator().dbClusters().stream()
+        .forEach(cluster -> {
+          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, cluster.dbClusterArn())
+            .withResourceName(cluster.dbClusterIdentifier())
+            .withResourceId(cluster.dbClusterArn())
             .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(db.toBuilder()))
-            .withCreatedIso(db.instanceCreateTime())
+            .withConfiguration(mapper.valueToTree(cluster.toBuilder()))
+            .withCreatedIso(cluster.clusterCreateTime())
             .withAccountId(account)
             .withAwsRegion(region.toString())
             .build();
 
-          if (db.instanceCreateTime() == null) {
-            logger.warn("DBInstance has NULL CreateTime: dbInstanceArn=\"{}\"", db.dbInstanceArn());
+          if (cluster.clusterCreateTime() == null) {
+            logger.warn("DBCluster has NULL CreateTime: dbClusterArn=\"{}\"", cluster.dbClusterArn());
           }
 
-          discoverTags(client, db, data, mapper);
-          discoverInstanceDbClusters(client, db, data);
-          discoverInstanceDbSnapshots(client, db, data);
-          discoverInstanceSize(db, data, logger, clientCreator);
-          discoverInstanceDbProxies(client, db, data);
+          discoverTags(client, cluster, data, mapper);
+          discoverDbClusterInstances(client, cluster, data);
+          discoverDbClusterSnapshots(client, cluster, data);
+          discoverClusterSize(cluster, data, logger, clientCreator);
 
-          discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator, logger);
+          discoverBackupJobs(cluster.dbClusterArn(), region, data, clientCreator, logger);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
         });
@@ -156,7 +190,6 @@ public class RDSDiscovery implements AWSDiscovery {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
   }
-
 
   private void discoverTags(RdsClient client, DBInstance resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
@@ -170,9 +203,24 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
-  private void discoverInstanceDbClusters(RdsClient client, DBInstance resource, MagpieAwsResource data) {
+  private void discoverTags(RdsClient client, DBCluster resource, MagpieAwsResource data, ObjectMapper mapper) {
     getAwsResponse(
-      () -> client.describeDBClusters(DescribeDbClustersRequest.builder().dbClusterIdentifier(resource.dbClusterIdentifier()).build()),
+      () -> client.listTagsForResource(ListTagsForResourceRequest.builder().resourceName(resource.dbClusterArn()).build()),
+      (resp) -> {
+        JsonNode tagsNode = mapper.convertValue(resp.tagList().stream()
+          .collect(Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
+        AWSUtils.update(data.tags, tagsNode);
+      },
+      (noresp) -> AWSUtils.update(data.tags, noresp)
+    );
+  }
+
+  private void discoverDbClusterInstances(RdsClient client, DBCluster resource, MagpieAwsResource data) {
+    Filter filter = Filter.builder().name("db-cluster-id").values(resource.dbClusterArn()).build();
+    getAwsResponse(
+      () -> client.describeDBInstances(DescribeDbInstancesRequest.builder()
+        .filters(filter)
+        .build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
     );
@@ -181,9 +229,9 @@ public class RDSDiscovery implements AWSDiscovery {
   private void discoverInstanceDbProxies(RdsClient client, DBInstance resource, MagpieAwsResource data){
     getAwsResponse(
       () -> client.describeDBProxies(DescribeDbProxiesRequest.builder().dbProxyName(resource.dbInstanceIdentifier()).build()),
-        (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
-        (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
-      );
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, resp),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, noresp)
+    );
   }
 
   private void discoverInstanceDbSnapshots(RdsClient client, DBInstance resource, MagpieAwsResource data) {
@@ -199,6 +247,19 @@ public class RDSDiscovery implements AWSDiscovery {
     );
   }
 
+  private void discoverDbClusterSnapshots(RdsClient client, DBCluster resource, MagpieAwsResource data) {
+    final String keyname = "dbSnapshot";
+    getAwsResponse(
+      () -> client.describeDBClusterSnapshots(DescribeDbClusterSnapshotsRequest.builder()
+        .dbClusterIdentifier(resource.dbClusterIdentifier())
+        .includePublic(false)
+        .includeShared(true)
+        .build()),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
+  }
+
   private void discoverInstanceSize(DBInstance resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     // get the DB engine and call the relevant function (as although RDS uses same client, the metrics available are different)
     String engine = resource.engine();
@@ -206,14 +267,16 @@ public class RDSDiscovery implements AWSDiscovery {
       if ("docdb".equalsIgnoreCase(engine)) {
         // although DocDB uses RDS client, it's metrics are subtly different, so get metrics via setDocDBSize
         setDocDBSize(resource, data, logger, clientCreator);
-      } else if (engine.startsWith("aurora")) {
-        setAuroraDBSize(resource, data, logger, clientCreator);
       } else {
         setRDSSize(resource, data, logger, clientCreator);
       }
     } else {
       logger.warn("{} RDS instance is missing engine property", resource.dbInstanceIdentifier());
     }
+  }
+
+  private void discoverClusterSize(DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+    setAuroraDBSize(resource, data, logger, clientCreator);
   }
 
   private void setRDSSize(DBInstance resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
@@ -259,10 +322,10 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void setAuroraDBSize(DBInstance resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+  private void setAuroraDBSize(DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
-      dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbInstanceIdentifier()).build());
+      dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbClusterIdentifier()).build());
       Pair<Long, GetMetricStatisticsResponse> volumeBytesUsed =
         AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/RDS", "VolumeBytesUsed", dimensions, clientCreator);
 
@@ -274,7 +337,7 @@ public class RDSDiscovery implements AWSDiscovery {
 
       }
     } catch (Exception se) {
-      logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceArn(), se.getMessage());
+      logger.warn("{} RDS cluster is missing size metrics, with error {}", resource.dbClusterArn(), se.getMessage());
     }
   }
 }
