@@ -51,7 +51,7 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
       GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(SCOPES);
       HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
       final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-      Drive drive = new Drive.Builder(new NetHttpTransport(), JSON_FACTORY, requestInitializer).setApplicationName(projectId).build();
+      Drive drive = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).setApplicationName(projectId).build();
       DriveList driveResults = drive.drives().list().execute();
       List<com.google.api.services.drive.model.Drive> drivers = driveResults.getDrives();
       for (com.google.api.services.drive.model.Drive driveList : drivers) {

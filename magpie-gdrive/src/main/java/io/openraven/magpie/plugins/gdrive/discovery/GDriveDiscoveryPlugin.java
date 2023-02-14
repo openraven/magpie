@@ -1,15 +1,10 @@
 package io.openraven.magpie.plugins.gdrive.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.DriveScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.http.HttpTransportFactory;
-import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
@@ -17,7 +12,6 @@ import io.openraven.magpie.plugins.gdrive.discovery.services.GDriveDiscovery;
 import io.openraven.magpie.plugins.gdrive.discovery.services.SharedDriveDiscovery;
 import com.google.api.services.drive.Drive;
 import org.slf4j.Logger;
-import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -33,7 +27,7 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
   public final static String ID = "magpie.gdrive.discovery";
   protected static final ObjectMapper MAPPER = GDriveUtils.createObjectMapper();
   public static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-  public static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
+  public static final Collection<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_READONLY);
 
 
 
@@ -42,7 +36,7 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
 
   GDriveDiscoveryConfig config;
 
-  private Logger logger;
+  Logger logger;
 
 
   @Override
@@ -61,24 +55,20 @@ public class GDriveDiscoveryPlugin implements OriginPlugin<GDriveDiscoveryConfig
       }));
   }
 
-  //get drive list contained in a workspace
-
   public List<String> getDriveList() throws IOException, GeneralSecurityException {
 
     GoogleCredentials credentials = GoogleCredentials.getApplicationDefault().createScoped(SCOPES);
     HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
     final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
     Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).build();
-    DriveList driveResults = service.drives().list().execute();
-    return config.getDriveListProvider().orElse(() -> {
-      var drives = new ArrayList<String>();
-      List<com.google.api.services.drive.model.Drive> drive = driveResults.getDrives();
+    DriveList driveResults = service.drives().list().setFields("nextPageToken, drives(id, name)").setPageSize(100).execute();
+    List<com.google.api.services.drive.model.Drive> drive = driveResults.getDrives();
+    List drives = new ArrayList<>();
       for (com.google.api.services.drive.model.Drive driveItem : drive){
         drives.add(driveItem.getId());
       }
       return drives;
-    }).get();
-  }
+    }
 
   @Override
   public String id() {
