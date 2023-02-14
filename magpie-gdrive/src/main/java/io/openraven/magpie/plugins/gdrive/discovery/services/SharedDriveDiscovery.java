@@ -52,7 +52,7 @@ public class SharedDriveDiscovery implements GDriveDiscovery{
       HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
       final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
       Drive drive = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).setApplicationName(projectId).build();
-      DriveList driveResults = drive.drives().list().execute();
+      DriveList driveResults = drive.drives().list().setFields("nextPageToken, drives(id, name)").execute();
       List<com.google.api.services.drive.model.Drive> drivers = driveResults.getDrives();
       for (com.google.api.services.drive.model.Drive driveList : drivers) {
         var data = new MagpieGdriveResource.MagpieGdriveResourceBuilder(mapper, driveList.getId())

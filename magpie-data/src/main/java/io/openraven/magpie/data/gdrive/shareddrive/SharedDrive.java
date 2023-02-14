@@ -30,7 +30,7 @@ import javax.persistence.Table;
 public class SharedDrive extends GDriveResource {
 
   protected static final String TABLE_NAME = "gdriveshareddrive";
-  public static final String RESOURCE_TYPE = "GDrive::SharedDrive::SharedDrive";
+  public static final String RESOURCE_TYPE = "GDrive::Drive::SharedDrive";
 
   public SharedDrive() {
     this.resourceType = RESOURCE_TYPE;
