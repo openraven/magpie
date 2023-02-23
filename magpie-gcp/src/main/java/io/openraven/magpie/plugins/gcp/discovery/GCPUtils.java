@@ -22,9 +22,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
-import com.google.appengine.repackaged.com.google.gson.GsonBuilder;
+import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
 
 public class GCPUtils {
   private static final Logger logger = LoggerFactory.getLogger(GCPUtils.class);
@@ -33,6 +35,7 @@ public class GCPUtils {
   public  static ObjectMapper createObjectMapper() {
     return  new ObjectMapper()
       .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+      .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
       .findAndRegisterModules();
   }
 
@@ -51,5 +54,12 @@ public class GCPUtils {
   public static void update(JsonNode payload, Pair<String, Object> objectPair) {
     ObjectNode o = (ObjectNode) payload;
     o.set(objectPair.first, GCPUtils.asJsonNode(objectPair.second));
+  }
+
+  public static Instant protobufTimestampToInstant(com.google.protobuf.Timestamp timestamp) {
+    if (timestamp == null) {
+      return null;
+    }
+    return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
   }
 }

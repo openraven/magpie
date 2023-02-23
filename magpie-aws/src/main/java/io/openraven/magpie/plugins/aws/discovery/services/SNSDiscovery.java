@@ -16,7 +16,6 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
-import com.amazonaws.arn.Arn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
@@ -27,6 +26,7 @@ import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
@@ -73,7 +73,7 @@ public class SNSDiscovery implements AWSDiscovery {
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(attributesResp.toBuilder()))
             .withAccountId(attributesResp.attributes().get("Owner"))
-            .withAwsRegion(Arn.fromString(arn).getRegion())
+            .withAwsRegion(Arn.fromString(arn).region().orElse(null))
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":topic"), data.toJsonNode()));
@@ -97,8 +97,8 @@ public class SNSDiscovery implements AWSDiscovery {
             .withResourceName(getName(arn))
             .withResourceType(RESOURCE_TYPE)
             .withConfiguration(mapper.valueToTree(attributesResp.toBuilder()))
-            .withAccountId(arn.getAccountId())
-            .withAwsRegion(arn.getRegion())
+            .withAccountId(arn.accountId().orElse(null))
+            .withAwsRegion(arn.region().orElse(null))
             .build();
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":subscription"), data.toJsonNode()));
@@ -109,7 +109,7 @@ public class SNSDiscovery implements AWSDiscovery {
   }
 
   private String getName(Arn arn) {
-    final var res = arn.getResource();
-    return res.getResourceType() + ":" + res.getResource();
+    final var res = arn.resource();
+    return res.resourceType().map(resourceType -> resourceType + ":" + res.resource()).orElse(null);
   }
 }

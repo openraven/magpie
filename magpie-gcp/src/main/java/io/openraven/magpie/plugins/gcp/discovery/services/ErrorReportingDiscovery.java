@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
-import com.google.cloud.errorreporting.v1beta1.ErrorStatsServiceClient;
-import com.google.cloud.errorreporting.v1beta1.ErrorStatsServiceSettings;
+import com.google.devtools.clouderrorreporting.v1beta1.ErrorStatsServiceClient;
+import com.google.devtools.clouderrorreporting.v1beta1.ErrorStatsServiceSettings;
 import com.google.devtools.clouderrorreporting.v1beta1.ProjectName;
 import com.google.devtools.clouderrorreporting.v1beta1.QueryTimeRange;
 import io.openraven.magpie.api.Emitter;

@@ -20,11 +20,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.compute.v1.Network;
-import com.google.cloud.compute.v1.NetworkClient;
-import com.google.cloud.compute.v1.NetworkSettings;
+import com.google.cloud.compute.v1.NetworksClient;
+import com.google.cloud.compute.v1.NetworksSettings;
 import com.google.cloud.compute.v1.Subnetwork;
-import com.google.cloud.compute.v1.SubnetworkClient;
-import com.google.cloud.compute.v1.SubnetworkSettings;
+import com.google.cloud.compute.v1.SubnetworksClient;
+import com.google.cloud.compute.v1.SubnetworksSettings;
+import com.google.cloud.compute.v1.ZonesClient;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -49,22 +50,24 @@ public class NetworkDiscovery implements GCPDiscovery {
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.vpc.Network.RESOURCE_TYPE;
-    var networkSettingsBuilder = NetworkSettings.newBuilder();
-    var subnetworkSettingsBuilder = SubnetworkSettings.newBuilder();
+    var networkSettingsBuilder = NetworksSettings.newBuilder();
+    var subnetworkSettingsBuilder = SubnetworksSettings.newBuilder();
     maybeCredentialsProvider.ifPresent(provider -> {
         networkSettingsBuilder.setCredentialsProvider(provider);
         subnetworkSettingsBuilder.setCredentialsProvider(provider);
     });
-    try (NetworkClient networkClient = NetworkClient.create(networkSettingsBuilder.build());
-         SubnetworkClient subnetworkClient = SubnetworkClient.create(subnetworkSettingsBuilder.build())) {
-      networkClient.listNetworks(projectId).iterateAll().forEach(network -> {
+    try (NetworksClient networkClient = NetworksClient.create(networkSettingsBuilder.build());
+         SubnetworksClient subnetworkClient = SubnetworksClient.create(subnetworkSettingsBuilder.build());
+         var zoneClient = ZonesClient.create()
+    ) {
+      networkClient.list(projectId).iterateAll().forEach(network -> {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, network.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(network))
           .build();
 
-        discoverSubnetworks(subnetworkClient, network, data);
+        discoverSubnetworks(subnetworkClient, network, data, projectId, zoneClient);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":network"), data.toJsonNode()));
       });
@@ -74,14 +77,20 @@ public class NetworkDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverSubnetworks(SubnetworkClient subnetworkClient, Network network, MagpieGcpResource data) {
+  private void discoverSubnetworks(
+    SubnetworksClient subnetworkClient,
+    Network network,
+    MagpieGcpResource data,
+    String projectId,
+    ZonesClient zonesClient
+  ) {
     final String fieldName = "subnetworks";
 
     List<Subnetwork.Builder> subnetworks = new ArrayList<>();
-    network.getSubnetworksList().forEach(subnetStr -> {
-      Subnetwork subnetwork = subnetworkClient.getSubnetwork(subnetStr);
+    zonesClient.list(projectId).iterateAll().forEach(zone -> network.getSubnetworksList().forEach(subnetStr -> {
+      Subnetwork subnetwork = subnetworkClient.get(projectId, zone.getName(), subnetStr);
       subnetworks.add(subnetwork.toBuilder());
-    });
+    }));
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, subnetworks));
 

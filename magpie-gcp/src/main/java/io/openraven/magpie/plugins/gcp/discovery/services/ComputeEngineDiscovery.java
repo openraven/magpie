@@ -43,9 +43,9 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
-      try (var diskClient = DiskClient.create();
-           var instancesClient = InstanceClient.create();
-           var zoneClient = ZoneClient.create()) {
+      try (var diskClient = DisksClient.create();
+           var instancesClient = InstancesClient.create();
+           var zoneClient = ZonesClient.create()) {
           try {
               discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient);
           }catch (IOException e) {
@@ -61,14 +61,21 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
       }
   }
 
-  private void discoverInstances(ObjectMapper mapper, String projectId, Session session, Emitter emitter, InstanceClient instancesClient, ZoneClient zoneClient) throws IOException {
+  private void discoverInstances(
+    ObjectMapper mapper,
+    String projectId,
+    Session session,
+    Emitter emitter,
+    InstancesClient instancesClient,
+    ZonesClient zoneClient
+  ) throws IOException {
     final String RESOURCE_TYPE = ComputeInstance.RESOURCE_TYPE;
 
 
       // On2 - we are listing all instances in all zones
-      zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
+      zoneClient.list(projectId).iterateAll().forEach(zone -> {
 
-        instancesClient.listInstances(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
+        instancesClient.list(projectId, zone.getName()).iterateAll()
           .forEach(instance -> {
             String assetId = String.format("%s::%s", instance.getName(), instance.getId());
             var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
@@ -84,13 +91,13 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
       });
   }
 
-  private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DiskClient diskClient, ZoneClient zoneClient) throws IOException {
+  private void discoverDisks(ObjectMapper mapper, String projectId, Session session, Emitter emitter, DisksClient diskClient, ZonesClient zoneClient) throws IOException {
     final String RESOURCE_TYPE = ComputeDisk.RESOURCE_TYPE;
 
       // On2 - we are listing all disks in all zones
-      zoneClient.listZones(projectId).iterateAll().forEach(zone -> {
+      zoneClient.list(projectId).iterateAll().forEach(zone -> {
 
-        diskClient.listDisks(ProjectZoneName.of(projectId, zone.getName())).iterateAll()
+        diskClient.list(projectId, zone.getName()).iterateAll()
           .forEach(disk -> {
             String assetId = String.format("%s::%s", disk.getName(), disk.getId());
             var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
