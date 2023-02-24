@@ -58,6 +58,9 @@ import software.amazon.awssdk.services.s3.model.ServerSideEncryptionRule;
 import software.amazon.awssdk.services.s3.model.GetBucketEncryptionResponse;
 import software.amazon.awssdk.services.s3.model.PolicyStatus;
 import software.amazon.awssdk.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.ListBucketMetricsConfigurationsRequest;
+import software.amazon.awssdk.services.s3.model.ListBucketMetricsConfigurationsResponse;
+import software.amazon.awssdk.services.s3.model.MetricsConfiguration;
 
 import java.net.URI;
 import java.time.Duration;
@@ -132,6 +135,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverVersioning(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data, clientCreator);
+        discoverCloudWatchMetricsConfig(client, bucket, data, logger);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
       });
@@ -383,6 +387,27 @@ public class S3Discovery implements AWSDiscovery {
       },
       (noresp) -> AWSUtils.update(data.tags, noresp)
     );
+  }
+
+  private void discoverCloudWatchMetricsConfig(S3Client client, Bucket resource, MagpieAwsResource data, Logger logger) {
+    boolean supportsStaleData = false;
+    try {
+      ListBucketMetricsConfigurationsResponse bucketMetricsConfiguration = client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(resource.name()).build());
+      List<MetricsConfiguration> allMetrics = bucketMetricsConfiguration.metricsConfigurationList();
+      for (MetricsConfiguration mc : allMetrics) {
+        //If there is no filter on any of the entries then we know the filter provides full bucket coverage.s
+        if (mc.filter() == null) {
+          supportsStaleData = true;
+          break;
+        }
+      }
+    } catch (SdkServiceException ex) {
+      if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
+        throw ex;
+      }
+      logger.warn("Failure on S3 CloudWatch metrics discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
+    }
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("supportsStaleData", supportsStaleData));
   }
 
   private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
