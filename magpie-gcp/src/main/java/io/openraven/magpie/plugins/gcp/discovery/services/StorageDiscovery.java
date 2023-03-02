@@ -23,6 +23,7 @@ import com.google.cloud.Policy;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.storage.v2.BucketName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -30,13 +31,16 @@ import io.openraven.magpie.data.gcp.storage.StorageBucket;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 public class StorageDiscovery implements GCPDiscovery {
+  private static final Logger LOGGER = LoggerFactory.getLogger(StorageDiscovery.class);
   private static final String SERVICE = "storage";
+  public static final String ASSET_ID_FORMAT = "//storage.googleapis.com/%s";
 
   @Override
   public String service() {
@@ -56,11 +60,19 @@ public class StorageDiscovery implements GCPDiscovery {
     }
     Storage storage = builder.setProjectId(projectId).build().getService();
     storage.list().iterateAll().forEach(bucket -> {
-      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, bucket.getName())
+
+      var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, String.format(
+        ASSET_ID_FORMAT, BucketName.format(projectId, bucket.getName())
+      ))
         .withProjectId(projectId)
+        .withResourceId(bucket.getName())
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
-        .withConfiguration(GCPUtils.asJsonNode(bucket))
+        // Get BucketInfo object instead, this contains the core set of properties and removes nasty bits
+        // like the current request data that contain tokens.
+        // NOTE: this method is in beta since 2.14.0 (which is a very long time ago, we are on major version 26 now).
+        // Should this ever deprecate, we can migrate by using the BucketInfo builder and manually set the fields
+        .withConfiguration(GCPUtils.asJsonNode(bucket.asBucketInfo()))
         .build();
 
       discoverBucketPolicy(data, bucket);

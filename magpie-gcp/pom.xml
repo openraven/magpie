@@ -3,7 +3,7 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.5.12-SNAPSHOT</version>
+    <version>0.5.13-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -14,6 +14,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <javatuples.version>1.2</javatuples.version>
+    <google-cloud-libraries.version>26.1.5</google-cloud-libraries.version>
   </properties>
 
   <dependencyManagement>
@@ -21,7 +22,7 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>20.6.0</version>
+        <version>${google-cloud-libraries.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

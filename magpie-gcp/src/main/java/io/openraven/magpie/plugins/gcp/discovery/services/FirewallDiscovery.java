@@ -18,8 +18,8 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
-import com.google.cloud.compute.v1.FirewallClient;
-import com.google.cloud.compute.v1.FirewallSettings;
+import com.google.cloud.compute.v1.FirewallsClient;
+import com.google.cloud.compute.v1.FirewallsSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -44,11 +44,11 @@ public class FirewallDiscovery implements GCPDiscovery {
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = Firewall.RESOURCE_TYPE;
-    var builder = FirewallSettings.newBuilder();
+    var builder = FirewallsSettings.newBuilder();
     maybeCredentialsProvider.ifPresent(builder::setCredentialsProvider);
 
-    try (FirewallClient firewallClient = FirewallClient.create(builder.build())) {
-      firewallClient.listFirewalls(projectId).iterateAll().forEach(firewall -> {
+    try (FirewallsClient firewallClient = FirewallsClient.create(builder.build())) {
+      firewallClient.list(projectId).iterateAll().forEach(firewall -> {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, firewall.getName())
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)

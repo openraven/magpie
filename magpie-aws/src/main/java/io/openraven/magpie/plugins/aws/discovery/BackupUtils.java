@@ -15,9 +15,9 @@
  */
 package io.openraven.magpie.plugins.aws.discovery;
 
-import com.amazonaws.SdkClientException;
 import io.openraven.magpie.data.aws.backup.BackupPlan;
 import org.slf4j.Logger;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupJob;

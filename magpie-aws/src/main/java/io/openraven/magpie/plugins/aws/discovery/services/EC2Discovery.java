@@ -41,7 +41,6 @@ import io.sentry.protocol.Message;
 import kong.unirest.HttpResponse;
 import kong.unirest.HttpStatus;
 import kong.unirest.Unirest;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.net.util.SubnetUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
@@ -54,6 +53,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeNetworkAclsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeTransitGatewaysRequest;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Tag;
+import software.amazon.awssdk.utils.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
