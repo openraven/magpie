@@ -61,6 +61,11 @@ import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.ListBucketMetricsConfigurationsRequest;
 import software.amazon.awssdk.services.s3.model.ListBucketMetricsConfigurationsResponse;
 import software.amazon.awssdk.services.s3.model.MetricsConfiguration;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.DimensionFilter;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.ListMetricsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.Metric;
 
 import java.net.URI;
 import java.time.Duration;
@@ -70,6 +75,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -135,7 +141,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverVersioning(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data, clientCreator);
-        discoverCloudWatchMetricsConfig(client, bucket, data, logger);
+        discoverCloudWatchMetricsConfig(client, bucket, data, clientCreator, logger, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
       });
@@ -389,16 +395,17 @@ public class S3Discovery implements AWSDiscovery {
     );
   }
 
-  private void discoverCloudWatchMetricsConfig(S3Client client, Bucket resource, MagpieAwsResource data, Logger logger) {
-    boolean supportsStaleData = false;
+  private void discoverCloudWatchMetricsConfig(S3Client client, Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger, ObjectMapper mapper) {
     try {
       ListBucketMetricsConfigurationsResponse bucketMetricsConfiguration = client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(resource.name()).build());
       List<MetricsConfiguration> allMetrics = bucketMetricsConfiguration.metricsConfigurationList();
       for (MetricsConfiguration mc : allMetrics) {
-        //If there is no filter on any of the entries then we know the filter provides full bucket coverage.s
+        //If there is no filter on any of the entries then we know the filter provides full bucket coverage.
         if (mc.filter() == null) {
-          supportsStaleData = true;
-          break;
+          JsonNode enhancedMetrics = discoverEnhancedCloudWatchMetrics(data, clientCreator, mc.id(), mapper);
+          AWSUtils.update(data.supplementaryConfiguration, Map.of("supportsStaleData", true));
+          AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", enhancedMetrics));
+          return;
         }
       }
     } catch (SdkServiceException ex) {
@@ -407,7 +414,35 @@ public class S3Discovery implements AWSDiscovery {
       }
       logger.warn("Failure on S3 CloudWatch metrics discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
     }
-    AWSUtils.update(data.supplementaryConfiguration, Map.of("supportsStaleData", supportsStaleData));
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("supportsStaleData", false));
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", ""));
+  }
+
+  public static Map<String, Long> getAllAvailableS3Metrics(String regionID, String bucketName, MagpieAWSClientCreator clientCreator, String filterId) {
+    try (CloudWatchClient client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
+      Map<String, Long> requestMetrics = new HashMap<>();
+      List<DimensionFilter> dimensions = Collections.singletonList(DimensionFilter.builder().name("BucketName").value(bucketName).build());
+      List<Dimension> dimensionList = new ArrayList<>();
+      dimensionList.add(Dimension.builder().name("BucketName").value(bucketName).build());
+      dimensionList.add(Dimension.builder().name("FilterId").value(filterId).build());
+      final var request = ListMetricsRequest.builder()
+        .namespace("AWS/S3")
+        .dimensions(dimensions)
+        .build();
+      ListMetricsResponse response = client.listMetrics(request);
+      for (Metric metric : response.metrics()) {
+        if (!metric.metricName().equals("BucketSizeBytes") && !metric.metricName().equals("NumberOfObjects")) {
+          Pair<Long, GetMetricStatisticsResponse> metrics = AWSUtils.getCloudwatchMetricSum(regionID, "AWS/S3", metric.metricName(), dimensionList, clientCreator);
+          requestMetrics.put(metrics.getValue1().label(), metrics.getValue0());
+        }
+      }
+      return requestMetrics;
+    }
+  }
+
+  private JsonNode discoverEnhancedCloudWatchMetrics(MagpieAwsResource data, MagpieAWSClientCreator clientCreator, String filterId, ObjectMapper mapper) {
+    Map<String, Long> requestMetrics = getAllAvailableS3Metrics(data.awsRegion, data.resourceName, clientCreator, filterId);
+    return mapper.valueToTree(requestMetrics);
   }
 
   private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {

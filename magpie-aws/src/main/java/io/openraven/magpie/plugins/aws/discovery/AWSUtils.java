@@ -161,6 +161,18 @@ public class AWSUtils {
 
   }
 
+  public static Pair<Long, GetMetricStatisticsResponse> getCloudwatchMetricSum(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    GetMetricStatisticsResponse getMetricStatisticsResult = getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.SUM, dimensions, clientCreator);
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::sum)
+      .map(Double::longValue).max(Long::compareTo).orElse(null), getMetricStatisticsResult);
+  }
+
+  public static Pair<Long, GetMetricStatisticsResponse> getCloudwatchMetricAverage(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    GetMetricStatisticsResponse getMetricStatisticsResult = getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.AVERAGE, dimensions, clientCreator);
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::average)
+      .map(Double::longValue).max(Long::compareTo).orElse(null), getMetricStatisticsResult);
+  }
+
   @SuppressWarnings("unused")
   public static Pair<Double, GetMetricStatisticsResponse> getCloudwatchDoubleMetricMinimum(
     String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
