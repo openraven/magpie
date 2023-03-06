@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -45,6 +46,7 @@ import software.amazon.awssdk.services.rds.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.rds.model.Tag;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -150,8 +152,6 @@ public class RDSDiscovery implements AWSDiscovery {
 
             discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator, logger);
 
-            discoverInstanceUsageMetrics(db, data, logger, clientCreator);
-
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
           }
         });
@@ -186,7 +186,7 @@ public class RDSDiscovery implements AWSDiscovery {
 
           discoverBackupJobs(cluster.dbClusterArn(), region, data, clientCreator, logger);
 
-          discoverUsageMetrics(cluster, data, logger, clientCreator);
+          discoverCloudWatchUsageMetrics(client, cluster, data, logger, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
         });
@@ -345,75 +345,67 @@ public class RDSDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverUsageMetrics(DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+  private Map<String, Double> formatDataMapAvg(List<Datapoint> map) {
+    Map<String, Double> datapointMetrics = new HashMap<>();
+    for (Datapoint dp : map) {
+      datapointMetrics.put(dp.timestamp().toString(), dp.average());
+    }
+    return datapointMetrics;
+  }
+
+  private Map<String, Double> formatDataMapSum(List<Datapoint> map) {
+    Map<String, Double> datapointMetrics = new HashMap<>();
+    for (Datapoint dp : map) {
+      datapointMetrics.put(dp.timestamp().toString(), dp.sum());
+    }
+    return datapointMetrics;
+  }
+
+  private Map<String, Object> getRDSCloudWatchMetrics(String identifier, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator, boolean cluster) {
+    Map<String, Object> requestMetrics = new HashMap<>();
+    List<Dimension> dimensions = new ArrayList<>();
+
+    if (cluster) {
+      dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(identifier).build());
+    } else {
+      dimensions.add(Dimension.builder().name("DBInstanceIdentifier").value(identifier).build());
+    }
+
+    List<Datapoint> connections =
+      AWSUtils.getCloudwatchMetricStaleDataSum(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator, logger);
+    requestMetrics.put("DatabaseConnections", formatDataMapSum(connections));
+
+    List<Datapoint> writeIOPS =
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator, logger);
+    requestMetrics.put("WriteIOPS", formatDataMapAvg(writeIOPS));
+
+    List<Datapoint> readIOPS =
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator, logger);
+    requestMetrics.put("ReadIOPS", formatDataMapAvg(readIOPS));
+
+    return requestMetrics;
+
+  }
+
+  private void discoverCloudWatchUsageMetrics(RdsClient client, DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
-      List<Dimension> dimensions = new ArrayList<>();
-      dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(resource.dbClusterIdentifier()).build());
+      Map<String, Object> allMetrics = new HashMap<>();
 
-      Pair<Long, GetMetricStatisticsResponse> connections =
-        AWSUtils.getCloudwatchMetricSum(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator);
+      Filter filter = Filter.builder().name("db-cluster-id").values(resource.dbClusterArn()).build();
+      DescribeDbInstancesResponse dbInstances = client.describeDBInstances(DescribeDbInstancesRequest.builder().filters(filter).build());
 
-      Pair<Long, GetMetricStatisticsResponse> attemptedConnections =
-        AWSUtils.getCloudwatchMetricSum(data.awsRegion, "AWS/RDS", "ConnectionAttempts", dimensions, clientCreator);
+      Map<String, Object> clusterMetrics = getRDSCloudWatchMetrics(resource.dbClusterIdentifier(), data, logger, clientCreator, true);
+      allMetrics.put(resource.dbClusterIdentifier() + ":cluster", clusterMetrics);
 
-      Pair<Long, GetMetricStatisticsResponse> writeIOPS =
-        AWSUtils.getCloudwatchMetricAverage(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator);
+      for (DBInstance db : dbInstances.dbInstances()) {
+        Map<String, Object> instanceMetrics = getRDSCloudWatchMetrics(db.dbInstanceIdentifier(), data, logger, clientCreator, false);
+        allMetrics.put(db.dbInstanceIdentifier() + ":instance", instanceMetrics);
+      }
 
-      Pair<Long, GetMetricStatisticsResponse> readIOPS =
-        AWSUtils.getCloudwatchMetricAverage(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator);
-
-      /*logger.info(resource.dbClusterIdentifier());
-      logger.info(connections.toString());
-      logger.info(attemptedConnections.toString());
-      logger.info(writeIOPS.toString());
-      logger.info(readIOPS.toString());*/
-
-      AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", Map.of(
-        "DatabaseConnections", connections.getValue0(),
-        "ConnectionAttempts", attemptedConnections.getValue0(),
-        "WriteIOPS", writeIOPS.getValue0(),
-        "ReadIOPS", readIOPS.getValue0()
-      )));
+      AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", allMetrics));
 
     } catch (Exception se) {
       logger.warn("{} RDS cluster is missing metrics, with error {}", resource.dbClusterArn(), se.getMessage());
-    }
-  }
-
-  private void discoverInstanceUsageMetrics(DBInstance resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
-    try {
-      List<Dimension> dimensions = new ArrayList<>();
-      dimensions.add(Dimension.builder().name("DBInstanceIdentifier").value(resource.dbInstanceIdentifier()).build());
-      /*Pair<Long, GetMetricStatisticsResponse> databaseConnections =
-        AWSUtils.getCloudwatchMetricAverage(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator);*/
-
-      Pair<Long, GetMetricStatisticsResponse> connections =
-        AWSUtils.getCloudwatchMetricSum(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator);
-
-      Pair<Long, GetMetricStatisticsResponse> attemptedConnections =
-        AWSUtils.getCloudwatchMetricSum(data.awsRegion, "AWS/RDS", "ConnectionAttempts", dimensions, clientCreator);
-
-      Pair<Long, GetMetricStatisticsResponse> writeIOPS =
-        AWSUtils.getCloudwatchMetricAverage(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator);
-
-      Pair<Long, GetMetricStatisticsResponse> readIOPS =
-        AWSUtils.getCloudwatchMetricAverage(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator);
-
-      /*logger.info(resource.dbInstanceIdentifier());
-      logger.info(connections.toString());
-      logger.info(attemptedConnections.toString());
-      logger.info(writeIOPS.toString());
-      logger.info(readIOPS.toString());*/
-
-      AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", Map.of(
-        "DatabaseConnections", connections.getValue0(),
-        "ConnectionAttempts", attemptedConnections.getValue0(),
-        "WriteIOPS", writeIOPS.getValue0(),
-        "ReadIOPS", readIOPS.getValue0()
-      )));
-
-    } catch (Exception se) {
-      logger.warn("{} RDS cluster is missing metrics, with error {}", resource.dbInstanceIdentifier(), se.getMessage());
     }
   }
 
