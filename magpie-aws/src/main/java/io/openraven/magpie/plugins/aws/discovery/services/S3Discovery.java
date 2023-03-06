@@ -41,6 +41,7 @@ import software.amazon.awssdk.services.s3.model.Bucket;
 import software.amazon.awssdk.services.s3.model.GetBucketAclRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketAclResponse;
 import software.amazon.awssdk.services.s3.model.GetBucketEncryptionRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketLifecycleConfigurationRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketLoggingRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketMetricsConfigurationRequest;
@@ -130,6 +131,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverPublic(client, bucket, data, logger);
         discoverIsEncrypted(client, bucket, data, logger);
         discoverVersioning(client, bucket, data);
+        discoverLifeCycleConfiguration(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
         discoverSize(bucket, data, clientCreator);
 
@@ -368,6 +370,15 @@ public class S3Discovery implements AWSDiscovery {
     final String keyname = "ReplicationConfiguration";
     getAwsResponse(
       () -> client.getBucketReplication(GetBucketReplicationRequest.builder().bucket(resource.name()).build()).replicationConfiguration(),
+      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    );
+  }
+
+  private void discoverLifeCycleConfiguration(S3Client client, Bucket resource, MagpieAwsResource data) {
+    final String keyname = "LifecycleConfiguration";
+    getAwsResponse(
+      () -> client.getBucketLifecycleConfiguration(GetBucketLifecycleConfigurationRequest.builder().bucket(resource.name()).build()),
       (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
       (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
