@@ -16,6 +16,7 @@
 
 package io.openraven.magpie.plugins.gcp.discovery;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.api.gax.core.CredentialsProvider;
 
 import java.util.List;
@@ -32,14 +33,16 @@ public class GCPDiscoveryConfig {
     return services;
   }
 
-  public void setServices(List<String> services) {
-    this.services = services == null ? List.of() : services;
-  }
+    public void setServices(List<String> services) {
+      this.services = services == null ? List.of() : services;
+    }
 
+    @JsonIgnore
     public CredentialsProvider getCredentialsProvider() {
         return credentialsProvider;
     }
 
+    @JsonIgnore
     public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }

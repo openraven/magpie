@@ -55,7 +55,7 @@ public class StorageDiscovery implements GCPDiscovery {
         if(maybeCredentialsProvider.isPresent()){
             builder.setCredentials(maybeCredentialsProvider.get().getCredentials());
         }
-    }catch(IOException ioException) {
+    } catch(IOException ioException) {
         throw new RuntimeException(ioException);
     }
     Storage storage = builder.setProjectId(projectId).build().getService();
@@ -68,6 +68,7 @@ public class StorageDiscovery implements GCPDiscovery {
         .withResourceId(bucket.getName())
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
+        .withTags(mapper.valueToTree(bucket.getLabels()))
         // Get BucketInfo object instead, this contains the core set of properties and removes nasty bits
         // like the current request data that contain tokens.
         // NOTE: this method is in beta since 2.14.0 (which is a very long time ago, we are on major version 26 now).
