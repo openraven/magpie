@@ -161,6 +161,22 @@ public class AWSUtils {
 
   }
 
+  public static List<Datapoint> getCloudwatchMetricStaleDataSum(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    GetMetricStatisticsResponse getMetricStatisticsResult = getStaleDataCloudwatchMetrics(regionID, namespace, metric, Statistic.SUM, dimensions, clientCreator);
+    return getMetricStatisticsResult.datapoints();
+  }
+
+  public static List<Datapoint> getCloudwatchMetricStaleDataAvg(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    GetMetricStatisticsResponse getMetricStatisticsResult = getStaleDataCloudwatchMetrics(regionID, namespace, metric, Statistic.AVERAGE, dimensions, clientCreator);
+    return getMetricStatisticsResult.datapoints();
+  }
+
+  public static Pair<Long, GetMetricStatisticsResponse> getCloudwatchMetricAverage(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    GetMetricStatisticsResponse getMetricStatisticsResult = getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.AVERAGE, dimensions, clientCreator);
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::average)
+      .map(Double::longValue).max(Long::compareTo).orElse(null), getMetricStatisticsResult);
+  }
+
   @SuppressWarnings("unused")
   public static Pair<Double, GetMetricStatisticsResponse> getCloudwatchDoubleMetricMinimum(
     String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
@@ -201,6 +217,20 @@ public class AWSUtils {
       GetMetricStatisticsRequest request = GetMetricStatisticsRequest.builder().startTime(startTS)
         .endTime(endTS)
         .namespace(namespace).period(3600).metricName(metric).statistics(statistic)
+        .dimensions(dimensions).build();
+
+      return client.getMetricStatistics(request);
+    }
+  }
+
+  public static GetMetricStatisticsResponse getStaleDataCloudwatchMetrics(String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
+    try (final var client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
+      Instant startTS = Instant.now().minus(30, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
+      Instant endTS = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MINUTES);
+
+      GetMetricStatisticsRequest request = GetMetricStatisticsRequest.builder().startTime(startTS)
+        .endTime(endTS)
+        .namespace(namespace).period(86400).metricName(metric).statistics(statistic)
         .dimensions(dimensions).build();
 
       return client.getMetricStatistics(request);
