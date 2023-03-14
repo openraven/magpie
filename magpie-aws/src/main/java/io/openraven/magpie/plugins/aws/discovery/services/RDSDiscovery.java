@@ -372,15 +372,15 @@ public class RDSDiscovery implements AWSDiscovery {
     }
 
     List<Datapoint> connections =
-      AWSUtils.getCloudwatchMetricStaleDataSum(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator, logger);
+      AWSUtils.getCloudwatchMetricStaleDataSum(data.awsRegion, "AWS/RDS", "DatabaseConnections", dimensions, clientCreator);
     requestMetrics.put("DatabaseConnections", formatDataMapSum(connections));
 
     List<Datapoint> writeIOPS =
-      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator, logger);
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator);
     requestMetrics.put("WriteIOPS", formatDataMapAvg(writeIOPS));
 
     List<Datapoint> readIOPS =
-      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator, logger);
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator);
     requestMetrics.put("ReadIOPS", formatDataMapAvg(readIOPS));
 
     return requestMetrics;

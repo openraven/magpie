@@ -161,15 +161,13 @@ public class AWSUtils {
 
   }
 
-  public static List<Datapoint> getCloudwatchMetricStaleDataSum(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator, Logger logger) {
+  public static List<Datapoint> getCloudwatchMetricStaleDataSum(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
     GetMetricStatisticsResponse getMetricStatisticsResult = getStaleDataCloudwatchMetrics(regionID, namespace, metric, Statistic.SUM, dimensions, clientCreator);
-    //logger.info(metric + " - " + getMetricStatisticsResult.datapoints().toString());
     return getMetricStatisticsResult.datapoints();
   }
 
-  public static List<Datapoint> getCloudwatchMetricStaleDataAvg(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator, Logger logger) {
+  public static List<Datapoint> getCloudwatchMetricStaleDataAvg(String regionID, String namespace, String metric, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
     GetMetricStatisticsResponse getMetricStatisticsResult = getStaleDataCloudwatchMetrics(regionID, namespace, metric, Statistic.AVERAGE, dimensions, clientCreator);
-    //logger.info(metric + " - " + getMetricStatisticsResult.datapoints().toString());
     return getMetricStatisticsResult.datapoints();
   }
 
@@ -226,16 +224,8 @@ public class AWSUtils {
   }
 
   public static GetMetricStatisticsResponse getStaleDataCloudwatchMetrics(String regionID, String namespace, String metric, Statistic statistic, List<Dimension> dimensions, MagpieAWSClientCreator clientCreator) {
-
     try (final var client = clientCreator.apply(CloudWatchClient.builder()).region(Region.of(regionID)).build()) {
-
-      // The start time is t-minus 2 days (48 hours) because an asset is considered "active" if it's been updated within
-      // 48hrs, otherwise it is considered "terminated/deleted", so start capturing at the longest possible period
-      // (even though should be discovering more frequently). TODO: maybe pull these constants out to config?
       Instant startTS = Instant.now().minus(30, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
-
-      // the end time is t-minus 1 hour to account for delay in some services pushing data to cloudwatch - metrics
-      // earlier than this may not be available or unreliable (due to aggregations)
       Instant endTS = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MINUTES);
 
       GetMetricStatisticsRequest request = GetMetricStatisticsRequest.builder().startTime(startTS)
