@@ -27,6 +27,7 @@ public class Rule {
   private Severity severity;
   private boolean enabled = true;
   private boolean manualControl = false;
+  private String remediation;
   private String remediationDocURLs;
   private String version;
   private String fileName;
@@ -97,6 +98,14 @@ public class Rule {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  public String getRemediation() {
+    return remediation;
+  }
+
+  public void setRemediation(String remediation) {
+    this.remediation = remediation;
   }
 
   public String getRemediationDocURLs() {
