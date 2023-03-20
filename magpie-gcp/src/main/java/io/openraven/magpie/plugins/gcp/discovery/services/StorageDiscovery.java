@@ -69,6 +69,8 @@ public class StorageDiscovery implements GCPDiscovery {
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
         .withTags(mapper.valueToTree(bucket.getLabels()))
+        .withUpdatedIso(bucket.getUpdateTimeOffsetDateTime().toInstant())
+        .withCreatedIso(bucket.getCreateTimeOffsetDateTime().toInstant())
         // Get BucketInfo object instead, this contains the core set of properties and removes nasty bits
         // like the current request data that contain tokens.
         // NOTE: this method is in beta since 2.14.0 (which is a very long time ago, we are on major version 26 now).
