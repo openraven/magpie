@@ -19,8 +19,11 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.cloud.Identity;
 import com.google.cloud.Policy;
+import com.google.cloud.Role;
 import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.storage.v2.BucketName;
@@ -78,15 +81,60 @@ public class StorageDiscovery implements GCPDiscovery {
         .withConfiguration(GCPUtils.asJsonNode(bucket.asBucketInfo()))
         .build();
 
-      discoverBucketPolicy(data, bucket);
+      final var iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
+      final var iamConfiguration = bucket.getIamConfiguration();
+
+      discoverBucketPolicy(data, bucket, iamPolicy);
+      discoverBucketEncryption(data, bucket);
+      discoverPublicAccessPrevention(data, iamConfiguration);
+      discoverPublicHosting(data, iamPolicy, iamConfiguration);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
     });
   }
 
-  private void discoverBucketPolicy(MagpieGcpResource data, Bucket bucket) {
+//  private Map<String, String> discoverTags(Bucket bucket) throws GeneralSecurityException, IOException {
+//    JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+//    final var transport = GoogleNetHttpTransport.newTrustedTransport();
+//
+//    final var tagManager = new TagManager.Builder(transport, jsonFactory, ).build();
+//
+//
+//
+//    return Map.of();
+//  }
+
+  private void discoverPublicHosting(MagpieGcpResource data, Policy iamPolicy, BucketInfo.IamConfiguration iamConfiguration) {
+    //
+    // Public hosting is considered on if both of the following are true:
+    // 1) There's an ACL entry allowing 'allUsers' the 'Storage Object Viewer' permission
+    // AND
+    // 2) publicAccessPrevention is enabled.  Note that we are currently unable to check the value of INHERITED for this,
+    // so we'll assume the worst case if it's not explicitly ENFORCED.
+    //
+    // See https://cloud.google.com/storage/docs/hosting-static-website for details
+    final var identities = iamPolicy.getBindings().get(Role.of("roles/storage.objectViewer"));
+    final var allAccess = identities == null ? false : identities.contains(Identity.allUsers());
+
+    String fieldName = "publicHosting";
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, allAccess && iamConfiguration.getPublicAccessPrevention() != BucketInfo.PublicAccessPrevention.ENFORCED));
+  }
+
+  private void discoverPublicAccessPrevention(MagpieGcpResource data, BucketInfo.IamConfiguration iamConfiguration) {
+    String fieldName = "publicAccessPrevention";
+    final var publicAccessPrevention = iamConfiguration.getPublicAccessPrevention();
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, publicAccessPrevention));
+  }
+
+  private void discoverBucketEncryption(MagpieGcpResource data, Bucket bucket) {
+    var fieldName = "defaultKmsKeyName";
+    final var keyName = bucket.getDefaultKmsKeyName();
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of("isEncrypted", true));  // GCP always encrypts blobs in storage, the only question is whether it's a Google or customer managed key
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, keyName));   // Non-null if it's a customer-managed key, null if it's Google managed.
+  }
+
+  private void discoverBucketPolicy(MagpieGcpResource data, Bucket bucket, Policy iamPolicy) {
     String fieldName = "iamPolicy";
-    Policy iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, iamPolicy));
   }
 }
