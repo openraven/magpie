@@ -22,6 +22,7 @@ import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.Role;
+import com.google.cloud.monitoring.v3.MetricServiceClient;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
@@ -74,6 +75,7 @@ public class StorageDiscovery implements GCPDiscovery {
         .withTags(mapper.valueToTree(bucket.getLabels()))
         .withUpdatedIso(bucket.getUpdateTimeOffsetDateTime().toInstant())
         .withCreatedIso(bucket.getCreateTimeOffsetDateTime().toInstant())
+        .withRegion(bucket.getLocation())
         // Get BucketInfo object instead, this contains the core set of properties and removes nasty bits
         // like the current request data that contain tokens.
         // NOTE: this method is in beta since 2.14.0 (which is a very long time ago, we are on major version 26 now).
@@ -137,4 +139,16 @@ public class StorageDiscovery implements GCPDiscovery {
     String fieldName = "iamPolicy";
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, iamPolicy));
   }
+
+//  private void discoverBucketSize(MagpieGcpResource data, Bucket bucket, MetricServiceClient client ) {
+//    // https://cloud.google.com/monitoring/api/metrics_gcp#gcp-storage
+//    //
+//    // storage/object_count
+//    // Total number of objects per bucket, grouped by storage class. This value is measured once per day
+//    //
+//    // storage/total_bytes
+//    // Total size of all objects in the bucket, grouped by storage class. This value is measured once per day
+//
+//
+//  }
 }
