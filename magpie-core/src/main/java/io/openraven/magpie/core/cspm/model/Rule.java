@@ -27,6 +27,7 @@ public class Rule {
   private boolean enabled;
   private String sql;
   private String eval;
+  private String remediation;
   private String remediationDocURLs;
   private String version;
   private boolean archived;
@@ -95,6 +96,14 @@ public class Rule {
 
   public void setSql(String sql) {
     this.sql = sql;
+  }
+
+  public String getRemediation() {
+    return remediation;
+  }
+
+  public void setRemediation(String remediation) {
+    this.remediation = remediation;
   }
 
   public String getRemediationDocURLs() {

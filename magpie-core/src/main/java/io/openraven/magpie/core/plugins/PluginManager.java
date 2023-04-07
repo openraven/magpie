@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -119,7 +120,7 @@ public class PluginManager {
 
   public Optional<MagpiePlugin<?>> byId(String id) {
     var matches = plugins.values().stream()
-      .flatMap(val -> val.stream())
+      .flatMap(Collection::stream)
       .filter(plugin -> plugin.id().equals(id))
       .collect(Collectors.toList());
     assert(matches.size() <= 1);
