@@ -135,12 +135,12 @@ public class StorageDiscovery implements GCPDiscovery {
     // Public hosting is considered on if both of the following are true:
     // 1) There's an ACL entry allowing 'allUsers' the 'Storage Object Viewer' permission
     // AND
-    // 2) publicAccessPrevention is enabled.  Note that we are currently unable to check the value of INHERITED for this,
+    // 2) publicAccessPrevention is disabled.  Note that we are currently unable to check the value of INHERITED for this,
     // so we'll assume the worst case if it's not explicitly ENFORCED.
     //
     // See https://cloud.google.com/storage/docs/hosting-static-website for details
     final var identities = iamPolicy.getBindings().get(Role.of("roles/storage.objectViewer"));
-    final var allAccess = identities == null ? false : identities.contains(Identity.allUsers());
+    final var allAccess = identities != null && identities.contains(Identity.allUsers());
 
     String fieldName = "publicHosting";
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, allAccess && iamConfiguration.getPublicAccessPrevention() != BucketInfo.PublicAccessPrevention.ENFORCED));

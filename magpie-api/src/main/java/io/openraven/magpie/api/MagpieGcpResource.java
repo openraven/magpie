@@ -77,6 +77,7 @@ public class MagpieGcpResource {
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
+    data.put("region", region);
     data.put("gcpAccountId", gcpAccountId);
     data.put("projectId", projectId);
     data.put("createdIso", createdIso == null ? null : createdIso.toString());
@@ -213,6 +214,13 @@ public class MagpieGcpResource {
     this.discoveryMeta = discoveryMeta;
   }
 
+  public String getRegion() {
+    return region;
+  }
+
+  public void setRegion(String region) {
+    this.region = region;
+  }
   public static class MagpieGcpResourceBuilder {
     private final ObjectMapper mapper;
     private String assetId;
@@ -321,4 +329,5 @@ public class MagpieGcpResource {
       return new MagpieGcpResource(this);
     }
   }
+
 }
