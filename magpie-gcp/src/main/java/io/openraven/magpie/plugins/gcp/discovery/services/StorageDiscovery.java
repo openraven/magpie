@@ -23,10 +23,15 @@ import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.Role;
 import com.google.cloud.monitoring.v3.MetricServiceClient;
+import com.google.cloud.monitoring.v3.MetricServiceSettings;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.monitoring.v3.ListTimeSeriesRequest;
+import com.google.monitoring.v3.ProjectName;
+import com.google.monitoring.v3.TimeInterval;
+import com.google.protobuf.util.Timestamps;
 import com.google.storage.v2.BucketName;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
@@ -38,7 +43,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class StorageDiscovery implements GCPDiscovery {
@@ -55,16 +62,31 @@ public class StorageDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = StorageBucket.RESOURCE_TYPE;
 
     final StorageOptions.Builder builder = StorageOptions.newBuilder();
+    final var mBuilder = MetricServiceSettings.newBuilder();
+
     try {
         if(maybeCredentialsProvider.isPresent()){
             builder.setCredentials(maybeCredentialsProvider.get().getCredentials());
+            mBuilder.setCredentialsProvider(maybeCredentialsProvider.get());
         }
     } catch(IOException ioException) {
         throw new RuntimeException(ioException);
     }
-    Storage storage = builder.setProjectId(projectId).build().getService();
-    storage.list().iterateAll().forEach(bucket -> {
 
+    final var sizeMap = new HashMap<String, Double>();
+    final var countMap = new HashMap<String, Long>();
+
+    final Storage storage = builder.setProjectId(projectId).build().getService();
+    try (MetricServiceClient metrics = MetricServiceClient.create(mBuilder.build())) {
+      sizeMap.putAll(queryTotalBytes(metrics, projectId));
+      countMap.putAll(queryTotalObjects(metrics, projectId));
+    } catch (IOException ex) {
+      LOGGER.warn("Error discovery size and count metrics", ex);
+      //throw new RuntimeException(ex);
+    }
+
+
+    storage.list().iterateAll().forEach(bucket -> {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, String.format(
         ASSET_ID_FORMAT, BucketName.format(projectId, bucket.getName())
       ))
@@ -90,9 +112,11 @@ public class StorageDiscovery implements GCPDiscovery {
       discoverBucketEncryption(data, bucket);
       discoverPublicAccessPrevention(data, iamConfiguration);
       discoverPublicHosting(data, iamPolicy, iamConfiguration);
+      discoverSizeMetrics(data, bucket, sizeMap, countMap);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
     });
+
   }
 
 //  private Map<String, String> discoverTags(Bucket bucket) throws GeneralSecurityException, IOException {
@@ -140,15 +164,87 @@ public class StorageDiscovery implements GCPDiscovery {
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, iamPolicy));
   }
 
-//  private void discoverBucketSize(MagpieGcpResource data, Bucket bucket, MetricServiceClient client ) {
-//    // https://cloud.google.com/monitoring/api/metrics_gcp#gcp-storage
-//    //
-//    // storage/object_count
-//    // Total number of objects per bucket, grouped by storage class. This value is measured once per day
-//    //
-//    // storage/total_bytes
-//    // Total size of all objects in the bucket, grouped by storage class. This value is measured once per day
-//
-//
-//  }
+  private Map<String, Long> queryTotalObjects(MetricServiceClient client, java.lang.String projectId) {
+    // Measured once per day, but has a 300s sample rate. We don't need multiple values so let's just get the
+    // last 300 seconds.
+    final long now = System.currentTimeMillis();
+    var interval =
+      TimeInterval.newBuilder()
+        .setStartTime(Timestamps.fromMillis(now-600000L))
+        .setEndTime(Timestamps.fromMillis(now))
+        .build();
+
+    //
+    // Object Count
+    //
+    var request = ListTimeSeriesRequest.newBuilder()
+      .setName(ProjectName.of(projectId).toString())
+      .setInterval(interval)
+      .setFilter("metric.type=\"storage.googleapis.com/storage/object_count\"")
+      .build();
+
+    var response = client.listTimeSeries(request);
+
+    var map = new HashMap<String, Long>();
+
+    response.iterateAll().forEach( t -> {
+      if (t.hasMetric() && !t.getPointsList().isEmpty()) {
+        // We only care about the first data point, as it's only updated once every 24 hours
+        var point = t.getPoints(0);
+        try {
+          map.put(t.getResource().getLabelsOrThrow("bucket_name"), point.getValue().getInt64Value());
+        } catch (IllegalArgumentException ex) {
+          LOGGER.debug("Couldn't find bucket_name in the data point resource info.");
+        }
+      }
+    });
+    return map;
+  }
+
+
+  private Map<String, Double> queryTotalBytes(MetricServiceClient client, java.lang.String projectId) {
+    // Measured once per day, but has a 300s sample rate. We don't need multiple values so let's just get the
+    // last 300 seconds.
+    final long now = System.currentTimeMillis();
+    var interval =
+      TimeInterval.newBuilder()
+        .setStartTime(Timestamps.fromMillis(now-600000L))
+        .setEndTime(Timestamps.fromMillis(now))
+        .build();
+
+    var request = ListTimeSeriesRequest.newBuilder()
+      .setName(ProjectName.of(projectId).toString())
+      .setInterval(interval)
+      .setFilter("metric.type=\"storage.googleapis.com/storage/total_bytes\"")
+      .build();
+
+    var response = client.listTimeSeries(request);
+    var map = new HashMap<String, Double>();
+
+    response.iterateAll().forEach( t -> {
+      if (t.hasMetric() && !t.getPointsList().isEmpty()) {
+        // We only care about the first data point, as it's only updated once every 24 hours
+        var point = t.getPoints(0);
+        try {
+          map.put(t.getResource().getLabelsOrThrow("bucket_name"), point.getValue().getDoubleValue());
+        } catch (IllegalArgumentException ex) {
+          LOGGER.debug("Couldn't find bucket_name in the data point resource info.");
+        }
+      }
+    });
+    return map;
+  }
+
+  private void discoverSizeMetrics(MagpieGcpResource data, Bucket bucket, Map<String, Double> sizeMap, Map<String, Long> countMap) {
+    final String fieldName = "size";
+    final String name = bucket.getName();
+    final var sizeValue = sizeMap.containsKey(name) ? Long.toString(sizeMap.get(name).longValue()) : "";
+    final var countValue = countMap.containsKey(name) ? countMap.get(name).toString() : "";
+
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName,
+      Map.of(
+        "BucketSizeBytes", sizeValue,
+        "NumberOfObjects", countValue
+      )));
+  }
 }
