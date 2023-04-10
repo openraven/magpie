@@ -94,7 +94,7 @@ public class StorageDiscovery implements GCPDiscovery {
         .withResourceId(bucket.getName())
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
-        .withTags(mapper.valueToTree(bucket.getLabels()))
+//        .withTags()
         .withUpdatedIso(bucket.getUpdateTimeOffsetDateTime().toInstant())
         .withCreatedIso(bucket.getCreateTimeOffsetDateTime().toInstant())
         .withRegion(bucket.getLocation())
@@ -108,6 +108,7 @@ public class StorageDiscovery implements GCPDiscovery {
       final var iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
       final var iamConfiguration = bucket.getIamConfiguration();
 
+      discoverLabels(data, bucket);
       discoverBucketPolicy(data, bucket, iamPolicy);
       discoverBucketEncryption(data, bucket);
       discoverPublicAccessPrevention(data, iamConfiguration);
@@ -129,6 +130,10 @@ public class StorageDiscovery implements GCPDiscovery {
 //
 //    return Map.of();
 //  }
+
+  private void discoverLabels(MagpieGcpResource data, Bucket bucket) {
+    GCPUtils.update(data.supplementaryConfiguration, Pair.of("labels", bucket.getLabels()));
+  }
 
   private void discoverPublicHosting(MagpieGcpResource data, Policy iamPolicy, BucketInfo.IamConfiguration iamConfiguration) {
     //
