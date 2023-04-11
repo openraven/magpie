@@ -68,21 +68,29 @@ public class EC2StorageDiscovery implements AWSDiscovery {
     final String RESOURCE_TYPE = EC2Snapshot.RESOURCE_TYPE;
 
     try {
-      client.describeSnapshotsPaginator(DescribeSnapshotsRequest.builder().ownerIds(account).build()).snapshots().stream()
-        .forEach(snapshot -> {
-          String arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
-          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
-            .withResourceName(snapshot.snapshotId())
-            .withResourceId(snapshot.snapshotId())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(snapshot.toBuilder()))
-            .withAccountId(account)
-            .withAwsRegion(region.toString())
-            .withTags(getConvertedTags(snapshot.tags(), mapper))
-            .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
-        });
+      String nextToken = null;
+      do {
+        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().ownerIds(account).build());
+        nextToken = resp.nextToken();
+
+        resp.snapshots()
+          .forEach(snapshot -> {
+            String arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
+              .withResourceName(snapshot.snapshotId())
+              .withResourceId(snapshot.snapshotId())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(snapshot.toBuilder()))
+              .withAccountId(account)
+              .withAwsRegion(region.toString())
+              .withTags(getConvertedTags(snapshot.tags(), mapper))
+              .build();
+
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
+          });
+      } while (nextToken != null);
+
     } catch (Ec2Exception ex) {
       logger.info("Error discovering snapshots", ex);
     } catch (SdkServiceException | SdkClientException ex) {
@@ -93,9 +101,13 @@ public class EC2StorageDiscovery implements AWSDiscovery {
   private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
     final String RESOURCE_TYPE = EC2Volume.RESOURCE_TYPE;
     try {
-      client.describeVolumesPaginator().stream()
-        .flatMap(r -> r.volumes().stream())
-        .forEach(volume -> {
+
+      String nextToken = null;
+      do {
+        var response = client.describeVolumes();
+        nextToken = response.nextToken();
+
+        response.volumes()        .forEach(volume -> {
           String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
           var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
             .withResourceName(volume.volumeId())
@@ -109,6 +121,8 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
         });
+      } while (nextToken != null);
+
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
