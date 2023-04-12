@@ -37,7 +37,6 @@ public class GCPDiscoveryConfig {
       this.services = services == null ? List.of() : services;
     }
 
-    @JsonIgnore
     public CredentialsProvider getCredentialsProvider() {
         return credentialsProvider;
     }
@@ -46,7 +45,6 @@ public class GCPDiscoveryConfig {
         this.credentialsProvider = credentialsProvider;
     }
 
-    @JsonIgnore
     public Optional<Supplier<List<String>>> getProjectListProvider() {
         return this.projectListProvider;
     }
