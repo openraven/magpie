@@ -42,11 +42,11 @@ public class GCPDiscoveryConfig {
         return credentialsProvider;
     }
 
-    @JsonIgnore
     public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
+    @JsonIgnore
     public Optional<Supplier<List<String>>> getProjectListProvider() {
         return this.projectListProvider;
     }
