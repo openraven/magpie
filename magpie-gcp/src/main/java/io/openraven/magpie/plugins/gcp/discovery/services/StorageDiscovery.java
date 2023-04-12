@@ -81,10 +81,8 @@ public class StorageDiscovery implements GCPDiscovery {
       sizeMap.putAll(queryTotalBytes(metrics, projectId));
       countMap.putAll(queryTotalObjects(metrics, projectId));
     } catch (Exception ex) {
-      LOGGER.warn("Error discovery size and count metrics", ex);
-      //throw new RuntimeException(ex);
+      LOGGER.debug("Metrics discovery exception: {}", ex.getMessage());
     }
-
 
     storage.list().iterateAll().forEach(bucket -> {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, String.format(
