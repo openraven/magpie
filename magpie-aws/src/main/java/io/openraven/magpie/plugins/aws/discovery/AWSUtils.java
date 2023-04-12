@@ -259,6 +259,10 @@ public class AWSUtils {
     }
   }
 
+  public void getServiceQuota(String regionID, String serviceName, MagpieAWSClientCreator clientCreator) {
+
+  }
+
   public static JsonNode parsePolicyDocument(ObjectMapper mapper, String policyDocument) {
     try {
       return mapper.readTree(URLDecoder.decode(policyDocument, StandardCharsets.UTF_8));
