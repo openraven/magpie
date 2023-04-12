@@ -80,7 +80,7 @@ public class StorageDiscovery implements GCPDiscovery {
     try (MetricServiceClient metrics = MetricServiceClient.create(mBuilder.build())) {
       sizeMap.putAll(queryTotalBytes(metrics, projectId));
       countMap.putAll(queryTotalObjects(metrics, projectId));
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       LOGGER.warn("Error discovery size and count metrics", ex);
       //throw new RuntimeException(ex);
     }
