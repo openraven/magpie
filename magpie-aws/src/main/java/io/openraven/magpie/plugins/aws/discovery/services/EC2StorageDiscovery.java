@@ -23,7 +23,6 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.ec2storage.EC2Snapshot;
 import io.openraven.magpie.data.aws.ec2storage.EC2Volume;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -34,17 +33,12 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeSnapshotsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeVolumesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeVolumesResponse;
 import software.amazon.awssdk.services.ec2.model.Ec2Exception;
-import software.amazon.awssdk.services.ec2.model.Filter;
-import software.amazon.awssdk.services.ec2.model.Snapshot;
 import software.amazon.awssdk.services.ec2.model.Tag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 import static java.lang.String.format;
 
 public class EC2StorageDiscovery implements AWSDiscovery {
@@ -71,7 +65,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().ownerIds(account).build());
+        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().ownerIds(account).nextToken(nextToken).build());
         nextToken = resp.nextToken();
 
         resp.snapshots()
@@ -104,23 +98,24 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var response = client.describeVolumes();
+        var response = client.describeVolumes(DescribeVolumesRequest.builder().nextToken(nextToken).build());
         nextToken = response.nextToken();
 
-        response.volumes()        .forEach(volume -> {
-          String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
-          var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
-            .withResourceName(volume.volumeId())
-            .withResourceId(volume.volumeId())
-            .withResourceType(RESOURCE_TYPE)
-            .withConfiguration(mapper.valueToTree(volume.toBuilder()))
-            .withAccountId(account)
-            .withAwsRegion(region.toString())
-            .withTags(getConvertedTags(volume.tags(), mapper))
-            .build();
+        response.volumes()
+          .forEach(volume -> {
+            String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
+            var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
+              .withResourceName(volume.volumeId())
+              .withResourceId(volume.volumeId())
+              .withResourceType(RESOURCE_TYPE)
+              .withConfiguration(mapper.valueToTree(volume.toBuilder()))
+              .withAccountId(account)
+              .withAwsRegion(region.toString())
+              .withTags(getConvertedTags(volume.tags(), mapper))
+              .build();
 
-          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
-        });
+            emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
+          });
       } while (nextToken != null);
 
     } catch (SdkServiceException | SdkClientException ex) {
