@@ -92,8 +92,6 @@ public class StorageDiscovery implements GCPDiscovery {
         .withResourceId(bucket.getName())
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
-//        .withTags()
-        .withUpdatedIso(bucket.getUpdateTimeOffsetDateTime().toInstant())
         .withCreatedIso(bucket.getCreateTimeOffsetDateTime().toInstant())
         .withRegion(bucket.getLocation())
         // Get BucketInfo object instead, this contains the core set of properties and removes nasty bits
