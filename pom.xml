@@ -5,7 +5,7 @@
   <groupId>io.openraven.magpie</groupId>
   <artifactId>magpie-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.6.1</version>
+  <version>0.6.2-SNAPSHOT</version>
   <name>Open Raven Magpie</name>
   <url>https://github.com/openraven/magpie</url>
   <description>Open Raven's Magpie Project</description>
@@ -45,7 +45,7 @@
     <connection>scm:git:https://github.com/openraven/magpie.git</connection>
     <developerConnection>scm:git:https://github.com/openraven/magpie.git</developerConnection>
     <url>https://github.com/openraven/magpie.git</url>
-    <tag>magpie-parent-0.6.1</tag>
+    <tag>magpie-parent-0.1.1</tag>
   </scm>
 
   <developers>
