@@ -3,7 +3,7 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.6.2-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -240,6 +240,11 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>securityhub</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>servicequotas</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
     <dependency>
