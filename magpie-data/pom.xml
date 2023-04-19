@@ -12,7 +12,6 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <aws-java-sdk.version>2.17.93</aws-java-sdk.version>
     <javax.persistence.version>2.2</javax.persistence.version>
     <findbugs.version>3.0.2</findbugs.version>
     <jackson.version>2.13.0</jackson.version>
@@ -31,7 +30,7 @@
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
-        <version>${aws-java-sdk.version}</version>
+        <version>${aws.sdk.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -216,6 +215,10 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>ssm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>servicequotas</artifactId>
     </dependency>
     <dependency>
       <groupId>org.hibernate</groupId>
