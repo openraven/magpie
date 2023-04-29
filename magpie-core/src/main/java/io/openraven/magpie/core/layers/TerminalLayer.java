@@ -41,16 +41,13 @@ public class TerminalLayer implements Layer {
 
   @Override
   public void exec() throws FifoException {
-    final var opt = dequeue.poll();
-    if (opt.isEmpty()) {
+    final var envelopes = dequeue.drain();
+    if (envelopes.isEmpty()) {
       return;
     }
-    final var env = opt.get();
-    final var pluginPath = env.getPluginPath();
-    final var lastPlugin = pluginPath.isEmpty() ? null : pluginPath.get(pluginPath.size()-1);
     plugins.forEach(p -> {
       try {
-        p.accept(env);
+        envelopes.forEach(p::accept);
       } catch (Exception ex) {
         LOGGER.warn("Plugin exception: {}", p.id(), ex);
       }

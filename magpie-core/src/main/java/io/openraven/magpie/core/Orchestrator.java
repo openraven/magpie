@@ -57,9 +57,6 @@ public class Orchestrator {
       do {
         try {
           layer.exec();
-          Thread.sleep(100L);
-        } catch (InterruptedException ex) {
-          LOGGER.warn("Layer exec wait interrupted for {}", layer.getName(), ex);
         } catch (Exception ex) {
           LOGGER.warn("Layer exception", ex);
         }

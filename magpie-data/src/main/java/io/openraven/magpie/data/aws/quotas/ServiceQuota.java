@@ -35,6 +35,7 @@
 package io.openraven.magpie.data.aws.quotas;
 
 import io.openraven.magpie.data.aws.AWSResource;
+import io.openraven.magpie.data.aws.shared.PayloadUtils;
 
 @javax.persistence.Entity
 @javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
@@ -49,15 +50,14 @@ public class ServiceQuota extends AWSResource {
     this.resourceType = RESOURCE_TYPE;
   }
 
-  public ServiceQuota(String account, String regionId) {
+  public ServiceQuota(String account, String regionId, software.amazon.awssdk.services.servicequotas.model.ServiceQuota quota) {
     this.awsRegion = regionId;
     this.awsAccountId = account;
-//    this.arn = function.functionArn();
-//    this.resourceId = function.revisionId();
-//    this.resourceName = function.functionName();
-//    this.configuration = PayloadUtils.update(function);
+    this.arn = quota.quotaArn();
+    this.resourceId = quota.quotaArn();
+    this.resourceName = quota.quotaName();
+    this.configuration = PayloadUtils.update(quota);
     this.resourceType = RESOURCE_TYPE;
-//    this.updatedIso = Instant.parse(function.lastModified());
   }
 
 }

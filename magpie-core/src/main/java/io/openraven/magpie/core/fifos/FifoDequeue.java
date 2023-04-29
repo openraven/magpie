@@ -17,9 +17,14 @@ package io.openraven.magpie.core.fifos;
 
 import io.openraven.magpie.api.MagpieEnvelope;
 
+import java.util.List;
 import java.util.Optional;
 
 @FunctionalInterface
 public interface FifoDequeue {
   Optional<MagpieEnvelope> poll() throws FifoException;
+
+  default List<MagpieEnvelope> drain() throws FifoException {
+    return poll().map(List::of).orElseGet(List::of);
+  }
 }

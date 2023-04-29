@@ -18,17 +18,26 @@ package io.openraven.magpie.core.fifos;
 
 import io.openraven.magpie.api.MagpieEnvelope;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class LocalQueue implements FifoQueue, FifoDequeue{
 
-  private final Queue<MagpieEnvelope> queue = new ConcurrentLinkedQueue<>();
+  private final LinkedBlockingQueue<MagpieEnvelope> queue = new LinkedBlockingQueue<>();
 
   @Override
   public Optional<MagpieEnvelope> poll() throws FifoException {
     return Optional.ofNullable(queue.poll());
+  }
+
+  public List<MagpieEnvelope> drain() throws FifoException {
+    var list = new LinkedList<MagpieEnvelope>();
+    queue.drainTo(list);
+    return list;
   }
 
   @Override
