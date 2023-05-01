@@ -24,6 +24,7 @@ public class AWSDiscoveryConfig {
   private List<String> regions = List.of();
   private List<String> ignoredRegions = List.of();
   private String externalId;
+  private List<String> serviceQuotas = List.of();
 
     /**
    * @return
@@ -69,4 +70,12 @@ public class AWSDiscoveryConfig {
   public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
+
+  public List<String> getServiceQuotas() {
+    return serviceQuotas;
+  }
+
+  public void setServiceQuotas(List<String> serviceQuotas) {
+    this.serviceQuotas = serviceQuotas;
+  }
 }

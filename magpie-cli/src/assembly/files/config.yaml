@@ -43,6 +43,12 @@ plugins:
       ignoredRegions:
         - fips.*
         - us-gov.*
+      serviceQuotas:
+        - ec2
+        - lambda
+        - vpc
+        - rds
+        - s3
   magpie.gcp.discovery:
     enabled: false
     config:

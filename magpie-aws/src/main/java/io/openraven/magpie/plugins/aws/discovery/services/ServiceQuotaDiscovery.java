@@ -35,13 +35,6 @@ import java.util.List;
 public class ServiceQuotaDiscovery implements AWSDiscovery {
   private static final String SERVICE = "servicequotas";
 
-//  // This is required due to the way S3 bucket data is implemented in the AWS SDK.  Finding the region for n-buckets
-//  // requires n+1 API calls, and you can't filter bucket lists by region.  Using this cache we perform this operation once
-//  // per session and cache it for a fixed number of minutes.
-//  private static final Cache<String, List<software.amazon.awssdk.services.servicequotas.model.ServiceQuota>> QUOTA_CACHE = CacheBuilder.newBuilder()
-//    .expireAfterAccess(Duration.ofMinutes(30))
-//    .build();
-
   @Override
   public String service() {
     return SERVICE;
@@ -72,7 +65,7 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
 
       client.listServicesPaginator(ListServicesRequest.builder().build()).forEach(svcResponse ->
         svcResponse.services().forEach(svc -> {
-            client.listServiceQuotasPaginator(ListServiceQuotasRequest.builder().serviceCode(svc.serviceCode()).build()).quotas()
+             client.listServiceQuotasPaginator(ListServiceQuotasRequest.builder().serviceCode(svc.serviceCode()).build()).quotas()
               .stream()
               .filter(quota -> region.isGlobalRegion() == quota.globalQuota())  // If global only show global quotas, if not global match only non-global quotas.
               .forEach(quota -> {
@@ -94,25 +87,4 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
         ));
     }
   }
-
-//  private List<software.amazon.awssdk.services.servicequotas.model.ServiceQuota> getQuotas(String cacheKey, ServiceQuotasClient client, Logger logger) {
-//    try {
-//      //
-//      // This method is executed whenever the bucket cache does not contain entries for a given cacheKey.  This ensures
-//      // that we only make this expensive computation the lesser of once per scan or once per timeout period (defined above).
-//      //
-//      var list = new LinkedList<software.amazon.awssdk.services.servicequotas.model.ServiceQuota>();
-//      return QUOTA_CACHE.get(cacheKey, () -> {
-//        logger.debug("No cache found for {}, creating one now.", cacheKey);
-//        client.listServicesPaginator(ListServicesRequest.builder().build()).services().forEach(svc -> list.addAll(client.listServiceQuotasPaginator(ListServiceQuotasRequest.builder().serviceCode(svc.serviceCode()).build()).quotas().stream()
-////          .filter(q -> q.usageMetric() != null)
-////            .filter(software.amazon.awssdk.services.servicequotas.model.ServiceQuota::globalQuota)
-//          .collect(Collectors.toList())));
-//        return list;
-//      });
-//
-//    } catch (ExecutionException ex) {
-//      throw new RuntimeException("Quota enumeration failed", ex);
-//    }
-//  }
 }
