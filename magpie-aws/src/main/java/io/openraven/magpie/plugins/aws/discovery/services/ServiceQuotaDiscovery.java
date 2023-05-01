@@ -26,12 +26,21 @@ import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClientBuilder;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 import software.amazon.awssdk.services.servicequotas.ServiceQuotasClient;
 import software.amazon.awssdk.services.servicequotas.model.ListServiceQuotasRequest;
 import software.amazon.awssdk.services.servicequotas.model.ListServicesRequest;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ServiceQuotaDiscovery implements AWSDiscovery {
   private static final String SERVICE = "servicequotas";
@@ -71,18 +80,34 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
               .filter(quota -> region.isGlobalRegion() == quota.globalQuota())  // If global only show global quotas, if not global match only non-global quotas.
               .filter(quota -> config.getServiceQuotas().isEmpty() || config.getServiceQuotas().contains(svc.serviceCode()))
               .forEach(quota -> {
-                var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, quota.quotaArn())
+                var builder = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, quota.quotaArn())
                   .withResourceName(quota.quotaName())
                   .withResourceId(quota.quotaArn())
                   .withResourceType(RESOURCE_TYPE)
                   .withConfiguration(mapper.valueToTree(quota.toBuilder()))
                   .withAccountId(account)
-                  .withAwsRegion(region.toString())
-                  .build();
+                  .withAwsRegion(region.toString());
 
-                // TODO: Grab metrics from CW for each quota/region.
+                if (quota.usageMetric() != null) {
+                  try(final var cwClient = clientCreator.apply(CloudWatchClient.builder()).build()) {
+                    final var metric = quota.usageMetric();
+                    final var md = metric.metricDimensions();
+                    final var dimensions = md.keySet().stream().map(k -> Dimension.builder().name(k).value(md.get(k)).build()).collect(Collectors.toList());
 
-                emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":quota"), data.toJsonNode()));
+                    final var metrics = cwClient.getMetricStatistics(GetMetricStatisticsRequest.builder()
+                        .startTime(Instant.now().minus(24, ChronoUnit.HOURS))
+                        .endTime(Instant.now())
+                        .period(86400)
+                        .statistics(Statistic.MAXIMUM)
+                        .namespace(metric.metricNamespace())
+                        .metricName(metric.metricName())
+                        .dimensions(dimensions)
+                      .build());
+                    builder.withSupplementaryConfiguration(mapper.valueToTree(metrics.toBuilder()));
+                  }
+                }
+
+                emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":quota"), builder.build().toJsonNode()));
               });
           }
         ));
