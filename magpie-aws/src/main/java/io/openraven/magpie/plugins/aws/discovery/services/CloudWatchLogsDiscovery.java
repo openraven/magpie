@@ -23,10 +23,10 @@ import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.cloudwatch.CloudWatchLogGroup;
 import io.openraven.magpie.data.aws.cloudwatch.CloudWatchLogsMetricFilter;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
-import javassist.runtime.Desc;
 import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -52,7 +52,7 @@ public class CloudWatchLogsDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     try (final var client = clientCreator.apply(CloudWatchLogsClient.builder()).build()) {
       discoverLogGroups(mapper, session, region, emitter, client, account);
       discoverLogs(mapper, session, region, emitter, client, account);

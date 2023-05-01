@@ -17,7 +17,6 @@
 package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
@@ -29,6 +28,7 @@ import io.openraven.magpie.data.aws.accounts.IamGroup;
 import io.openraven.magpie.data.aws.accounts.IamPolicy;
 import io.openraven.magpie.data.aws.accounts.IamRole;
 import io.openraven.magpie.data.aws.accounts.IamUser;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -89,7 +89,7 @@ public class IAMDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(IamClient.builder()).build()) {
       discoverCredentialsReport(client, mapper, session, region, emitter, logger, account);

@@ -22,6 +22,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.ec2.RegionResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class RegionDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final var arn = format("arn:aws::%s:%s", region.id(), account);
     final var metadata = region.metadata();
     final var resourceName = metadata != null ? metadata.description() : "";

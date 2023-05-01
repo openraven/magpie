@@ -21,6 +21,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.elasticache.ElastiCacheCluster;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -57,7 +58,7 @@ public class ElastiCacheDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final  String RESOURCE_TYPE = ElastiCacheCluster.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(ElastiCacheClient.builder()).build()) {

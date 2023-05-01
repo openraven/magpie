@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.BackupUtils;
@@ -34,13 +35,13 @@ public interface AWSDiscovery {
 
   String service();
 
-  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  default void discoverWrapper(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     logger.debug("Starting {} discovery in {}", service(), region);
-    discover(mapper, session, region, emitter, logger, account, clientCreator);
+    discover(mapper, session, region, emitter, logger, account, clientCreator, config );
     logger.debug("Completed {} discovery in {}", service(), region);
   }
 
-  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator);
+  void discover(ObjectMapper mapper, Session session, Region region, Emitter Emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config);
 
   default void discoverBackupJobs(String arn, Region region, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
     final var backups = BackupUtils.listBackupJobs(arn, region, clientCreator, logger);

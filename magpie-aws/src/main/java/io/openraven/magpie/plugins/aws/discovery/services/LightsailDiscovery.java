@@ -23,6 +23,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.lightsail.LightsailDatabase;
 import io.openraven.magpie.data.aws.lightsail.LightsailInstance;
 import io.openraven.magpie.data.aws.lightsail.LightsailLoadBalancer;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -60,7 +61,7 @@ public class LightsailDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(LightsailClient.builder()).build()) {
       discoverDatabases(mapper, session, region, emitter, client, account);

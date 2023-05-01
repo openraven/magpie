@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.dynamodb.DynamoDbGlobalTable;
 import io.openraven.magpie.data.aws.dynamodb.DynamoDbTable;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -60,7 +61,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     try (final var client = clientCreator.apply(DynamoDbClient.builder()).build()) {
       discoverGlobalTables(mapper, session, region, emitter, client, account);
       discoverTables(mapper, session, region, emitter, client, account, clientCreator, logger);

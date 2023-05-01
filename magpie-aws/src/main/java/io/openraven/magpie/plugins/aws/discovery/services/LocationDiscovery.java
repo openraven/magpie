@@ -25,6 +25,7 @@ import io.openraven.magpie.data.aws.location.LocationMap;
 import io.openraven.magpie.data.aws.location.LocationPlaceIndex;
 import io.openraven.magpie.data.aws.location.LocationRouteCalculator;
 import io.openraven.magpie.data.aws.location.LocationTracker;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -84,7 +85,7 @@ public class LocationDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(LocationClient.builder()).build()) {
       discoverTrackers(mapper, session, region, emitter, account, client);

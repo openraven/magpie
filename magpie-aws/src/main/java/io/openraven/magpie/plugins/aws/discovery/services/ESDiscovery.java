@@ -58,7 +58,7 @@ public class ESDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final String RESOURCE_TYPE = EssDomain.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(ElasticsearchClient.builder()).build()) {

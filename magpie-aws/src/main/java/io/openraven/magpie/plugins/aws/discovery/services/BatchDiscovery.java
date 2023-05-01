@@ -23,7 +23,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.batch.BatchComputeEnvironment;
 import io.openraven.magpie.data.aws.batch.BatchJobDefinition;
 import io.openraven.magpie.data.aws.batch.BatchJobQueue;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
@@ -50,7 +50,7 @@ public class BatchDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     try (final var client = clientCreator.apply(BatchClient.builder()).build()) {
       discoverComputeEnvironments(mapper, session, client, region, emitter, account);
       discoverJobQueues(mapper, session, client, region, emitter, account);

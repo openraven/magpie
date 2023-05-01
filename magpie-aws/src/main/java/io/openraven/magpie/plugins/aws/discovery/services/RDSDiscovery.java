@@ -25,6 +25,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.rds.RDSInstance;
 import io.openraven.magpie.data.aws.rds.RDSSnapshot;
 import io.openraven.magpie.data.aws.rds.RDSProxy;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.Conversions;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -68,7 +69,7 @@ public class RDSDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(RdsClient.builder()).build()) {
       discoverDbProxy(mapper, session, region, emitter, account, client);

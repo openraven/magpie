@@ -21,6 +21,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.quotas.ServiceQuota;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -44,11 +45,11 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
   public List<Region> getSupportedRegions() {
     var regions = new LinkedList<>(ServiceQuotasClient.serviceMetadata().regions());
     regions.add(Region.AWS_GLOBAL);
-    return  regions;
+    return regions;
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final var RESOURCE_TYPE = ServiceQuota.RESOURCE_TYPE;
 
     //
@@ -65,9 +66,10 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
 
       client.listServicesPaginator(ListServicesRequest.builder().build()).forEach(svcResponse ->
         svcResponse.services().forEach(svc -> {
-             client.listServiceQuotasPaginator(ListServiceQuotasRequest.builder().serviceCode(svc.serviceCode()).build()).quotas()
+            client.listServiceQuotasPaginator(ListServiceQuotasRequest.builder().serviceCode(svc.serviceCode()).build()).quotas()
               .stream()
               .filter(quota -> region.isGlobalRegion() == quota.globalQuota())  // If global only show global quotas, if not global match only non-global quotas.
+              .filter(quota -> config.getServiceQuotas().isEmpty() || config.getServiceQuotas().contains(svc.serviceCode()))
               .forEach(quota -> {
                 var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, quota.quotaArn())
                   .withResourceName(quota.quotaName())
@@ -81,8 +83,7 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
                 // TODO: Grab metrics from CW for each quota/region.
 
                 emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":quota"), data.toJsonNode()));
-            });
-
+              });
           }
         ));
     }

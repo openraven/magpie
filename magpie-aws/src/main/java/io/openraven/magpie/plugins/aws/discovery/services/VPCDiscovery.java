@@ -24,6 +24,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.ec2.Ec2Subnet;
 import io.openraven.magpie.data.aws.ec2.Ec2VpcPeeringConnection;
 import io.openraven.magpie.data.aws.ec2.Ec2VpcResource;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -50,7 +51,7 @@ public class VPCDiscovery implements AWSDiscovery {
 
   private static final String SERVICE = "vpc";
 
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
       discoverVpcs(mapper, session, client, region, emitter, account);

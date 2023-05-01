@@ -23,6 +23,7 @@ import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.backup.BackupPlan;
 import io.openraven.magpie.data.aws.backup.BackupVault;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -39,7 +40,6 @@ import software.amazon.awssdk.services.backup.model.GetBackupSelectionRequest;
 import software.amazon.awssdk.services.backup.model.GetBackupSelectionResponse;
 import software.amazon.awssdk.services.backup.model.ListBackupSelectionsRequest;
 import software.amazon.awssdk.services.backup.model.ListTagsRequest;
-import software.amazon.awssdk.services.backup.model.ListTagsResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +63,7 @@ public class BackupDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     try (final var client = clientCreator.apply(BackupClient.builder()).build()) {
       discoverVaults(mapper, session, region, emitter, account, client);
       discoverPlans(mapper, session, region, emitter, logger, account, client);

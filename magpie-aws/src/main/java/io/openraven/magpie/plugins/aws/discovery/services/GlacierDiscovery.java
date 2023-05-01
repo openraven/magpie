@@ -21,6 +21,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.glacier.GlacierVault;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -29,22 +30,18 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.fsx.model.Tag;
 import software.amazon.awssdk.services.glacier.GlacierClient;
 import software.amazon.awssdk.services.glacier.model.DescribeVaultOutput;
 import software.amazon.awssdk.services.glacier.model.GetVaultAccessPolicyRequest;
 import software.amazon.awssdk.services.glacier.model.GetVaultLockRequest;
 import software.amazon.awssdk.services.glacier.model.GetVaultNotificationsRequest;
-import software.amazon.awssdk.services.glacier.model.GlacierJobDescription;
 import software.amazon.awssdk.services.glacier.model.ListJobsRequest;
 import software.amazon.awssdk.services.glacier.model.ListMultipartUploadsRequest;
 import software.amazon.awssdk.services.glacier.model.ListTagsForVaultRequest;
-import software.amazon.awssdk.services.glacier.model.UploadListElement;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.openraven.magpie.plugins.aws.discovery.AWSUtils.getAwsResponse;
 
@@ -63,7 +60,7 @@ public class GlacierDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final String RESOURCE_TYPE = GlacierVault.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(GlacierClient.builder()).build()) {

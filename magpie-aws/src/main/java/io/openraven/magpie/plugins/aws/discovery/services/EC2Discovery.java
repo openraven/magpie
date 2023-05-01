@@ -29,6 +29,7 @@ import io.openraven.magpie.data.aws.ec2.Ec2ElasticIpAddress;
 import io.openraven.magpie.data.aws.ec2.Ec2Instance;
 import io.openraven.magpie.data.aws.ec2.Ec2NetworkAcl;
 import io.openraven.magpie.data.aws.ec2.Ec2TransitGateway;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryPlugin;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
@@ -77,7 +78,7 @@ public class EC2Discovery implements AWSDiscovery {
 
   private final Map<String, JsonNode> whoisCache = new HashMap<>();
 
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
 
     try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
       discoverEc2Instances(mapper, session, client, region, emitter, account, clientCreator, logger);

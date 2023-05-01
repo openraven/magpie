@@ -18,11 +18,11 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.elb.ElasticLoadBalancingLoadBalancer;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.DiscoveryExceptions;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
@@ -37,7 +37,6 @@ import software.amazon.awssdk.services.elasticloadbalancing.model.DescribeTagsRe
 import software.amazon.awssdk.services.elasticloadbalancing.model.LoadBalancerDescription;
 import software.amazon.awssdk.services.elasticloadbalancing.model.Tag;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,7 +58,7 @@ public class ELBDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final String RESOURCE_TYPE = ElasticLoadBalancingLoadBalancer.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(ElasticLoadBalancingClient.builder()).build()) {

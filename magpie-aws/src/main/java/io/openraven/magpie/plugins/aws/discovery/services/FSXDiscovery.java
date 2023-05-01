@@ -55,7 +55,7 @@ public class FSXDiscovery implements AWSDiscovery {
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
+  public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator, AWSDiscoveryConfig config) {
     final String RESOURCE_TYPE = FSxFileSystem.RESOURCE_TYPE;
 
     try (final var client = clientCreator.apply(FSxClient.builder()).build()) {

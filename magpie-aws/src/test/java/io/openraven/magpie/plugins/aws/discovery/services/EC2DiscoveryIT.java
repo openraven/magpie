@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
@@ -77,7 +78,8 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
       emitter,
       LOGGER,
       ACCOUNT,
-      ClientCreators.localClientCreator(BASE_REGION)
+      ClientCreators.localClientCreator(BASE_REGION),
+      new AWSDiscoveryConfig()
     );
 
     // when
@@ -88,7 +90,8 @@ public class EC2DiscoveryIT extends BaseAWSServiceIT {
       emitter,
       LOGGER,
       ACCOUNT,
-      ClientCreators.localClientCreator(BASE_REGION)
+      ClientCreators.localClientCreator(BASE_REGION),
+      new AWSDiscoveryConfig()
     );
 
     // then

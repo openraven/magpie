@@ -2,6 +2,7 @@ package io.openraven.magpie.plugins.aws.discovery.services.disabled;
 
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
+import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
 import io.openraven.magpie.plugins.aws.discovery.ClientCreators;
 import io.openraven.magpie.plugins.aws.discovery.services.RedshiftDiscovery;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseAWSServiceIT;
@@ -45,7 +46,8 @@ public class RedshiftDiscoveryIT extends BaseAWSServiceIT {
       emitter,
       LOGGER,
       ACCOUNT,
-      ClientCreators.localClientCreator(BASE_REGION)
+      ClientCreators.localClientCreator(BASE_REGION),
+      new AWSDiscoveryConfig()
     );
 
     // then

@@ -103,7 +103,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
           regions.forEach(region -> {
             try {
               final var clientCreator = ClientCreators.localClientCreator(region);
-              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator, config );
             } catch (Exception ex) {
               logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
               logger.debug("Details", ex);
@@ -120,7 +120,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
             try (final var client = clientCreator.apply(StsClient.builder()).build()) {
               final String account = client.getCallerIdentity().account();
               logger.info("Discovering cross-account {}:{} using role {}", plugin.service(), region,   role);
-              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator);
+              plugin.discoverWrapper(MAPPER, session, region, emitter, logger, account, clientCreator, config );
             } catch (Exception ex) {
               logger.error("Discovery error  in {} - {}", region.id(), ex.getMessage());
               logger.debug("Details", ex);
