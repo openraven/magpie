@@ -16,30 +16,33 @@
 
 package io.openraven.magpie.plugins.aws.discovery.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.quotas.ServiceQuota;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
+import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClientBuilder;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
 import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 import software.amazon.awssdk.services.servicequotas.ServiceQuotasClient;
 import software.amazon.awssdk.services.servicequotas.model.ListServiceQuotasRequest;
 import software.amazon.awssdk.services.servicequotas.model.ListServicesRequest;
+import software.amazon.awssdk.services.servicequotas.model.ListTagsForResourceRequest;
+import software.amazon.awssdk.services.servicequotas.model.Tag;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ServiceQuotaDiscovery implements AWSDiscovery {
@@ -80,12 +83,15 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
               .filter(quota -> region.isGlobalRegion() == quota.globalQuota())  // If global only show global quotas, if not global match only non-global quotas.
               .filter(quota -> config.getServiceQuotas().isEmpty() || config.getServiceQuotas().contains(svc.serviceCode()))
               .forEach(quota -> {
+
+                final var tags = client.listTagsForResource(ListTagsForResourceRequest.builder().resourceARN(quota.quotaArn()).build());
                 var builder = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, quota.quotaArn())
                   .withResourceName(quota.quotaName())
                   .withResourceId(quota.quotaArn())
                   .withResourceType(RESOURCE_TYPE)
                   .withConfiguration(mapper.valueToTree(quota.toBuilder()))
                   .withAccountId(account)
+                  .withTags(getConvertedTags(tags.tags(), mapper))
                   .withAwsRegion(region.toString());
 
                 if (quota.usageMetric() != null) {
@@ -103,7 +109,7 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
                         .metricName(metric.metricName())
                         .dimensions(dimensions)
                       .build());
-                    builder.withSupplementaryConfiguration(mapper.valueToTree(metrics.toBuilder()));
+                    builder.withSupplementaryConfiguration(mapper.valueToTree(Map.of("reported", metrics.toBuilder())));
                   }
                 }
 
@@ -112,5 +118,10 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
           }
         ));
     }
+  }
+
+  private JsonNode getConvertedTags(List<Tag> tags, ObjectMapper mapper) {
+    return mapper.convertValue(tags.stream().collect(
+      Collectors.toMap(Tag::key, Tag::value)), JsonNode.class);
   }
 }
