@@ -31,12 +31,15 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.redshift.RedshiftClient;
 import software.amazon.awssdk.services.redshift.model.Cluster;
+import software.amazon.awssdk.services.redshift.model.ClusterNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +79,7 @@ public class RedshiftDiscovery implements AWSDiscovery {
 
         discoverStorage(client, data);
         discoverSize(cluster, data, region, logger, clientCreator);
+        getCloudWatchMetrics(cluster, data, logger, clientCreator);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
@@ -117,4 +121,27 @@ public class RedshiftDiscovery implements AWSDiscovery {
         region, resource.clusterIdentifier(), ex);
     }
   }
+
+  private void getCloudWatchMetrics(Cluster cluster, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+    List<Dimension> dimensions = new ArrayList<>();
+    Map<String, Object> requestMetrics = new HashMap<>();
+    dimensions.add(Dimension.builder().name("ClusterIdentifier").value(cluster.clusterIdentifier()).build());
+
+    List<Datapoint> writeIOPS = AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/Redshift", "WriteIOPS", dimensions, clientCreator);
+    requestMetrics.put("WriteIOPS", formatDataMapAvg(writeIOPS));
+
+    List<Datapoint> readIOPS = AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/Redshift", "ReadIOPS", dimensions, clientCreator);
+    requestMetrics.put("ReadIOPS", formatDataMapAvg(readIOPS));
+
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", requestMetrics));
+  }
+
+  private Map<String, Double> formatDataMapAvg(List<Datapoint> map) {
+    Map<String, Double> datapointMetrics = new HashMap<>();
+    for (Datapoint dp : map) {
+      datapointMetrics.put(dp.timestamp().toString(), dp.average());
+    }
+    return datapointMetrics;
+  }
+
 }

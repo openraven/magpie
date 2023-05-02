@@ -31,13 +31,18 @@ import org.slf4j.Logger;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.DescribeGlobalTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.ListTagsOfResourceRequest;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 import software.amazon.awssdk.services.dynamodb.model.Tag;
+import software.amazon.awssdk.services.redshift.model.Cluster;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,6 +120,7 @@ public class DynamoDbDiscovery implements AWSDiscovery {
           discoverContinuousBackups(client, table, data);
           discoverTags(client, table, data, mapper);
           discoverBackupJobs(table.tableArn(), region, data, clientCreator, logger);
+          getCloudWatchMetrics(table, data, logger, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":table"), data.toJsonNode()));
       });
@@ -146,4 +152,27 @@ public class DynamoDbDiscovery implements AWSDiscovery {
       (noresp) -> AWSUtils.update(data.tags, noresp)
     );
   }
+
+  private void getCloudWatchMetrics(TableDescription table, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+    List<Dimension> dimensions = new ArrayList<>();
+    Map<String, Object> requestMetrics = new HashMap<>();
+    dimensions.add(Dimension.builder().name("TableName").value(table.tableName()).build());
+
+    List<Datapoint> consumedWriteCapacityUnits = AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/DynamoDB", "ConsumedWriteCapacityUnits", dimensions, clientCreator);
+    requestMetrics.put("ConsumedWriteCapacityUnits", formatDataMapAvg(consumedWriteCapacityUnits));
+
+    List<Datapoint> consumedReadCapacityUnits = AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/DynamoDB", "ConsumedReadCapacityUnits", dimensions, clientCreator);
+    requestMetrics.put("ConsumedReadCapacityUnits", formatDataMapAvg(consumedReadCapacityUnits));
+
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", requestMetrics));
+  }
+
+  private Map<String, Double> formatDataMapAvg(List<Datapoint> map) {
+    Map<String, Double> datapointMetrics = new HashMap<>();
+    for (Datapoint dp : map) {
+      datapointMetrics.put(dp.timestamp().toString(), dp.average());
+    }
+    return datapointMetrics;
+  }
+
 }
