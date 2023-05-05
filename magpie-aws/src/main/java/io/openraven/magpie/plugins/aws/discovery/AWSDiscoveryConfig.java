@@ -76,6 +76,6 @@ public class AWSDiscoveryConfig {
   }
 
   public void setServiceQuotas(List<String> serviceQuotas) {
-    this.serviceQuotas = serviceQuotas;
+    this.serviceQuotas = serviceQuotas == null ? List.of() : serviceQuotas;
   }
 }

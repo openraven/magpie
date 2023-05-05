@@ -23,9 +23,10 @@ import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.aws.quotas.ServiceQuota;
 import io.openraven.magpie.plugins.aws.discovery.AWSDiscoveryConfig;
-import io.openraven.magpie.plugins.aws.discovery.AWSUtils;
 import io.openraven.magpie.plugins.aws.discovery.MagpieAWSClientCreator;
 import io.openraven.magpie.plugins.aws.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.aws.discovery.services.servicequotametrics.MetricCounter;
+import io.openraven.magpie.plugins.aws.discovery.services.servicequotametrics.VpcsPerRegionCounter;
 import org.slf4j.Logger;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
@@ -47,6 +48,12 @@ import java.util.stream.Collectors;
 
 public class ServiceQuotaDiscovery implements AWSDiscovery {
   private static final String SERVICE = "servicequotas";
+
+
+  private static final List<MetricCounter> COUNTERS = List.of(
+    new VpcsPerRegionCounter()
+  );
+
 
   @Override
   public String service() {
@@ -110,6 +117,15 @@ public class ServiceQuotaDiscovery implements AWSDiscovery {
                         .dimensions(dimensions)
                       .build());
                     builder.withSupplementaryConfiguration(mapper.valueToTree(Map.of("reported", metrics.toBuilder())));
+                  }
+                } else {
+                  //  Look for metrics what we have implemented custom counters for
+                  var opt = COUNTERS.stream()
+                    .filter(counter -> counter.quotaCode().equals(quota.quotaCode()))
+                    .findFirst();
+                  if (opt.isPresent()) {
+                    final var count = opt.get().count(clientCreator);
+                    builder.withSupplementaryConfiguration(mapper.valueToTree(Map.of("counted", count)));
                   }
                 }
 
