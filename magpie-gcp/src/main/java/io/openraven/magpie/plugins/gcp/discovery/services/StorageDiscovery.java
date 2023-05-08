@@ -27,6 +27,7 @@ import com.google.cloud.monitoring.v3.MetricServiceSettings;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.monitoring.v3.ListTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
@@ -39,6 +40,7 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.storage.StorageBucket;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,14 +103,22 @@ public class StorageDiscovery implements GCPDiscovery {
         .withConfiguration(GCPUtils.asJsonNode(bucket.asBucketInfo()))
         .build();
 
-      final var iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
-      final var iamConfiguration = bucket.getIamConfiguration();
+      try {
+        final var iamPolicy = bucket.getStorage().getIamPolicy(bucket.getName(), Storage.BucketSourceOption.requestedPolicyVersion(3));
+        final var iamConfiguration = bucket.getIamConfiguration();
+        discoverBucketPolicy(data, bucket, iamPolicy);
+        discoverPublicAccessPrevention(data, iamConfiguration);
+        discoverPublicHosting(data, iamPolicy, iamConfiguration);
+      } catch (StorageException ex) {
+        if (ex.getMessage().contains("does not have storage.buckets.getIamPolicy")) {
+          LOGGER.debug("Could not access IAM Policy for {}: {}", bucket.getName(), ex.getMessage());
+        } else {
+          DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, ex);
+        }
+      }
 
       discoverLabels(data, bucket);
-      discoverBucketPolicy(data, bucket, iamPolicy);
       discoverBucketEncryption(data, bucket);
-      discoverPublicAccessPrevention(data, iamConfiguration);
-      discoverPublicHosting(data, iamPolicy, iamConfiguration);
       discoverSizeMetrics(data, bucket, sizeMap, countMap);
 
       emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
@@ -241,6 +251,10 @@ public class StorageDiscovery implements GCPDiscovery {
     final String name = bucket.getName();
     final var sizeValue = sizeMap.containsKey(name) ? Long.toString(sizeMap.get(name).longValue()) : "";
     final var countValue = countMap.containsKey(name) ? countMap.get(name).toString() : "";
+
+    if (!sizeValue.isEmpty()) {
+      data.sizeInBytes = Long.parseLong(sizeValue);
+    }
 
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName,
       Map.of(
