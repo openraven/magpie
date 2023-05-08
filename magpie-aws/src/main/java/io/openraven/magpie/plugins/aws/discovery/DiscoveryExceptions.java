@@ -36,7 +36,7 @@ public class DiscoveryExceptions {
   }
 
   private static void handleOrReportError(SentryEvent sentryEvent, String resourceType, String resourceName, Region region, Exception exception) {
-    if (!isManagedSdkException(resourceType, resourceName, exception)) {
+    if (!isManagedSdkException(resourceType, resourceName, exception, region)) {
       logErrorAndReportToSentry(resourceType, resourceName, region, sentryEvent, exception);
     }
   }
@@ -44,19 +44,19 @@ public class DiscoveryExceptions {
   /*
    * returns true and logs given exception if the exception is an AWS SDK exception that is non-exceptional to Magpie
    */
-  private static boolean isManagedSdkException(String resourceType, String resourceName, Exception exception) {
+  private static boolean isManagedSdkException(String resourceType, String resourceName, Exception exception, Region region) {
     if ((exception instanceof SdkServiceException) && (((SdkServiceException) exception).isThrottlingException())) {
-      LOGGER.warn("{} - Throttling exception on {}, with error {}", resourceType, resourceName, exception.getMessage());
+      LOGGER.info("{} - Throttling exception on {}, with error {}", resourceType, resourceName, exception.getMessage());
       return true;
     }
 
     if ((exception instanceof SdkServiceException) && ((SdkServiceException) exception).isClockSkewException()) {
-      LOGGER.warn("{} - Clock skew exception on {}, with error {}", resourceType, resourceName, exception.getMessage());
+      LOGGER.info("{} - Clock skew exception on {}, with error {}", resourceType, resourceName, exception.getMessage());
       return true;
     }
 
     if ((exception instanceof SdkServiceException) && (((SdkServiceException) exception).statusCode() == HttpStatus.SC_NOT_FOUND)) {
-      LOGGER.warn("404 when accessing resource {}", resourceName);
+      LOGGER.info("404 when accessing resource {}", resourceName);
       return true;
     }
 
@@ -69,6 +69,11 @@ public class DiscoveryExceptions {
       exception.getMessage().contains("AccessDenied") ||
       exception.getMessage().contains("Access Denied")) {
       LOGGER.info("Access denied on {}", resourceName);
+      return true;
+    }
+
+    if (exception.getMessage().contains("The security token included in the request is invalid")) {
+      LOGGER.info("Cannot access {}: {}", region, exception.getMessage());
       return true;
     }
 
