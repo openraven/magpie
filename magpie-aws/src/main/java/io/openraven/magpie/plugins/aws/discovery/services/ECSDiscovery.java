@@ -38,11 +38,13 @@ import software.amazon.awssdk.services.ecs.model.DescribeServicesResponse;
 import software.amazon.awssdk.services.ecs.model.DescribeTasksRequest;
 import software.amazon.awssdk.services.ecs.model.DescribeTasksResponse;
 import software.amazon.awssdk.services.ecs.model.ListAttributesRequest;
+import software.amazon.awssdk.services.ecs.model.ListClustersRequest;
 import software.amazon.awssdk.services.ecs.model.ListServicesRequest;
 import software.amazon.awssdk.services.ecs.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.ecs.model.ListTasksRequest;
 import software.amazon.awssdk.services.ecs.model.Tag;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -90,11 +92,16 @@ public class ECSDiscovery implements AWSDiscovery {
   }
 
   private List<Cluster> listDescribedClusters(EcsClient client) {
-    var clusterArns = client.listClustersPaginator().clusterArns()
-      .stream()
-      .collect(Collectors.toList());
 
-    return client.describeClusters(DescribeClustersRequest.builder().clusters(clusterArns).build()).clusters();
+    final var list = new LinkedList<Cluster>();
+    String nextToken = null;
+    do {
+      final var resp = client.listClusters(ListClustersRequest.builder().nextToken(nextToken).build());
+      nextToken = resp.nextToken();
+      list.addAll(client.describeClusters(DescribeClustersRequest.builder().clusters(resp.clusterArns()).build()).clusters());
+    } while (nextToken != null);
+
+    return list;
   }
 
   private void discoverTags(EcsClient client, Cluster resource, MagpieAwsResource data, ObjectMapper mapper) {
