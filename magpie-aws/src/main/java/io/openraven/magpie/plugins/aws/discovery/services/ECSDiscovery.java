@@ -38,6 +38,7 @@ import software.amazon.awssdk.services.ecs.model.DescribeServicesResponse;
 import software.amazon.awssdk.services.ecs.model.DescribeTasksRequest;
 import software.amazon.awssdk.services.ecs.model.DescribeTasksResponse;
 import software.amazon.awssdk.services.ecs.model.ListAttributesRequest;
+import software.amazon.awssdk.services.ecs.model.ListClustersRequest;
 import software.amazon.awssdk.services.ecs.model.ListServicesRequest;
 import software.amazon.awssdk.services.ecs.model.ListTagsForResourceRequest;
 import software.amazon.awssdk.services.ecs.model.ListTasksRequest;
@@ -95,7 +96,7 @@ public class ECSDiscovery implements AWSDiscovery {
     final var list = new LinkedList<Cluster>();
     String nextToken = null;
     do {
-      final var resp = client.listClusters();
+      final var resp = client.listClusters(ListClustersRequest.builder().nextToken(nextToken).build());
       nextToken = resp.nextToken();
       list.addAll(client.describeClusters(DescribeClustersRequest.builder().clusters(resp.clusterArns()).build()).clusters());
     } while (nextToken != null);
