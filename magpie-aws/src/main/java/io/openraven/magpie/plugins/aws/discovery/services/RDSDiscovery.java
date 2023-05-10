@@ -368,7 +368,7 @@ public class RDSDiscovery implements AWSDiscovery {
     Map<String, Object> requestMetrics = new HashMap<>();
     List<Dimension> dimensions = new ArrayList<>();
 
-    if (engine.equalsIgnoreCase("aurora-mysql")) {
+    if ("aurora-mysql".equalsIgnoreCase(engine)) {
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(identifier).build());
       readMetric = "VolumeReadIOPs";
       writeMetric = "VolumeWriteIOPs";
@@ -397,7 +397,7 @@ public class RDSDiscovery implements AWSDiscovery {
   private void discoverCloudWatchClusterUsageMetrics(RdsClient client, DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       Map<String, Object> allMetrics = new HashMap<>();
-      if (resource.engine().equalsIgnoreCase("aurora-mysql")) {
+      if ("aurora-mysql".equalsIgnoreCase(resource.engine())) {
         Map<String, Object> clusterMetrics = getRDSCloudWatchMetrics(resource.dbClusterIdentifier(), resource.engine(), data, logger, clientCreator);
         allMetrics.put(resource.dbClusterIdentifier() + ":cluster", clusterMetrics);
         AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", allMetrics));
