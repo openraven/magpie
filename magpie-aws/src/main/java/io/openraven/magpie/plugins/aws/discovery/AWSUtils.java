@@ -147,7 +147,7 @@ public class AWSUtils {
 
     GetMetricStatisticsResponse getMetricStatisticsResult = getCloudwatchMetricStatistics(regionID, namespace, metric, Statistic.MINIMUM, dimensions, clientCreator);
 
-    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::maximum)
+    return Pair.with(getMetricStatisticsResult.datapoints().stream().map(Datapoint::minimum)
       .map(Double::longValue).max(Long::compareTo).orElse(null), getMetricStatisticsResult);
   }
 

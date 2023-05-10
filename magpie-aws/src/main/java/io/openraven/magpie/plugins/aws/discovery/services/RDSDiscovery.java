@@ -130,7 +130,7 @@ public class RDSDiscovery implements AWSDiscovery {
     try {
       client.describeDBInstancesPaginator().dbInstances().stream()
         .forEach(db -> {
-          if (!db.engine().startsWith("aurora")) {
+          if (db.dbClusterIdentifier() == null) {
             var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, db.dbInstanceArn())
               .withResourceName(db.dbInstanceIdentifier())
               .withResourceId(db.dbInstanceArn())
@@ -149,6 +149,8 @@ public class RDSDiscovery implements AWSDiscovery {
             discoverInstanceDbSnapshots(client, db, data);
             discoverInstanceSize(db, data, logger, clientCreator);
             discoverInstanceDbProxies(client, db, data);
+
+            discoverCloudWatchInstanceUsageMetrics(client, db, data, logger, clientCreator);
 
             discoverBackupJobs(db.dbInstanceArn(), region, data, clientCreator, logger);
 
@@ -186,7 +188,7 @@ public class RDSDiscovery implements AWSDiscovery {
 
           discoverBackupJobs(cluster.dbClusterArn(), region, data, clientCreator, logger);
 
-          discoverCloudWatchUsageMetrics(client, cluster, data, logger, clientCreator);
+          discoverCloudWatchClusterUsageMetrics(client, cluster, data, logger, clientCreator);
 
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":dbInstance"), data.toJsonNode()));
         });
@@ -291,7 +293,6 @@ public class RDSDiscovery implements AWSDiscovery {
         AWSUtils.getCloudwatchMetricMinimum(data.awsRegion, "AWS/RDS", "FreeStorageSpace", dimensions, clientCreator);
 
       if (freeStorageSpace.getValue0() != null) {
-        logger.warn("{} RDS instance is missing engine property", resource.dbInstanceIdentifier());
         AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("FreeStorageSpace", freeStorageSpace.getValue0())));
 
         // pull the relevant node(s) from the payload object. See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html
@@ -361,14 +362,20 @@ public class RDSDiscovery implements AWSDiscovery {
     return datapointMetrics;
   }
 
-  private Map<String, Object> getRDSCloudWatchMetrics(String identifier, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator, boolean cluster) {
+  private Map<String, Object> getRDSCloudWatchMetrics(String identifier, String engine, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+    String readMetric;
+    String writeMetric;
     Map<String, Object> requestMetrics = new HashMap<>();
     List<Dimension> dimensions = new ArrayList<>();
 
-    if (cluster) {
+    if (engine.equalsIgnoreCase("aurora-mysql")) {
       dimensions.add(Dimension.builder().name("DBClusterIdentifier").value(identifier).build());
+      readMetric = "VolumeReadIOPs";
+      writeMetric = "VolumeWriteIOPs";
     } else {
       dimensions.add(Dimension.builder().name("DBInstanceIdentifier").value(identifier).build());
+      readMetric = "ReadIOPS";
+      writeMetric = "WriteIOPS";
     }
 
     List<Datapoint> connections =
@@ -376,36 +383,49 @@ public class RDSDiscovery implements AWSDiscovery {
     requestMetrics.put("DatabaseConnections", formatDataMapSum(connections));
 
     List<Datapoint> writeIOPS =
-      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "WriteIOPS", dimensions, clientCreator);
-    requestMetrics.put("WriteIOPS", formatDataMapAvg(writeIOPS));
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", writeMetric, dimensions, clientCreator);
+    requestMetrics.put(writeMetric, formatDataMapAvg(writeIOPS));
 
     List<Datapoint> readIOPS =
-      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", "ReadIOPS", dimensions, clientCreator);
-    requestMetrics.put("ReadIOPS", formatDataMapAvg(readIOPS));
+      AWSUtils.getCloudwatchMetricStaleDataAvg(data.awsRegion, "AWS/RDS", readMetric, dimensions, clientCreator);
+    requestMetrics.put(readMetric, formatDataMapAvg(readIOPS));
 
     return requestMetrics;
 
   }
 
-  private void discoverCloudWatchUsageMetrics(RdsClient client, DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+  private void discoverCloudWatchClusterUsageMetrics(RdsClient client, DBCluster resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
+    try {
+      Map<String, Object> allMetrics = new HashMap<>();
+      if (resource.engine().equalsIgnoreCase("aurora-mysql")) {
+        Map<String, Object> clusterMetrics = getRDSCloudWatchMetrics(resource.dbClusterIdentifier(), resource.engine(), data, logger, clientCreator);
+        allMetrics.put(resource.dbClusterIdentifier() + ":cluster", clusterMetrics);
+        AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", allMetrics));
+      } else {
+        Filter filter = Filter.builder().name("db-cluster-id").values(resource.dbClusterArn()).build();
+        DescribeDbInstancesResponse dbInstances = client.describeDBInstances(DescribeDbInstancesRequest.builder().filters(filter).build());
+        for (DBInstance db : dbInstances.dbInstances()) {
+          Map<String, Object> instanceMetrics = getRDSCloudWatchMetrics(db.dbInstanceIdentifier(), db.engine(), data, logger, clientCreator);
+          allMetrics.put(db.dbInstanceIdentifier() + ":instance", instanceMetrics);
+        }
+        AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", allMetrics));
+      }
+    } catch (Exception se) {
+      logger.warn("{} RDS cluster is missing stale data metrics, with error {}", resource.dbClusterArn(), se.getMessage());
+    }
+  }
+
+  private void discoverCloudWatchInstanceUsageMetrics(RdsClient client, DBInstance db, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       Map<String, Object> allMetrics = new HashMap<>();
 
-      Filter filter = Filter.builder().name("db-cluster-id").values(resource.dbClusterArn()).build();
-      DescribeDbInstancesResponse dbInstances = client.describeDBInstances(DescribeDbInstancesRequest.builder().filters(filter).build());
-
-      Map<String, Object> clusterMetrics = getRDSCloudWatchMetrics(resource.dbClusterIdentifier(), data, logger, clientCreator, true);
-      allMetrics.put(resource.dbClusterIdentifier() + ":cluster", clusterMetrics);
-
-      for (DBInstance db : dbInstances.dbInstances()) {
-        Map<String, Object> instanceMetrics = getRDSCloudWatchMetrics(db.dbInstanceIdentifier(), data, logger, clientCreator, false);
-        allMetrics.put(db.dbInstanceIdentifier() + ":instance", instanceMetrics);
-      }
+      Map<String, Object> instanceMetrics = getRDSCloudWatchMetrics(db.dbInstanceIdentifier(), db.engine(), data, logger, clientCreator);
+      allMetrics.put(db.dbInstanceIdentifier() + ":instance", instanceMetrics);
 
       AWSUtils.update(data.supplementaryConfiguration, Map.of("staleDataMetrics", allMetrics));
 
     } catch (Exception se) {
-      logger.warn("{} RDS cluster is missing metrics, with error {}", resource.dbClusterArn(), se.getMessage());
+      logger.warn("{} RDS cluster is missing metrics, with error {}", db.dbInstanceArn(), se.getMessage());
     }
   }
 
