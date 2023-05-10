@@ -40,7 +40,10 @@ public class KafkaQueue implements FifoQueue {
   private static final Map<String, Object> DEFAULT_PROPERTIES = Map.of(
     ProducerConfig.ACKS_CONFIG, "all",
     ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
-    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName()
+    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
+    ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy",
+    ProducerConfig.LINGER_MS_CONFIG, "20",
+    ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(64*1024) // 64 KB batch size
   );
 
   private final Producer<String, String> producer;
