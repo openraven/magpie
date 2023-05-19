@@ -53,8 +53,11 @@ public class EC2StorageDiscovery implements AWSDiscovery {
   @Override
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
-      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
+      logger.info("Discovering volumes for {}:{}", account, region);
       discoverVolumes(mapper, session, client, region, emitter, account);
+      logger.info("Discovering snapshots for {}:{}", account, region);
+      discoverSnapshots(mapper, session, client, region, emitter, account, logger);
+      logger.info("Discovery complete for {}:{}", account, region);
     }
   }
 
