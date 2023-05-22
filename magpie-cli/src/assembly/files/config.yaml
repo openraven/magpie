@@ -22,6 +22,9 @@ plugins:
   magpie.aws.discovery:
     enabled: true
     config:
+#      proxyRoleConfig:
+#        arn: <blah>
+#        externalId: <blah>
       assumedRoles:
       #      - <role arn 1>
       #      - <role arn 2>
