@@ -23,8 +23,8 @@ plugins:
     enabled: true
     config:
 #      proxyRoleConfig:
-#        arn: <blah>
-#        externalId: <blah>
+#        arn: <proxy arn>
+#        externalId: <proxy externalID>
       assumedRoles:
       #      - <role arn 1>
       #      - <role arn 2>
