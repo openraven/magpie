@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.util.UUID;
 
@@ -18,7 +19,15 @@ public class ClientCreators {
   //This client does not need to be recreated on every request.
   public static final StsClient localStsClient = StsClient.create();
 
-  public static MagpieAWSClientCreator assumeRoleCreator(final Region region, final String roleArn, String externalId, AWSDiscoveryConfig.ProxyRoleConfig proxyRoleConfig) {
+  /**
+   *
+   * @param region The region endpoint to use for the client, when created.
+   * @param roleArn Role to assume
+   * @param externalId Optional (nullable) external ID set on the client builder.
+   * @param proxyRoleConfig Optional (nullable) configuration object for proxy-based arn discovery.
+   * @return A new ClientCreator instanced used for assume role based discovery.
+   */
+  public static MagpieAWSClientCreator assumeRoleCreator(final Region region, final String roleArn, @Nullable  String externalId, @Nullable AWSDiscoveryConfig.ProxyRoleConfig proxyRoleConfig) {
     return new MagpieAWSClientCreator(){
       @Override
       public <BuilderT extends AwsClientBuilder<BuilderT, ClientT>, ClientT> BuilderT apply(AwsClientBuilder<BuilderT, ClientT> builder) {
