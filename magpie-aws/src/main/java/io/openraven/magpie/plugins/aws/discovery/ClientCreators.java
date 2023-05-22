@@ -32,12 +32,12 @@ public class ClientCreators {
         if(proxyRoleConfig != null) {
 
           final var arn = proxyRoleConfig.getArn();
-          final var externalId = proxyRoleConfig.getExternalId();
+          final var proxyRoleConfigExternalId = proxyRoleConfig.getExternalId();
 
-          LOGGER.info("Using proxyRoleConfig with arn={}, externalId={}", arn, externalId);
+          LOGGER.debug("Using proxyRoleConfig with arn={}, externalId={} connecting to roleArn={}, externalId={}", arn, proxyRoleConfigExternalId, roleArn, externalId);
           final AssumeRoleRequest.Builder assumeRoleRequestBuilder = AssumeRoleRequest.builder()
             .roleArn(arn)
-            .externalId(externalId)
+            .externalId(proxyRoleConfigExternalId)
             .roleSessionName(UUID.randomUUID().toString());
 
           final var provider = StsAssumeRoleCredentialsProvider.builder()
