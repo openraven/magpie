@@ -19,11 +19,35 @@ package io.openraven.magpie.plugins.aws.discovery;
 import java.util.List;
 
 public class AWSDiscoveryConfig {
+
+  public static class ProxyRoleConfig {
+    String arn;
+    String externalId;
+
+    public String getArn() {
+      return arn;
+    }
+
+    public void setArn(String arn) {
+      this.arn = arn;
+    }
+
+    public String getExternalId() {
+      return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+      this.externalId = externalId;
+    }
+  }
+
   private List<String> assumedRoles = List.of();
   private List<String> services = List.of();
   private List<String> regions = List.of();
   private List<String> ignoredRegions = List.of();
   private String externalId;
+  private ProxyRoleConfig proxyRoleConfig;
+
 
     /**
    * @return
@@ -69,4 +93,12 @@ public class AWSDiscoveryConfig {
   public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
+
+  public ProxyRoleConfig getProxyRoleConfig() {
+    return proxyRoleConfig;
+  }
+
+  public void setProxyRoleConfig(ProxyRoleConfig proxyRoleConfig) {
+    this.proxyRoleConfig = proxyRoleConfig;
+  }
 }
