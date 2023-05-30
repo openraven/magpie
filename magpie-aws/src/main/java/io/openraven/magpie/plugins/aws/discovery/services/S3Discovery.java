@@ -222,6 +222,7 @@ public class S3Discovery implements AWSDiscovery {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;
       }
+      logger.debug("Failure on S3 public access discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
     }
 
     // wrap into a try/catch so that if there isn't an policy status response we catch it, default to false, and continue
@@ -238,6 +239,7 @@ public class S3Discovery implements AWSDiscovery {
       if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
         throw ex;
       }
+      logger.debug("Failure on S3 public access discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
     }
 
     AWSUtils.update(data.supplementaryConfiguration,
