@@ -54,7 +54,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
   public void discover(ObjectMapper mapper, Session session, Region region, Emitter emitter, Logger logger, String account, MagpieAWSClientCreator clientCreator) {
     try (final var client = clientCreator.apply(Ec2Client.builder()).build()) {
       discoverSnapshots(mapper, session, client, region, emitter, account, logger);
-      discoverVolumes(mapper, session, client, region, emitter, account);
+      discoverVolumes(mapper, session, client, region, emitter, account, logger);
     }
   }
 
@@ -71,6 +71,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
         resp.snapshots()
           .forEach(snapshot -> {
             String arn = format("arn:aws:ec2:%s:%s:snapshot/%s", region, account, snapshot.snapshotId());
+            logger.debug("Discovering {}", arn);
             var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
               .withResourceName(snapshot.snapshotId())
               .withResourceId(snapshot.snapshotId())
@@ -92,7 +93,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
     }
   }
 
-  private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account) {
+  private void discoverVolumes(ObjectMapper mapper, Session session, Ec2Client client, Region region, Emitter emitter, String account, Logger logger) {
     final String RESOURCE_TYPE = EC2Volume.RESOURCE_TYPE;
     try {
 
@@ -104,6 +105,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
         response.volumes()
           .forEach(volume -> {
             String arn = format("arn:aws:ec2:%s:%s:volume/%s", region, account, volume.volumeId());
+            logger.debug("Discovering {}", arn);
             var data = new MagpieAwsResource.MagpieAwsResourceBuilder(mapper, arn)
               .withResourceName(volume.volumeId())
               .withResourceId(volume.volumeId())
