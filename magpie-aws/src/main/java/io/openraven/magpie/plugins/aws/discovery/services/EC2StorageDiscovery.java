@@ -65,7 +65,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().ownerIds(account).nextToken(nextToken).build());
+        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().maxResults(1000).ownerIds(account).nextToken(nextToken).build());
         nextToken = resp.nextToken();
 
         resp.snapshots()
@@ -99,7 +99,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var response = client.describeVolumes(DescribeVolumesRequest.builder().nextToken(nextToken).build());
+        var response = client.describeVolumes(DescribeVolumesRequest.builder().maxResults(1000).nextToken(nextToken).build());
         nextToken = response.nextToken();
 
         response.volumes()
