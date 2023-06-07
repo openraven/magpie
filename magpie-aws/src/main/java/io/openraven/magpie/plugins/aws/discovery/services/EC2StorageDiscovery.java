@@ -65,7 +65,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().ownerIds(account).nextToken(nextToken).build());
+        var resp = client.describeSnapshots(DescribeSnapshotsRequest.builder().maxResults(1000).ownerIds(account).nextToken(nextToken).build());
         nextToken = resp.nextToken();
 
         resp.snapshots()
@@ -80,6 +80,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
               .withAccountId(account)
               .withAwsRegion(region.toString())
               .withTags(getConvertedTags(snapshot.tags(), mapper))
+              .withCreatedIso(snapshot.startTime())
               .build();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
@@ -99,7 +100,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
 
       String nextToken = null;
       do {
-        var response = client.describeVolumes(DescribeVolumesRequest.builder().nextToken(nextToken).build());
+        var response = client.describeVolumes(DescribeVolumesRequest.builder().maxResults(1000).nextToken(nextToken).build());
         nextToken = response.nextToken();
 
         response.volumes()
@@ -114,6 +115,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
               .withAccountId(account)
               .withAwsRegion(region.toString())
               .withTags(getConvertedTags(volume.tags(), mapper))
+              .withCreatedIso(volume.createTime())
               .build();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
