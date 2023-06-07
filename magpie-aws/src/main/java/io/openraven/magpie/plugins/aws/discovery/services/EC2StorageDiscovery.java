@@ -80,6 +80,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
               .withAccountId(account)
               .withAwsRegion(region.toString())
               .withTags(getConvertedTags(snapshot.tags(), mapper))
+              .withCreatedIso(snapshot.startTime())
               .build();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
@@ -114,6 +115,7 @@ public class EC2StorageDiscovery implements AWSDiscovery {
               .withAccountId(account)
               .withAwsRegion(region.toString())
               .withTags(getConvertedTags(volume.tags(), mapper))
+              .withCreatedIso(volume.createTime())
               .build();
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(AWSDiscoveryPlugin.ID + ":Volume"), data.toJsonNode()));
