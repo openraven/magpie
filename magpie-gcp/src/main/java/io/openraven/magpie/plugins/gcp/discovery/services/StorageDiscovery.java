@@ -159,7 +159,7 @@ public class StorageDiscovery implements GCPDiscovery {
 
   private void discoverPublicAccessPrevention(MagpieGcpResource data, BucketInfo.IamConfiguration iamConfiguration) {
     String fieldName = "publicAccessPrevention";
-    final var publicAccessPrevention = iamConfiguration.getPublicAccessPrevention();
+    final var publicAccessPrevention = iamConfiguration == null ? null : iamConfiguration.getPublicAccessPrevention();
     GCPUtils.update(data.supplementaryConfiguration, Pair.of(fieldName, publicAccessPrevention));
   }
 
