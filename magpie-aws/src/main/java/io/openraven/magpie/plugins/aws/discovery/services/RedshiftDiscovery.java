@@ -18,6 +18,7 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAwsResource;
 import io.openraven.magpie.api.Session;
@@ -36,7 +37,8 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
 import software.amazon.awssdk.services.redshift.RedshiftClient;
 import software.amazon.awssdk.services.redshift.model.Cluster;
-import software.amazon.awssdk.services.redshift.model.ClusterNode;
+import software.amazon.awssdk.services.redshift.model.DescribeClusterParametersRequest;
+import software.amazon.awssdk.services.redshift.model.DescribeClusterParametersResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,12 +82,26 @@ public class RedshiftDiscovery implements AWSDiscovery {
         discoverStorage(client, data);
         discoverSize(cluster, data, region, logger, clientCreator);
         getCloudWatchMetrics(cluster, data, logger, clientCreator);
+        discoverClusterParams(client, data, cluster, logger);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":cluster"), data.toJsonNode()));
       });
     } catch (SdkServiceException | SdkClientException ex) {
       DiscoveryExceptions.onDiscoveryException(RESOURCE_TYPE, null, region, ex);
     }
+  }
+
+  private void discoverClusterParams(RedshiftClient client, MagpieAwsResource data, Cluster cluster, Logger logger){
+    final Map<String, DescribeClusterParametersResponse.Builder> parameterGroups = Maps.newHashMap();
+
+    for (final var parameterGroup : cluster.clusterParameterGroups()) {
+      try {
+        parameterGroups.put(parameterGroup.parameterGroupName(), client.describeClusterParameters(DescribeClusterParametersRequest.builder().parameterGroupName(parameterGroup.parameterGroupName()).build()).toBuilder());
+      } catch (Exception ex) {
+        logger.debug("Couldn't query cluster parameter group.", ex);
+      }
+    }
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("parameterGroups", parameterGroups));
   }
 
   private void discoverStorage(RedshiftClient client, MagpieAwsResource data) {

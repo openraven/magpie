@@ -15,6 +15,10 @@
     <jar.finalName>${project.name}</jar.finalName>
   </properties>
 
+  <build>
+    <finalName>magpie-cli</finalName>
+  </build>
+
   <dependencies>
     <dependency>
       <groupId>io.openraven.magpie</groupId>
