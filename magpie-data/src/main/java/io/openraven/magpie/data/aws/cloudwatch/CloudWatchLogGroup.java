@@ -40,9 +40,9 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.LogGroup;
 
 import java.time.Instant;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = CloudWatchLogGroup.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = CloudWatchLogGroup.TABLE_NAME)
 public class CloudWatchLogGroup  extends AWSResource {
   protected static final String TABLE_NAME = "awswatchloggroup";
   public static final String RESOURCE_TYPE = "AWS::CloudWatchLogs::LogGroup";

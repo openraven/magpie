@@ -38,9 +38,9 @@ import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = DynamoDbTable.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = DynamoDbTable.TABLE_NAME)
 public class DynamoDbTable extends AWSResource {
   protected static final String TABLE_NAME = "awsdynamodbtable";
   public static final String RESOURCE_TYPE = "AWS::DynamoDB::Table";

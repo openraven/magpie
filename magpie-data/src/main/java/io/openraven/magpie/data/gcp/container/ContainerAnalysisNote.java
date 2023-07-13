@@ -19,15 +19,17 @@
  */
 package io.openraven.magpie.data.gcp.container;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.openraven.magpie.data.gcp.GCPResource;
 
-import javax.persistence.Entity;
-import javax.persistence.Inheritance;
-import javax.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.Table;
 
 @Entity
-@Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
 @Table(name = ContainerAnalysisNote.TABLE_NAME)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ContainerAnalysisNote extends GCPResource {
 
     protected static final String TABLE_NAME = "gcpcontaineranalysisnote";

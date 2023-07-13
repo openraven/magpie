@@ -43,9 +43,9 @@ import software.amazon.awssdk.services.efs.model.Tag;
 
 import java.util.stream.Collectors;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = EfsFileSystem.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = EfsFileSystem.TABLE_NAME)
 public class EfsFileSystem extends AWSResource {
   protected static final String TABLE_NAME = "awsefsfilesystem";
   public static final String RESOURCE_TYPE = "AWS::EFS::FileSystem";

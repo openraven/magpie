@@ -13,10 +13,10 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <aws-java-sdk.version>2.17.93</aws-java-sdk.version>
-    <javax.persistence.version>2.2</javax.persistence.version>
     <findbugs.version>3.0.2</findbugs.version>
     <jackson.version>2.13.0</jackson.version>
     <reflections.version>0.10.2</reflections.version>
+      <jakarta.persistence-api.version>3.1.0</jakarta.persistence-api.version>
   </properties>
 
   <distributionManagement>
@@ -47,9 +47,9 @@
     </dependency>
 
     <dependency>
-      <groupId>javax.persistence</groupId>
-      <artifactId>javax.persistence-api</artifactId>
-      <version>${javax.persistence.version}</version>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <version>${jakarta.persistence-api.version}</version>
     </dependency>
 
     <dependency>

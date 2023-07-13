@@ -36,8 +36,8 @@ package io.openraven.magpie.data.aws.accounts;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-@javax.persistence.Entity
-@javax.persistence.Table(name = UserCredentialReport.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = UserCredentialReport.TABLE_NAME)
 public class UserCredentialReport extends AWSResource {
     protected static final String TABLE_NAME = "awsusercredentialreport";
 

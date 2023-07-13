@@ -40,9 +40,9 @@ import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 
 import java.time.Instant;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = LambdaFunction.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = LambdaFunction.TABLE_NAME)
 public class LambdaFunction extends AWSResource {
 
   protected static final String TABLE_NAME = "awslambdafunction";

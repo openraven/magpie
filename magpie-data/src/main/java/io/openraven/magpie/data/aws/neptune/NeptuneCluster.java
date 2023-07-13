@@ -38,9 +38,9 @@ import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.neptune.model.DBCluster;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = NeptuneCluster.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = NeptuneCluster.TABLE_NAME)
 public class NeptuneCluster extends AWSResource {
   protected static final String TABLE_NAME = "awsneptunecluster";
   public static final String RESOURCE_TYPE = "AWS::Neptune::Cluster";

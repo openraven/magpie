@@ -3,7 +3,6 @@ package io.openraven.magpie.plugins.aws.discovery.services;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieEnvelope;
 import io.openraven.magpie.plugins.aws.discovery.services.base.BaseIAMServiceIT;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -49,7 +48,7 @@ class IAMCredentialReportDiscoveryIT extends BaseIAMServiceIT {
     assertNotNull(contents.get("documentId"));
     assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER).concat("::CredentialsReport"), contents.get("arn").asText());
     assertEquals(TEST_USER, contents.get("resourceName").asText());
-    assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER), contents.get("resourceId").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER).concat("::CredentialsReport"), contents.get("resourceId").asText());
     assertEquals("AWS::IAM::CredentialsReport", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());

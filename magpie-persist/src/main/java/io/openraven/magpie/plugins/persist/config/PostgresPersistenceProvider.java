@@ -19,13 +19,12 @@ package io.openraven.magpie.plugins.persist.config;
 import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
+import jakarta.persistence.EntityManager;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
-import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
 import java.util.Properties;
 
 import static io.openraven.magpie.data.utils.EntityTypeResolver.getSubClasses;
@@ -41,7 +40,6 @@ public class PostgresPersistenceProvider {
       config.getHostname(), config.getPort(), config.getDatabaseName()));
     settings.put(Environment.USER, config.getUser());
     settings.put(Environment.PASS, config.getPassword());
-    settings.put(Environment.DIALECT, "io.openraven.magpie.plugins.persist.config.PostgreSQL10StringDialect");
     settings.put(Environment.SHOW_SQL, "false");
     settings.put(Environment.HBM2DDL_AUTO, "validate");
     settings.put(Environment.DEFAULT_SCHEMA, config.getSchema());
