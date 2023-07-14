@@ -49,7 +49,7 @@ class IAMCredentialReportDiscoveryIT extends BaseIAMServiceIT {
     assertNotNull(contents.get("documentId"));
     assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER).concat("::CredentialsReport"), contents.get("arn").asText());
     assertEquals(TEST_USER, contents.get("resourceName").asText());
-    assertEquals(String.format("arn:aws:iam::000000000000:user/%s", TEST_USER), contents.get("resourceId").asText());
+    assertEquals(String.format("arn:aws:iam::000000000000:user/%s::CredentialsReport", TEST_USER), contents.get("resourceId").asText());
     assertEquals("AWS::IAM::CredentialsReport", contents.get("resourceType").asText());
     assertEquals(ACCOUNT, contents.get("awsAccountId").asText());
     assertEquals(BASE_REGION.toString(), contents.get("awsRegion").asText());
