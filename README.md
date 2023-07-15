@@ -53,6 +53,13 @@ The distribution zip file will be located in `magpie-cli/target/magpie-<version>
 Alternatively you can download the latest snapshot build by going to Action->(choose latest) and click the `magpie-cli` artifact,
 which will download a zip distribution.  
 
+By default Magpie has Maven building uber jars (shaded jars) to keep plugins from bringing potentially conflicting dependencies
+onto the classpath.  Releases to Maven Central do not push uber jars. To build standard (non-shaded) jars you need to negate
+the `uberjar` profile as such:
+```
+> mvn clean package -P -uberjar
+```
+
 ## Running Magpie
 
 *Java 11 is a prerequisite and must be installed to run Magpie.*
