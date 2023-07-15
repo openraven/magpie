@@ -346,6 +346,13 @@
       <version>${aws.sdk.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>  <!-- See https://stackoverflow.com/questions/29024520/classnotfoundexception-com-amazonaws-auth-awscredentials-java -->
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-core</artifactId>
+      <version>1.12.402</version>
+      <scope>test</scope>
+      <exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>
+    </dependency>
   </dependencies>
 
   <profiles>
