@@ -39,6 +39,7 @@ jobs:
       - name: Deploy Snapshot (Central)
         run: mvn -B deploy -Possrh,-uberjar -DskipTests
         env:
+          AWS_REGION: us-west-1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
           OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
