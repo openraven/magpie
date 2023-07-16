@@ -67,6 +67,7 @@ public abstract class BaseAWSServiceIT {
   }
 
   protected static void setupEnvironment() {
+    System.getenv().put("AWS_REGION", BASE_REGION.id());
     System.getProperties().setProperty("AWS_REGION", BASE_REGION.id());
     System.getProperties().setProperty("aws.accessKeyId", "foo");
     System.getProperties().setProperty("aws.secretAccessKey", "bar");
