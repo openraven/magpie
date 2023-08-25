@@ -109,8 +109,7 @@ public class PluginManager {
       }
     }
 
-    // TODO: Investigate why the GCP Plugin doesn't require this line but AWS Discovery and the Persistence Plugin do.
-    final var pluginList = Sets.newHashSet("magpie.aws.discovery", "magpie.persist", "PolicyService");
+    final var pluginList = Sets.newHashSet("magpie.aws.discovery", "magpie.persist", "PolicyService", "magpie.gcp.discovery");
     if (pluginList.contains(pluginId))  {
       return MAPPER.treeToValue(MAPPER.valueToTree(config), configType);
     }
