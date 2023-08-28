@@ -88,7 +88,7 @@ class EntityTypeResolverTest {
         "  \"resourceName\" : null,\n" +
         "  \"resourceId\" : null,\n" +
         "  \"resourceType\" : \"GCP::ContainerAnalysis::Note\",\n" +
-        "  \"accountId\" : null,\n" +
+//        "  \"accountId\" : null,\n" +
         "  \"projectId\" : \"oss-discovery-test\",\n" +
         "  \"createdIso\" : null,\n" +
         "  \"updatedIso\" : \"2021-11-23T12:43:17.409279Z\",\n" +

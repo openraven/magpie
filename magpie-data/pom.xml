@@ -15,7 +15,6 @@
     <aws-java-sdk.version>2.17.93</aws-java-sdk.version>
     <javax.persistence.version>2.2</javax.persistence.version>
     <findbugs.version>3.0.2</findbugs.version>
-    <jackson.version>2.13.0</jackson.version>
     <reflections.version>0.10.2</reflections.version>
   </properties>
 

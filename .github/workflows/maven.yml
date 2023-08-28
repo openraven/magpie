@@ -32,7 +32,7 @@ jobs:
         env:
           OSSRH_GPG_SECRET_KEY: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
       - name: Verify and Sign Jars
-        run: mvn -B clean verify -P -uberjar -DskipTests # No uber jars just yet.
+        run: mvn -B clean verify -P -uberjar # No uber jars just yet.
         env:
           OSSRH_GPG_KEYNAME: ${{ secrets.OSSRH_GPG_KEYNAME }}
           OSSRH_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
