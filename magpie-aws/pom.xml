@@ -234,6 +234,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>guardduty</artifactId>
       <version>${aws.sdk.version}</version>
     </dependency>
@@ -340,6 +345,14 @@
       <artifactId>cloudformation</artifactId>
       <version>${aws.sdk.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency> <!-- Localstack depends on 1.x internally. -->
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-core</artifactId>
+      <version>1.12.402</version>
+      <scope>test</scope>
+      <exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>
+      <!-- see See https://github.com/testcontainers/testcontainers-java/issues/1442 -->
     </dependency>
   </dependencies>
 

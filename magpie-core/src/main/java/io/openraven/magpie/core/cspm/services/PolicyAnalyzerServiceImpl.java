@@ -82,7 +82,16 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private boolean cloudProviderAssetsAvailable(Policy policy) {
     var provider = Strings.isNullOrEmpty(policy.getCloudProvider()) ? "" : policy.getCloudProvider().toLowerCase(Locale.ROOT);
     List<Map<String, Object>> data = assetsRepo.queryNative("select count(*) from magpie.%provider%".replace("%provider%", provider));
-    return BigInteger.ZERO.compareTo((BigInteger)data.get(0).get("count")) < 0;
+    final var count = data.get(0).get("count");
+    BigInteger compareTo;
+    if(count instanceof BigInteger) {
+      compareTo = (BigInteger) count;
+    } else if (count instanceof Long){
+      compareTo = BigInteger.valueOf((Long)count);
+    } else {
+      throw new UnsupportedOperationException();
+    }
+    return BigInteger.ZERO.compareTo(compareTo) < 0;
   }
 
   protected void executeRule(List<Violation> policyViolations,

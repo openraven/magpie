@@ -51,6 +51,7 @@ public abstract class BaseAWSServiceIT {
   protected static LocalStackContainer localStackContainer =
     new LocalStackContainer(DockerImageName.parse(FULL_IMAGE_NAME))
       .withExposedPorts(EXPOSED_EDGE_PORT)
+      .withEnv("AWS_REGION", BASE_REGION.id())
       .withEnv("DEFAULT_REGION", BASE_REGION.id())
       .withEnv("DEBUG", "1")
       .withServices(
@@ -67,6 +68,7 @@ public abstract class BaseAWSServiceIT {
   }
 
   protected static void setupEnvironment() {
+    System.getProperties().setProperty("aws.region", BASE_REGION.id());
     System.getProperties().setProperty("aws.accessKeyId", "foo");
     System.getProperties().setProperty("aws.secretAccessKey", "bar");
     System.getProperties().setProperty("MAGPIE_AWS_ENDPOINT",
