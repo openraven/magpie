@@ -26,6 +26,7 @@ import com.google.cloud.compute.v1.Subnetwork;
 import com.google.cloud.compute.v1.SubnetworksClient;
 import com.google.cloud.compute.v1.SubnetworksSettings;
 import com.google.cloud.compute.v1.ZonesClient;
+import com.google.cloud.compute.v1.ZonesSettings;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieGcpResource;
 import io.openraven.magpie.api.Session;
@@ -50,15 +51,18 @@ public class NetworkDiscovery implements GCPDiscovery {
   @Override
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
     final String RESOURCE_TYPE = io.openraven.magpie.data.gcp.vpc.Network.RESOURCE_TYPE;
-    var networkSettingsBuilder = NetworksSettings.newBuilder();
-    var subnetworkSettingsBuilder = SubnetworksSettings.newBuilder();
-    maybeCredentialsProvider.ifPresent(provider -> {
-        networkSettingsBuilder.setCredentialsProvider(provider);
-        subnetworkSettingsBuilder.setCredentialsProvider(provider);
-    });
-    try (NetworksClient networkClient = NetworksClient.create(networkSettingsBuilder.build());
-         SubnetworksClient subnetworkClient = SubnetworksClient.create(subnetworkSettingsBuilder.build());
-         var zoneClient = ZonesClient.create()
+
+    final var networkSettings = NetworksSettings.newBuilder();
+    final var subnetworkSettings = SubnetworksSettings.newBuilder();
+    final var zonesSettings = ZonesSettings.newBuilder();
+
+    maybeCredentialsProvider.ifPresent(networkSettings::setCredentialsProvider);
+    maybeCredentialsProvider.ifPresent(subnetworkSettings::setCredentialsProvider);
+    maybeCredentialsProvider.ifPresent(zonesSettings::setCredentialsProvider);
+
+    try (var networkClient = NetworksClient.create(networkSettings.build());
+         var subnetworkClient = SubnetworksClient.create(subnetworkSettings.build());
+         var zoneClient = ZonesClient.create(zonesSettings.build())
     ) {
       networkClient.list(projectId).iterateAll().forEach(network -> {
         var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, network.getName())
