@@ -61,11 +61,11 @@ public class IamDiscovery implements GCPDiscovery {
 
   public void discoverServiceAccounts(IAMClient client, ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) throws GeneralSecurityException, IOException {
     final String RESOURCE_TYPE = GcpIamServiceAccount.RESOURCE_TYPE;
-
     client.listServiceAccounts(com.google.iam.admin.v1.ProjectName.of(projectId)).iterateAll().forEach(sa -> {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, sa.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
+        .withResourceName(sa.getName())
         .withConfiguration(GCPUtils.asJsonNode(sa.toBuilder()))
         .build();
 
@@ -96,7 +96,7 @@ public class IamDiscovery implements GCPDiscovery {
   public void discoverRoles(IAMClient client, ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger) throws GeneralSecurityException, IOException {
     final String RESOURCE_TYPE = GcpIamRole.RESOURCE_TYPE;
 
-    client.listRoles(ListRolesRequest.newBuilder().build()).iterateAll().forEach(role -> {
+    client.listRoles(ListRolesRequest.newBuilder().setParent("projects/" + projectId).build()).iterateAll().forEach(role -> {
       var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, role.getName())
         .withProjectId(projectId)
         .withResourceType(RESOURCE_TYPE)
