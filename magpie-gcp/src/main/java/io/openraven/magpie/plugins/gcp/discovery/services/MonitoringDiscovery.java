@@ -18,7 +18,6 @@ package io.openraven.magpie.plugins.gcp.discovery.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.CredentialsProvider;
-import com.google.api.gax.core.CredentialsProvider;
 import com.google.cloud.monitoring.v3.AlertPolicyServiceClient;
 import com.google.cloud.monitoring.v3.AlertPolicyServiceSettings;
 import com.google.cloud.monitoring.v3.GroupServiceClient;
@@ -34,9 +33,9 @@ import io.openraven.magpie.api.Session;
 import io.openraven.magpie.data.gcp.monitoring.MonitoringAlertPolicy;
 import io.openraven.magpie.data.gcp.monitoring.MonitoringGroup;
 import io.openraven.magpie.data.gcp.monitoring.MonitoringService;
-import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import io.openraven.magpie.plugins.gcp.discovery.GCPUtils;
 import io.openraven.magpie.plugins.gcp.discovery.VersionedMagpieEnvelopeProvider;
+import io.openraven.magpie.plugins.gcp.discovery.exception.DiscoveryExceptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
