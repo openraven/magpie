@@ -43,22 +43,31 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
   }
 
   public void discover(ObjectMapper mapper, String projectId, Session session, Emitter emitter, Logger logger, Optional<CredentialsProvider> maybeCredentialsProvider) {
-      try (var diskClient = DisksClient.create();
-           var instancesClient = InstancesClient.create();
-           var zoneClient = ZonesClient.create()) {
-          try {
-              discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient);
-          }catch (IOException e) {
-              DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
-          }
-          try {
-              discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
-          }catch (IOException e) {
-              DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
-          }
+
+    final var diskSettings = DisksSettings.newBuilder();
+    final var instancesSettings = InstancesSettings.newBuilder();
+    final var zonesSettings = ZonesSettings.newBuilder();
+
+    maybeCredentialsProvider.ifPresent(diskSettings::setCredentialsProvider);
+    maybeCredentialsProvider.ifPresent(instancesSettings::setCredentialsProvider);
+    maybeCredentialsProvider.ifPresent(zonesSettings::setCredentialsProvider);
+
+    try (var diskClient = DisksClient.create(diskSettings.build());
+         var instancesClient = InstancesClient.create(instancesSettings.build());
+         var zoneClient = ZonesClient.create(zonesSettings.build())) {
+      try {
+        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient);
       } catch (IOException e) {
-          DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::ClientAllocation", e);
+        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
       }
+      try {
+        discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
+      } catch (IOException e) {
+        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
+      }
+    } catch (IOException e) {
+      DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::ClientAllocation", e);
+    }
   }
 
   private void discoverInstances(
