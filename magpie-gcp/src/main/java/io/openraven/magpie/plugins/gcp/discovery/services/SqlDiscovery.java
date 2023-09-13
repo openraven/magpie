@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.gax.core.CredentialsProvider;
-import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.services.sqladmin.SQLAdmin;
 import com.google.api.services.sqladmin.model.InstancesListResponse;
 import com.google.auth.http.HttpCredentialsAdapter;
