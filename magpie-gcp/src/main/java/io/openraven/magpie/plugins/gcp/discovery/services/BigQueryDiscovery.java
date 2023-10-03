@@ -58,8 +58,12 @@ public class BigQueryDiscovery implements GCPDiscovery {
     final String RESOURCE_TYPE = BigQueryDataset.RESOURCE_TYPE;
     bigQuery.listDatasets(projectId).iterateAll()
       .forEach(datasetProxy -> {
+        // Big Query Self links are null for some reason?  We've got to manually construct the assetId
+        final var assetId = GCPUtils.assetNameToAssetId("bigquery", projectId, "datasets", datasetProxy.getDatasetId().getDataset());
         Dataset datasetModel = bigQuery.getDataset(datasetProxy.getDatasetId());
-        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, datasetProxy.getGeneratedId())
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
+          .withResourceName(datasetProxy.getDatasetId().getDataset())
+          .withResourceId(assetId)
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(datasetModel))

@@ -92,6 +92,7 @@ public class StorageDiscovery implements GCPDiscovery {
       ))
         .withProjectId(projectId)
         .withResourceId(bucket.getName())
+        .withResourceName(bucket.getName())
         .withResourceType(RESOURCE_TYPE)
         .withRegion(bucket.getLocation().toLowerCase())
         .withCreatedIso(bucket.getCreateTimeOffsetDateTime().toInstant())

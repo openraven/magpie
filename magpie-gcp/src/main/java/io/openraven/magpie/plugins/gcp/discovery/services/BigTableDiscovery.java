@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static io.openraven.magpie.plugins.gcp.discovery.GCPUtils.assetNameToAssetId;
+
 public class BigTableDiscovery implements GCPDiscovery {
   private static final String SERVICE = "bigTable";
 
@@ -62,12 +64,14 @@ public class BigTableDiscovery implements GCPDiscovery {
       }
 
       instances.listIterator().forEachRemaining(instance -> {
-        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, instance.getId())
+        final var assetId = assetNameToAssetId("bigtable", projectId, "instances", instance.getId());
+        var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
+          .withResourceName(instance.getDisplayName())
+          .withResourceId(assetId)
           .withProjectId(projectId)
           .withResourceType(RESOURCE_TYPE)
           .withConfiguration(GCPUtils.asJsonNode(instance))
           .build();
-
         discoverClusters(client, instance, data);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":instance"), data.toJsonNode()));

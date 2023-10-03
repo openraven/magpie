@@ -62,4 +62,14 @@ public class GCPUtils {
     }
     return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
   }
+
+  public static String selfLinkToAssetId(String selfLink) {
+    return selfLink
+      .replaceFirst("https:", "")
+      .replaceFirst("/v1", "");
+  }
+
+  public static String assetNameToAssetId(String service, String projectId, String assetType, String assetName) {
+    return String.format("//%s.googleapis.com/projects/%s/%s/%s", service, projectId, assetType, assetName);
+  }
 }
