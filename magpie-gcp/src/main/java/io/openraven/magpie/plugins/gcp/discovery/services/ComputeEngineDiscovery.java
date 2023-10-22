@@ -57,12 +57,11 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
          var instancesClient = InstancesClient.create(instancesSettings.build());
          var zoneClient = ZonesClient.create(zonesSettings.build())) {
       logger.debug("In discovery method for project={}", projectId);
-//      try {
-//
-//        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient, logger);
-//      } catch (IOException e) {
-//        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
-//      }
+      try {
+        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient, logger);
+      } catch (IOException e) {
+        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
+      }
 //      try {
 //        discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
 //      } catch (IOException e) {
@@ -91,7 +90,7 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(zone.getName())
-              .withConfiguration(GCPUtils.asJsonNode(instance))
+//              .withConfiguration(GCPUtils.asJsonNode(instance))
               .build();
             emitter.emit(create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
           }
