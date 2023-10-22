@@ -87,7 +87,6 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
               .withRegion(zone.getName())
               .withConfiguration(GCPUtils.asJsonNode(instance))
               .build();
-
             emitter.emit(create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
           }
         });

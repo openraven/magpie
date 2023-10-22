@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,8 @@ public class GCPUtils {
   private static final Logger logger = LoggerFactory.getLogger(GCPUtils.class);
   private static final ObjectMapper mapper = createObjectMapper();
 
+  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
   public  static ObjectMapper createObjectMapper() {
     return  new ObjectMapper()
       .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
@@ -40,7 +43,7 @@ public class GCPUtils {
   }
 
   public static JsonNode asJsonNode(Object object) {
-    String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(object);
+    String jsonString = GSON.toJson(object);
 
     try {
       return mapper.readValue(jsonString, JsonNode.class);
