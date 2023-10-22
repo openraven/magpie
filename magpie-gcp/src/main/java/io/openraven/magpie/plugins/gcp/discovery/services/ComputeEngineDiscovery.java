@@ -57,7 +57,7 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
          var instancesClient = InstancesClient.create(instancesSettings.build());
          var zoneClient = ZonesClient.create(zonesSettings.build())) {
       try {
-        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient);
+        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient, logger);
       } catch (IOException e) {
         DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
       }
@@ -71,13 +71,17 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
     }
   }
 
-  private void discoverInstances( ObjectMapper mapper, String projectId, Session session, Emitter emitter, InstancesClient instancesClient, ZonesClient zoneClient) throws IOException {
+  private void discoverInstances( ObjectMapper mapper, String projectId, Session session, Emitter emitter, InstancesClient instancesClient, ZonesClient zoneClient, Logger logger) throws IOException {
+    logger.debug("Discovering instances on project={}", projectId);
     final String RESOURCE_TYPE = ComputeInstance.RESOURCE_TYPE;
 
       zoneClient.list(projectId).iterateAll().forEach(zone -> {
+        logger.debug("Discovering instances on project={}, zone={}", projectId, zone);
         var pages = instancesClient.listPagedCallable().call(ListInstancesRequest.newBuilder().setProject(projectId).setZone(zone.getName()).build());
         pages.iteratePages().forEach(p -> {
+          logger.debug("Discovering instances on project={}, zone={}, elementCount={}", projectId, zone, p.getPageElementCount());
           for (Instance instance : p.iterateAll()) {
+            logger.debug("Discovered instance={}", instance.getSelfLink());
             String assetId = instanceSelfLinkToAssetId(instance.getSelfLink());
             var data = new MagpieGcpResource.MagpieGcpResourceBuilder(mapper, assetId)
               .withResourceId(assetId)
