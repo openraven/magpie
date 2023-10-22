@@ -61,11 +61,11 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
       } catch (IOException e) {
         DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
       }
-      try {
-        discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
-      } catch (IOException e) {
-        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
-      }
+//      try {
+//        discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
+//      } catch (IOException e) {
+//        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Disk", e);
+//      }
     } catch (IOException e) {
       DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::ClientAllocation", e);
     }
