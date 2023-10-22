@@ -56,11 +56,13 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
     try (var diskClient = DisksClient.create(diskSettings.build());
          var instancesClient = InstancesClient.create(instancesSettings.build());
          var zoneClient = ZonesClient.create(zonesSettings.build())) {
-      try {
-        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient, logger);
-      } catch (IOException e) {
-        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
-      }
+      logger.debug("In discovery method for project={}", projectId);
+//      try {
+//
+//        discoverInstances(mapper, projectId, session, emitter, instancesClient, zoneClient, logger);
+//      } catch (IOException e) {
+//        DiscoveryExceptions.onDiscoveryException("GCP::ComputeEngine::Instances", e);
+//      }
 //      try {
 //        discoverDisks(mapper, projectId, session, emitter, diskClient, zoneClient);
 //      } catch (IOException e) {
