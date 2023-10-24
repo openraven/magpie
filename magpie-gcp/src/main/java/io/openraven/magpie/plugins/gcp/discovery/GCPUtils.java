@@ -24,6 +24,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.protobuf.AbstractMessage;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +46,22 @@ public class GCPUtils {
   }
 
   public static JsonNode asJsonNode(Object object) {
-    String jsonString = GSON.toJson(object);
+    String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(object);
 
     try {
       return mapper.readValue(jsonString, JsonNode.class);
     } catch (JsonProcessingException e) {
+      logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
+    }
+
+    return mapper.createObjectNode();
+  }
+  public static JsonNode asJsonNode(AbstractMessage msg) {
+
+    try {
+      String jsonString = JsonFormat.printer().print(msg);
+      return mapper.readValue(jsonString, JsonNode.class);
+    } catch (JsonProcessingException | InvalidProtocolBufferException e) {
       logger.error("Unexpected JsonProcessingException this shouldn't happen at all");
     }
 

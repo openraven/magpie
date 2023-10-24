@@ -90,7 +90,7 @@ public class ComputeEngineDiscovery implements GCPDiscovery {
               .withProjectId(projectId)
               .withResourceType(RESOURCE_TYPE)
               .withRegion(zone.getName())
-//              .withConfiguration(GCPUtils.asJsonNode(instance))
+              .withConfiguration(GCPUtils.asJsonNode(instance))
               .build();
             emitter.emit(create(session, List.of(fullService() + ":instance"), data.toJsonNode()));
           }

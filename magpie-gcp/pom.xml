@@ -3,7 +3,7 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.8.4-SNAPSHOT</version>
+    <version>0.8.4-json_test-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -30,6 +30,11 @@
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java-util</artifactId>
+      <version>3.24.4</version>
+    </dependency>
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
