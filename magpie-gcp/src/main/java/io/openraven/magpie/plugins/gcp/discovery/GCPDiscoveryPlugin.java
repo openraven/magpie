@@ -153,7 +153,7 @@ public class GCPDiscoveryPlugin implements OriginPlugin<GCPDiscoveryConfig> {
           logger.debug("Discovering service: {}, class: {}", gcpDiscovery.service(), gcpDiscovery.getClass());
           gcpDiscovery.discoverWrapper(MAPPER, project, session, emitter, logger, Optional.ofNullable(config.getCredentialsProvider()));
         } catch (Exception ex) {
-          logger.error("Discovery error in service {} - {}", gcpDiscovery.service(), ex.getMessage());
+          logger.error("Discovery error for {} in service {} - {}", project, gcpDiscovery.service(), ex.getMessage());
           logger.debug("Details", ex);
         }
       }));
