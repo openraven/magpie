@@ -24,19 +24,39 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Type;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 
 public class GCPUtils {
+
+
+  private static class DurationSerializer implements JsonSerializer<Duration> {
+    @Override
+    public JsonElement serialize(Duration duration, Type type, JsonSerializationContext jsonSerializationContext) {
+      return new JsonPrimitive(duration.toString());
+    }
+  }
   private static final Logger logger = LoggerFactory.getLogger(GCPUtils.class);
   private static final ObjectMapper mapper = createObjectMapper();
 
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+  private static final Gson GSON = new GsonBuilder()
+    .setPrettyPrinting()
+    .registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>) (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+    .registerTypeAdapter(Duration.class, new DurationSerializer())
+    .create();
 
   public  static ObjectMapper createObjectMapper() {
     return  new ObjectMapper()
@@ -46,7 +66,7 @@ public class GCPUtils {
   }
 
   public static JsonNode asJsonNode(Object object) {
-    String jsonString = new GsonBuilder().setPrettyPrinting().create().toJson(object);
+    String jsonString = GSON.toJson(object);
 
     try {
       return mapper.readValue(jsonString, JsonNode.class);
