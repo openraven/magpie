@@ -285,6 +285,11 @@ public class RDSDiscovery implements AWSDiscovery {
     setAuroraDBSize(resource, data, logger, clientCreator);
   }
 
+  private void setSizingInfo(MagpieAwsResource data, long sizeInBytes, long maxSizeInBytes) {
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("sizeInBytes", sizeInBytes));
+    AWSUtils.update(data.supplementaryConfiguration, Map.of("maxSizeInBytes", maxSizeInBytes));
+  }
+
   private void setRDSSize(DBInstance resource, MagpieAwsResource data, Logger logger, MagpieAWSClientCreator clientCreator) {
     try {
       List<Dimension> dimensions = new ArrayList<>();
@@ -299,8 +304,13 @@ public class RDSDiscovery implements AWSDiscovery {
         long freeStorageCapacity = freeStorageSpace.getValue0();
         long storageCapacity = resource.allocatedStorage();
 
-        data.sizeInBytes = Conversions.GibToBytes(storageCapacity) - freeStorageCapacity;
-        data.maxSizeInBytes = Conversions.GibToBytes(storageCapacity);
+        final var sizeInBytes = Conversions.GibToBytes(storageCapacity) - freeStorageCapacity;
+        final var maxSizeInBytes = Conversions.GibToBytes(storageCapacity);
+
+        data.sizeInBytes = sizeInBytes;
+        data.maxSizeInBytes = maxSizeInBytes;
+        setSizingInfo(data, sizeInBytes, maxSizeInBytes);
+
       } else {
         logger.warn("{} RDS instance is missing size metrics", resource.dbInstanceIdentifier());
       }
@@ -319,8 +329,12 @@ public class RDSDiscovery implements AWSDiscovery {
       if (volumeBytesUsed.getValue0() != null) {
         AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
 
-        data.sizeInBytes = volumeBytesUsed.getValue0();
-        data.maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
+        final var sizeInBytes = volumeBytesUsed.getValue0();
+        final var maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
+
+        data.sizeInBytes = sizeInBytes;
+        data.maxSizeInBytes = maxSizeInBytes;
+        setSizingInfo(data, sizeInBytes, maxSizeInBytes);
       }
     } catch (Exception se) {
       logger.warn("{} RDS instance is missing size metrics, with error {}", resource.dbInstanceArn(), se.getMessage());
@@ -337,9 +351,12 @@ public class RDSDiscovery implements AWSDiscovery {
       if (volumeBytesUsed.getValue0() != null) {
         AWSUtils.update(data.supplementaryConfiguration, Map.of("size", Map.of("VolumeBytesUsed", volumeBytesUsed.getValue0())));
 
-        data.sizeInBytes = volumeBytesUsed.getValue0();
-        data.maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
+        final var sizeInBytes = volumeBytesUsed.getValue0();
+        final var maxSizeInBytes = Conversions.GibToBytes(resource.allocatedStorage());
 
+        data.sizeInBytes = sizeInBytes;
+        data.maxSizeInBytes = maxSizeInBytes;
+        setSizingInfo(data, sizeInBytes, maxSizeInBytes);
       }
     } catch (Exception se) {
       logger.warn("{} RDS cluster is missing size metrics, with error {}", resource.dbClusterArn(), se.getMessage());
