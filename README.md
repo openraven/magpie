@@ -45,7 +45,7 @@ each layer may exist on separate compute instances.
 ```shell
 git clone git@github.com:openraven/magpie.git
 cd magpie
-mvn clean package install && mvn --projects magpie-cli assembly:single
+mvn clean package install -DskipTests && mvn --projects magpie-cli assembly:single -DskipTests
 ```
 
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
@@ -61,7 +61,6 @@ the `uberjar` profile as such:
 ```
 
 ## Running Magpie
-## Running Magpie
 
 *Java 11 is a prerequisite and must be installed to run Magpie.*
 
@@ -70,9 +69,17 @@ AWS plugin utilizes the AWS Java SDK and will search for credentials as describe
 
 Assuming you have read credentials set up, you can start discovery by running:
 ```shell
-./magpie.sh
+./magpie-discovery.sh
+```
+Or from the Windows CMD line:
+```
+magpie-discovery.bat
 ```
 
+From Windows Powershell:
+```
+./magpie-discovery.bat
+```
 
 ### Configuration
 Magpie allows for complex configurations to be enabled via the YAML-based config file.  This file has 3 primary sections:
