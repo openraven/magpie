@@ -50,6 +50,11 @@ plugins:
     enabled: false
     config:
       services:
+  magpie.azure.discovery:
+    enabled: false
+    config:
+      services:
+        - storage
   magpie.json:
     enabled: true
     config:

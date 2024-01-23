@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 
 public class StorageBlobDiscovery implements AzureDiscovery{
 
-  private static final String SERVICE = "storageBlob";
+  private static final String SERVICE = "storage";
 
   @Override
   public String service() {
