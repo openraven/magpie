@@ -5,6 +5,7 @@ layers:
     plugins:
       - magpie.aws.discovery
       - magpie.gcp.discovery
+      - magpie.azure.discovery
   output:
     type: terminal
     dequeue: default
