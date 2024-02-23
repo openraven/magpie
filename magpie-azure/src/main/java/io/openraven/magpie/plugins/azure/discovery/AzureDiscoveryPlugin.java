@@ -44,11 +44,11 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    config.getCredentials().forEach(creds -> {
+    config.getCredentials().forEach(mapOfKeysToCredsAndSubInfo -> {
         final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
         enabledPlugins.forEach(plugin -> {
             try {
-                plugin.discover(MAPPER, session, emitter, logger, creds,null);
+                plugin.discover(MAPPER, session, emitter, logger, mapOfKeysToCredsAndSubInfo,null);
             } catch (Exception ex) {
                 logger.error("Discovery failed for {}", plugin.service(), ex);
             }

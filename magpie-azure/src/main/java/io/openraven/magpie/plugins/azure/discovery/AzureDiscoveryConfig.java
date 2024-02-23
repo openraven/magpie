@@ -1,15 +1,14 @@
 package io.openraven.magpie.plugins.azure.discovery;
 
-import com.azure.core.credential.TokenCredential;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class AzureDiscoveryConfig {
 
   private List<String> services = List.of();
-private Supplier<List<? extends TokenCredential>> credentialsProvider = Collections::emptyList;
+private Supplier<List<Map<String,Object>>> credentialsProvider = Collections::emptyList;
 
   public List<String> getServices() {
     return services;
@@ -20,11 +19,11 @@ private Supplier<List<? extends TokenCredential>> credentialsProvider = Collecti
   }
 
 
-  public void setCredentialsProvider(Supplier<List<? extends TokenCredential>> credentials) {
+  public void setCredentialsProvider(Supplier<List<Map<String,Object>>> credentials) {
       this.credentialsProvider = credentials;
   }
 
-    public List<? extends TokenCredential> getCredentials() {
+    public List<Map<String, Object>> getCredentials() {
         if(credentialsProvider.get().isEmpty()) {
             return List.of(null);
         }
