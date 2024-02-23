@@ -1,5 +1,6 @@
 package io.openraven.magpie.plugins.azure.discovery.services;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobContainerItem;
@@ -20,13 +21,18 @@ public class StorageBlobDiscovery implements AzureDiscovery{
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String account) {
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, TokenCredential creds, String account) {
     mapper.enable(SerializationFeature.INDENT_OUTPUT);
     logger.info("Discovering storage");
     // Let's start with Storage Blob Containers
-    BlobServiceClient client = new BlobServiceClientBuilder()
-      .connectionString(System.getenv("AZURE_STORAGE_CONNECTION_STRING"))
-      .buildClient();
+    BlobServiceClient client;
+    if(creds == null) {
+        client = new BlobServiceClientBuilder()
+                .connectionString(System.getenv("AZURE_STORAGE_CONNECTION_STRING"))
+                .buildClient();
+    } else {
+        client = new BlobServiceClientBuilder().credential(creds).buildClient();
+    }
 
     //List the blob containers in the storage account
     logger.info("Listing blob containers");

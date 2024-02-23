@@ -35,6 +35,14 @@
       <artifactId>azure-storage-blob</artifactId>
 <!--      <version>12.25.1</version>-->
     </dependency>
+      <dependency>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-identity</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-management</artifactId>
+      </dependency>
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-json</artifactId>
