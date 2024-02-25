@@ -63,11 +63,6 @@
       <artifactId>azure-xml</artifactId>
       <version>1.0.0-beta.2</version>
     </dependency>
-<!--    <dependency>-->
-<!--      <groupId>com.fasterxml.woodstox</groupId>-->
-<!--      <artifactId>woodstox-core</artifactId>-->
-<!--      <version>6.5.1</version>-->
-<!--    </dependency>-->
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-api</artifactId>

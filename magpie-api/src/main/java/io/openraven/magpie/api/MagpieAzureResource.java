@@ -30,12 +30,11 @@ import static io.openraven.magpie.api.utils.EncodedNamedUUIDGenerator.getEncoded
 public class MagpieAzureResource {
   private final ObjectMapper mapper;
 
-  public String arn;
-  public String resourceName;
   public String resourceId;
+  public String resourceName;
   public String resourceType;
-  public String awsRegion;
-  public String awsAccountId;
+  public String region;
+  public String subscriptionId;
   public Instant createdIso;
   public Instant updatedIso = Instant.now();
   public String discoverySessionId;
@@ -47,13 +46,13 @@ public class MagpieAzureResource {
   public JsonNode tags;
   public JsonNode discoveryMeta;
 
-  private MagpieAzureResource(MagpieAwsResourceBuilder builder) {
-    this.arn = builder.arn;
+  private MagpieAzureResource(MagpieAzureResourceBuilder builder) {
+    this.resourceId = builder.resourceId;
     this.resourceName = builder.resourceName;
     this.resourceId = builder.resourceId;
     this.resourceType = builder.resourceType;
-    this.awsRegion = builder.awsRegion;
-    this.awsAccountId = builder.awsAccountId;
+    this.region = builder.awsRegion;
+    this.subscriptionId = builder.subscriptionId;
     this.createdIso = builder.createdIso;
     this.updatedIso = builder.updatedIso;
     this.discoverySessionId = builder.discoverySessionId;
@@ -69,13 +68,13 @@ public class MagpieAzureResource {
   public ObjectNode toJsonNode() {
     var data = mapper.createObjectNode();
 
-    data.put("documentId", getEncodedNamedUUID(arn));
-    data.put("arn", arn);
+    data.put("documentId", getEncodedNamedUUID(resourceId));
+    data.put("resourceId", resourceId);
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
-    data.put("awsRegion", awsRegion);
-    data.put("awsAccountId", awsAccountId);
+    data.put("awsRegion", region);
+    data.put("subscriptionId", subscriptionId);
     data.put("createdIso", createdIso == null ? null : createdIso.toString());
     data.put("updatedIso", updatedIso == null ? null : updatedIso.toString());
     data.put("discoverySessionId", discoverySessionId);
@@ -88,14 +87,6 @@ public class MagpieAzureResource {
     data.set("discoveryMeta", discoveryMeta);
 
     return data;
-  }
-
-  public String getArn() {
-    return arn;
-  }
-
-  public void setArn(String arn) {
-    this.arn = arn;
   }
 
   public String getResourceName() {
@@ -122,20 +113,20 @@ public class MagpieAzureResource {
     this.resourceType = resourceType;
   }
 
-  public String getAwsRegion() {
-    return awsRegion;
+  public String getRegion() {
+    return region;
   }
 
-  public void setAwsRegion(String awsRegion) {
-    this.awsRegion = awsRegion;
+  public void setRegion(String region) {
+    this.region = region;
   }
 
-  public String getAwsAccountId() {
-    return awsAccountId;
+  public String getSubscriptionId() {
+    return subscriptionId;
   }
 
-  public void setAwsAccountId(String awsAccountId) {
-    this.awsAccountId = awsAccountId;
+  public void setSubscriptionId(String subscriptionId) {
+    this.subscriptionId = subscriptionId;
   }
 
   public Instant getCreatedIso() {
@@ -210,14 +201,15 @@ public class MagpieAzureResource {
     this.discoveryMeta = discoveryMeta;
   }
 
-  public static class MagpieAwsResourceBuilder {
+  public static class MagpieAzureResourceBuilder {
     private final ObjectMapper mapper;
-    private String arn;
     private String resourceName;
     private String resourceId;
     private String resourceType;
     private String awsRegion;
-    private String awsAccountId;
+
+    private String subscriptionId;
+
     private Instant createdIso;
     private Instant updatedIso = Instant.now();
     private String discoverySessionId;
@@ -230,8 +222,8 @@ public class MagpieAzureResource {
     private JsonNode tags;
     private JsonNode discoveryMeta;
 
-    public MagpieAwsResourceBuilder(ObjectMapper mapper, String arn) {
-      this.arn = arn;
+    public MagpieAzureResourceBuilder(ObjectMapper mapper, String resourceId) {
+      this.resourceId = resourceId;
       this.mapper = mapper;
 
       this.configuration = mapper.createObjectNode();
@@ -240,72 +232,72 @@ public class MagpieAzureResource {
       this.discoveryMeta = mapper.createObjectNode();
     }
 
-    public MagpieAwsResourceBuilder withResourceName(String resourceName) {
+    public MagpieAzureResourceBuilder withResourceName(String resourceName) {
       this.resourceName = resourceName;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withResourceId(String resourceId) {
+    public MagpieAzureResourceBuilder withResourceId(String resourceId) {
       this.resourceId = resourceId;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withResourceType(String resourceType) {
+    public MagpieAzureResourceBuilder withResourceType(String resourceType) {
       this.resourceType = resourceType;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withAwsRegion(String region) {
+    public MagpieAzureResourceBuilder withRegion(String region) {
       this.awsRegion = region;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withAccountId(String accountId) {
-      this.awsAccountId = accountId;
+    public MagpieAzureResourceBuilder withsubscriptionId(String subscriptionId) {
+      this.subscriptionId = subscriptionId;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withCreatedIso(Instant createdIso) {
+    public MagpieAzureResourceBuilder withCreatedIso(Instant createdIso) {
       this.createdIso = createdIso;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withUpdatedIso(Instant updatedIso) {
+    public MagpieAzureResourceBuilder withUpdatedIso(Instant updatedIso) {
       this.updatedIso = updatedIso;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withDiscoverySessionId(String discoverySessionId) {
+    public MagpieAzureResourceBuilder withDiscoverySessionId(String discoverySessionId) {
       this.discoverySessionId = discoverySessionId;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withMaxSizeInBytes(Long maxSizeInBytes) {
+    public MagpieAzureResourceBuilder withMaxSizeInBytes(Long maxSizeInBytes) {
       this.maxSizeInBytes = maxSizeInBytes;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withSizeInBytes(Long sizeInBytes) {
+    public MagpieAzureResourceBuilder withSizeInBytes(Long sizeInBytes) {
       this.sizeInBytes = sizeInBytes;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withConfiguration(JsonNode configuration) {
+    public MagpieAzureResourceBuilder withConfiguration(JsonNode configuration) {
       this.configuration = configuration;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withSupplementaryConfiguration(JsonNode supplementaryConfiguration) {
+    public MagpieAzureResourceBuilder withSupplementaryConfiguration(JsonNode supplementaryConfiguration) {
       this.supplementaryConfiguration = supplementaryConfiguration;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withTags(JsonNode tags) {
+    public MagpieAzureResourceBuilder withTags(JsonNode tags) {
       this.tags = tags;
       return this;
     }
 
-    public MagpieAwsResourceBuilder withDiscoveryMeta(JsonNode discoveryMeta) {
+    public MagpieAzureResourceBuilder withDiscoveryMeta(JsonNode discoveryMeta) {
       this.discoveryMeta = discoveryMeta;
       return this;
     }
