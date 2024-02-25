@@ -1,5 +1,13 @@
 package io.openraven.magpie.plugins.azure.discovery;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.management.AzureEnvironment;
+import com.azure.core.management.profile.AzureProfile;
+import com.azure.core.util.Configuration;
+import com.azure.core.util.ConfigurationBuilder;
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openraven.magpie.api.Emitter;
@@ -17,6 +25,7 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
   public final static String ID = "magpie.azure.discovery";
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+    .enable(SerializationFeature.INDENT_OUTPUT)
     .findAndRegisterModules();
 
   private static final List<AzureDiscovery> DISCOVERY_LIST = List.of(
@@ -44,18 +53,43 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
 
   @Override
   public void discover(Session session, Emitter emitter) {
-    config.getCredentials().forEach(mapOfKeysToCredsAndSubInfo -> {
-        final var enabledPlugins = DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList());
-        enabledPlugins.forEach(plugin -> {
-            try {
-                plugin.discover(MAPPER, session, emitter, logger, mapOfKeysToCredsAndSubInfo,null);
-            } catch (Exception ex) {
-                logger.error("Discovery failed for {}", plugin.service(), ex);
-            }
-        });
-    });
+    if(config.getCredentials().isEmpty()) {
+
+      final var azureCliCredential = new AzureCliCredentialBuilder().build();
+      final var profile = new AzureProfile(AzureEnvironment.AZURE);
+      final var azrm = AzureResourceManager
+        .configure()
+        .authenticate(azureCliCredential, profile)
+        .withDefaultSubscription();
+      final var subscriptionID = azrm.getCurrentSubscription().subscriptionId();
+
+      discover(session, emitter, logger, subscriptionID, azrm, profile);
+    } else {
+      config.getCredentials().forEach(mapOfKeysToCredsAndSubInfo -> {
+
+        final var subscriptionID = (String)mapOfKeysToCredsAndSubInfo.get("subscription-id");
+        final var creds = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("creds");
+        final var profile = new AzureProfile(AzureEnvironment.AZURE);
+        final var azrm = AzureResourceManager
+          .configure()
+          .withConfiguration(new ConfigurationBuilder().putProperty(Configuration.PROPERTY_AZURE_REGIONAL_AUTHORITY_NAME, "westus3").build())
+          .authenticate(creds, profile)
+          .withSubscription(subscriptionID);
+
+        discover(session, emitter, logger, subscriptionID, azrm, profile);
+      });
+    }
   }
 
+  private void discover(Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
+    DISCOVERY_LIST.stream().filter(p -> isEnabled(p.service())).collect(Collectors.toList()).forEach(plugin -> {
+      try {
+        plugin.discover(MAPPER, session, emitter, logger, subscriptionID, azrm, profile);
+      } catch (Exception ex) {
+        logger.error("Discovery failed for {}", plugin.service(), ex);
+      }
+    });
+  }
   private boolean isEnabled(String svc) {
     var enabled = config.getServices().isEmpty() || config.getServices().stream().anyMatch(configuredService -> configuredService.equalsIgnoreCase(svc));
     logger.debug("{} {} per config", enabled ? "Enabling" : "Disabling", svc);

@@ -24,22 +24,12 @@ public class StorageBlobDiscovery implements AzureDiscovery{
   }
 
   @Override
-  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, Map<String, Object> azureSubscriptionInfo, String account) {
-    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+  public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
     logger.info("Discovering storage");
-      String subscriptionID = (String)azureSubscriptionInfo.get("subscription-id");
-      TokenCredential creds = (TokenCredential) azureSubscriptionInfo.get("creds");
-      String rgName = "<resource-group-name>";
-      AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
 
-      AzureResourceManager azureResourceManager = AzureResourceManager
-              .configure()
-              .withConfiguration(new ConfigurationBuilder().putProperty(Configuration.PROPERTY_AZURE_REGIONAL_AUTHORITY_NAME, "westus3").build())
-              .authenticate(creds, profile)
-              .withSubscription(subscriptionID);
-
-      var storageAccounts = azureResourceManager.storageAccounts()
-              .list();
+      azrm.storageAccounts().list().forEach(sa -> {
+        logger.info("Found StorageAccount: {}", sa);
+      });
 //      storageAccounts.forEach(storageAccount ->
 //              storageAccount.);
     //List the blob containers in the storage account
