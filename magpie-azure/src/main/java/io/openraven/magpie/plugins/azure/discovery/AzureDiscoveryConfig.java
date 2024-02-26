@@ -39,9 +39,6 @@ private Supplier<List<Map<String,Object>>> credentialsProvider = Collections::em
   }
 
     public List<Map<String, Object>> getCredentials() {
-        if(credentialsProvider.get().isEmpty()) {
-            return List.of();
-        }
         return credentialsProvider.get();
     }
 }

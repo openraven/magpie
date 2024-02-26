@@ -20,7 +20,6 @@ import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.ConfigurationBuilder;
-import com.azure.identity.AzureCliCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +32,7 @@ import io.openraven.magpie.plugins.azure.discovery.services.StorageBlobDiscovery
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> {
@@ -69,7 +69,8 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
   @Override
   public void discover(Session session, Emitter emitter) {
 
-    if(config.getCredentials().isEmpty()) {
+      final List<Map<String, Object>> fetchedCredentials = config.getCredentials();
+      if(fetchedCredentials.isEmpty()) {
       final var azureCliCredential = new AzureCliCredentialBuilder().build();
       final var profile = new AzureProfile(AzureEnvironment.AZURE);
       final var azrm = AzureResourceManager
@@ -80,7 +81,7 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
 
       discover(session, emitter, logger, subscriptionID, azrm, profile);
     } else {
-      config.getCredentials().forEach(mapOfKeysToCredsAndSubInfo -> {
+      fetchedCredentials.forEach(mapOfKeysToCredsAndSubInfo -> {
 
         final var subscriptionID = (String)mapOfKeysToCredsAndSubInfo.get("subscription-id");
         final var creds = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("creds");
