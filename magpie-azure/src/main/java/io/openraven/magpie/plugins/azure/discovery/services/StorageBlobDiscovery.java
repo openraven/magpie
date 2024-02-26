@@ -41,21 +41,30 @@ public class StorageBlobDiscovery implements AzureDiscovery{
     logger.info("Discovering storage");
 
     discoverStorageAccounts(mapper, session, emitter, logger, subscriptionID, azrm, profile);
+
   }
 
   private void discoverStorageAccounts(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
 
-    azrm.storageAccounts().list().forEach(sa -> {
-      final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
-        .withRegion(sa.regionName())
-        .withCreatedIso(sa.creationTime().toInstant())
-        .withResourceName(sa.name())
-        .withTags(mapper.valueToTree(sa.tags()))
-        .withUpdatedIso(Instant.now())
-        .withsubscriptionId(subscriptionID)
-        .withConfiguration(mapper.valueToTree(sa.innerModel())).build();
+    try {
+      azrm.storageAccounts().list().forEach(sa -> {
+        final var resourceType = fullService() + ":storageAccount";
+        final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
+          .withRegion(sa.regionName())
+          .withResourceType(resourceType)
+          .withCreatedIso(sa.creationTime().toInstant())
+          .withResourceName(sa.name())
+          .withTags(mapper.valueToTree(sa.tags()))
+          .withUpdatedIso(Instant.now())
+          .withsubscriptionId(subscriptionID)
+          .withConfiguration(mapper.valueToTree(sa.innerModel()))
+          .build();
 
-      emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
-    });
+        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
+      });
+    } catch (Exception ex) {
+      logger.warn("Exception during StorageAccount discovery", ex);
+    }
+
   }
 }
