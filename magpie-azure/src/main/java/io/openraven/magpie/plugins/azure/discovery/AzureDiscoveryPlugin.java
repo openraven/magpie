@@ -16,7 +16,6 @@
 package io.openraven.magpie.plugins.azure.discovery;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.implementation.util.EnvironmentConfiguration;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.core.util.Configuration;
@@ -25,6 +24,7 @@ import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.nimbusds.jose.util.Pair;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
@@ -36,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static com.azure.core.util.Configuration.PROPERTY_AZURE_TENANT_ID;
 
 public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> {
 
@@ -88,18 +86,18 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
       fetchedCredentials.forEach(mapOfKeysToCredsAndSubInfo -> {
 
         final var subscriptionID = (String)mapOfKeysToCredsAndSubInfo.get("subscription-id");
-        @SuppressWarnings("unchecked") final var credentialsSupplier = (Supplier<TokenCredential>) mapOfKeysToCredsAndSubInfo.get("credentialsSupplier");
-        final var configurationBuilder = (ConfigurationBuilder) mapOfKeysToCredsAndSubInfo.get("configurationBuilder");
+        @SuppressWarnings("unchecked") final var credentialsSupplier = (Supplier<Pair<Configuration, TokenCredential>>) mapOfKeysToCredsAndSubInfo.get("credentialsSupplier");
         final var tenantID = (String)mapOfKeysToCredsAndSubInfo.get("tenant-id");
-        EnvironmentConfiguration.getGlobalConfiguration().put(PROPERTY_AZURE_TENANT_ID, tenantID);
         final var profile = new AzureProfile(AzureEnvironment.AZURE);
-        final Configuration build = configurationBuilder.build();
+        final Pair<Configuration, TokenCredential> credential = credentialsSupplier.get();
+        final Configuration build = credential.getLeft();
         logger.info("configuration.contains(Configuration.PROPERTY_AZURE_TENANT_ID):{}", build.contains(Configuration.PROPERTY_AZURE_TENANT_ID));
         logger.info("configuration.get(Configuration.PROPERTY_AZURE_TENANT_ID):{}", build.get(Configuration.PROPERTY_AZURE_TENANT_ID));
+
         final var azrm = AzureResourceManager
           .configure()
           .withConfiguration(build)
-          .authenticate(credentialsSupplier.get(), profile)
+          .authenticate(credential.getRight(), profile)
           .withTenantId(tenantID)
           .withSubscription(subscriptionID);
 
