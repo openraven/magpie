@@ -19,7 +19,6 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.core.util.Configuration;
-import com.azure.core.util.ConfigurationBuilder;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +29,7 @@ import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.azure.discovery.services.AzureDiscovery;
 import io.openraven.magpie.plugins.azure.discovery.services.StorageBlobDiscovery;
+import io.openraven.magpie.plugins.azure.discovery.services.SubscriptionDiscovery;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -46,7 +46,8 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
     .findAndRegisterModules();
 
   private static final List<AzureDiscovery> DISCOVERY_LIST = List.of(
-    new StorageBlobDiscovery()
+    new StorageBlobDiscovery(),
+    new SubscriptionDiscovery()
   );
 
   private AzureDiscoveryConfig config;
