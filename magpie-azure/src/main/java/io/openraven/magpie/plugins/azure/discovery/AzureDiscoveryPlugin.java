@@ -19,7 +19,6 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.core.util.Configuration;
-import com.azure.core.util.ConfigurationBuilder;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -84,12 +83,13 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
       fetchedCredentials.forEach(mapOfKeysToCredsAndSubInfo -> {
 
         final var subscriptionID = (String)mapOfKeysToCredsAndSubInfo.get("subscription-id");
-        final var creds = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("creds");
+        final var credentials = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("credentials");
+        final var configuration = (Configuration) mapOfKeysToCredsAndSubInfo.get("config");
         final var profile = new AzureProfile(AzureEnvironment.AZURE);
         final var azrm = AzureResourceManager
           .configure()
-          .withConfiguration(new ConfigurationBuilder().putProperty(Configuration.PROPERTY_AZURE_REGIONAL_AUTHORITY_NAME, "westus3").build())
-          .authenticate(creds, profile)
+          .withConfiguration(configuration)
+          .authenticate(credentials, profile)
           .withSubscription(subscriptionID);
 
         discover(session, emitter, logger, subscriptionID, azrm, profile);
