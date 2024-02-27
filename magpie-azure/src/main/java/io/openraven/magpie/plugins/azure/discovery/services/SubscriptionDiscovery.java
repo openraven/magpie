@@ -17,6 +17,7 @@ package io.openraven.magpie.plugins.azure.discovery.services;
 
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.resources.models.Tenant;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
@@ -27,7 +28,7 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.List;
 
-public class SubscriptionDiscovery implements AzureDiscovery{
+public class SubscriptionDiscovery implements AzureDiscovery {
 
   private static final String SERVICE = "subscriptions";
 
@@ -48,16 +49,19 @@ public class SubscriptionDiscovery implements AzureDiscovery{
 
     try {
       azrm.subscriptions().list().forEach(sa -> {
+        var maybeTenantInfo = azrm.tenants().list().stream().filter(t -> t.tenantId().equals(azrm.tenantId())).map(Tenant::innerModel).findFirst();
         final var resourceType = fullService() + ":subscriptions";
-        final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.subscriptionId())
+        final var builder = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.subscriptionId())
           .withResourceType(resourceType)
           .withResourceName(sa.displayName())
           .withUpdatedIso(Instant.now())
           .withsubscriptionId(subscriptionID)
-          .withConfiguration(mapper.valueToTree(sa.innerModel()))
-          .build();
-
-
+          .withConfiguration(mapper.valueToTree(sa.innerModel()));
+        maybeTenantInfo.ifPresent(inner -> {
+          builder.withContainingEntity(inner.displayName());
+          builder.withContainingEntityId(inner.tenantId());
+        });
+        var data = builder.build();
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
       });
     } catch (Exception ex) {

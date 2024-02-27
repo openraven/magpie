@@ -17,6 +17,7 @@ package io.openraven.magpie.plugins.azure.discovery.services;
 
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.resources.models.Subscription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
@@ -49,7 +50,8 @@ public class StorageBlobDiscovery implements AzureDiscovery{
     try {
       azrm.storageAccounts().list().forEach(sa -> {
         final var resourceType = fullService() + ":storageAccount";
-        final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
+          final Subscription currentSubscription = azrm.getCurrentSubscription();
+          final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
           .withRegion(sa.regionName())
           .withResourceType(resourceType)
           .withCreatedIso(sa.creationTime().toInstant())
@@ -58,6 +60,8 @@ public class StorageBlobDiscovery implements AzureDiscovery{
           .withUpdatedIso(Instant.now())
           .withsubscriptionId(subscriptionID)
           .withConfiguration(mapper.valueToTree(sa.innerModel()))
+          .withContainingEntity(currentSubscription.displayName())
+          .withContainingEntityId(currentSubscription.subscriptionId())
           .build();
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));

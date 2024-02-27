@@ -29,6 +29,8 @@ import static io.openraven.magpie.api.utils.EncodedNamedUUIDGenerator.getEncoded
 
 public class MagpieAzureResource {
   private final ObjectMapper mapper;
+  private final String containingEntity;
+  private final String containingEntityId;
 
   public String resourceId;
   public String resourceName;
@@ -63,6 +65,8 @@ public class MagpieAzureResource {
     this.tags = builder.tags;
     this.discoveryMeta = builder.discoveryMeta;
     this.mapper = builder.mapper;
+    this.containingEntity = builder.containingEntity;
+    this.containingEntityId = builder.containingEntityId;
   }
 
   public ObjectNode toJsonNode() {
@@ -80,6 +84,8 @@ public class MagpieAzureResource {
     data.put("discoverySessionId", discoverySessionId);
     data.put("maxSizeInBytes", maxSizeInBytes);
     data.put("sizeInBytes", sizeInBytes);
+    data.put("containingEntity", containingEntity);
+    data.put("containingEntityId", containingEntityId);
 
     data.set("configuration", configuration);
     data.set("supplementaryConfiguration", supplementaryConfiguration);
@@ -201,6 +207,14 @@ public class MagpieAzureResource {
     this.discoveryMeta = discoveryMeta;
   }
 
+  public String getContainingEntity() {
+    return containingEntity;
+  }
+
+  public String getContainingEntityId() {
+    return containingEntityId;
+  }
+
   public static class MagpieAzureResourceBuilder {
     private final ObjectMapper mapper;
     private String resourceName;
@@ -221,8 +235,10 @@ public class MagpieAzureResource {
     private JsonNode supplementaryConfiguration;
     private JsonNode tags;
     private JsonNode discoveryMeta;
+    private String containingEntityId;
+    private String containingEntity;
 
-    public MagpieAzureResourceBuilder(ObjectMapper mapper, String resourceId) {
+      public MagpieAzureResourceBuilder(ObjectMapper mapper, String resourceId) {
       this.resourceId = resourceId;
       this.mapper = mapper;
 
@@ -305,5 +321,15 @@ public class MagpieAzureResource {
     public MagpieAzureResource build() {
       return new MagpieAzureResource(this);
     }
+
+      public MagpieAzureResourceBuilder withContainingEntity(String s) {
+        this.containingEntity = s;
+        return this;
+      }
+
+      public MagpieAzureResourceBuilder withContainingEntityId(String s) {
+          this.containingEntityId = s;
+          return this;
+      }
   }
 }
