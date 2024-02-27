@@ -16,6 +16,7 @@
 package io.openraven.magpie.plugins.azure.discovery;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.implementation.util.EnvironmentConfiguration;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.core.util.Configuration;
@@ -33,6 +34,8 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.azure.core.util.Configuration.PROPERTY_AZURE_TENANT_ID;
 
 public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> {
 
@@ -86,6 +89,7 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
         final var credentials = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("credentials");
         final var configuration = (Configuration) mapOfKeysToCredsAndSubInfo.get("configuration");
         final var tenantID = (String)mapOfKeysToCredsAndSubInfo.get("tenant-id");
+        EnvironmentConfiguration.getGlobalConfiguration().put(PROPERTY_AZURE_TENANT_ID, tenantID);
         final var profile = new AzureProfile(AzureEnvironment.AZURE);
         final var azrm = AzureResourceManager
           .configure()
