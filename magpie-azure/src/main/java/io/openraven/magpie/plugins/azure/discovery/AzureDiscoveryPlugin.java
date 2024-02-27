@@ -84,12 +84,14 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
 
         final var subscriptionID = (String)mapOfKeysToCredsAndSubInfo.get("subscription-id");
         final var credentials = (TokenCredential) mapOfKeysToCredsAndSubInfo.get("credentials");
-        final var configuration = (Configuration) mapOfKeysToCredsAndSubInfo.get("config");
+        final var configuration = (Configuration) mapOfKeysToCredsAndSubInfo.get("configuration");
+        final var tenantID = (String)mapOfKeysToCredsAndSubInfo.get("tenant-id");
         final var profile = new AzureProfile(AzureEnvironment.AZURE);
         final var azrm = AzureResourceManager
           .configure()
           .withConfiguration(configuration)
           .authenticate(credentials, profile)
+          .withTenantId(tenantID)
           .withSubscription(subscriptionID);
 
         discover(session, emitter, logger, subscriptionID, azrm, profile);
