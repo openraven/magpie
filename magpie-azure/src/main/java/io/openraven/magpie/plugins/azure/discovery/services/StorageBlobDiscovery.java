@@ -22,11 +22,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.plugins.azure.discovery.AzureUtils;
 import io.openraven.magpie.plugins.azure.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class StorageBlobDiscovery implements AzureDiscovery{
 
@@ -47,28 +50,46 @@ public class StorageBlobDiscovery implements AzureDiscovery{
 
   private void discoverStorageAccounts(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
 
-    try {
+
       azrm.storageAccounts().list().forEach(sa -> {
-        final var resourceType = fullService() + ":storageAccount";
-          final Subscription currentSubscription = azrm.getCurrentSubscription();
-          final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
-          .withRegion(sa.regionName())
-          .withResourceType(resourceType)
-          .withCreatedIso(sa.creationTime().toInstant())
-          .withResourceName(sa.name())
-          .withTags(mapper.valueToTree(sa.tags()))
-          .withUpdatedIso(Instant.now())
-          .withsubscriptionId(subscriptionID)
-          .withConfiguration(mapper.valueToTree(sa.innerModel()))
-          .withContainingEntity(currentSubscription.displayName())
-          .withContainingEntityId(currentSubscription.subscriptionId())
-          .build();
+        try {
+          final var resourceType = fullService() + ":storageAccount";
+            final Subscription currentSubscription = azrm.getCurrentSubscription();
+            final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
+            .withRegion(sa.regionName())
+            .withResourceType(resourceType)
+            .withCreatedIso(sa.creationTime().toInstant())
+            .withResourceName(sa.name())
+            .withTags(mapper.valueToTree(sa.tags()))
+            .withUpdatedIso(Instant.now())
+            .withsubscriptionId(subscriptionID)
+            .withConfiguration(mapper.valueToTree(sa.innerModel()))
+            .withContainingEntity(currentSubscription.displayName())
+            .withContainingEntityId(currentSubscription.subscriptionId())
+            .build();
 
-        emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
+            final var accountStatuses = new HashMap<String, String>();
+            accountStatuses.put("primary", sa.accountStatuses().primary().toString());
+            accountStatuses.put("secondary", sa.accountStatuses().secondary() == null ? "none" : sa.accountStatuses().secondary().toString());
+
+            AzureUtils.update(data.supplementaryConfiguration, Map.of(
+              "ipAddressesWithAccess", sa.ipAddressesWithAccess(),
+              "accountStatuses", accountStatuses,
+              "accessTier", sa.accessTier(),
+              "encryptionStatuses", sa.encryptionStatuses(),
+              "encryptionKeySource", sa.encryptionKeySource(),
+              "provisioningState", sa.provisioningState(),
+              "isBlobPublicAccessAllowed", sa.isBlobPublicAccessAllowed(),
+              "isAccessAllowedFromAllNetworks", sa.isAccessAllowedFromAllNetworks(),
+              "isHttpsTrafficOnly", sa.isHttpsTrafficOnly(),
+              "isSharedKeyAccessAllowed", sa.isSharedKeyAccessAllowed()
+            ));
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
+      } catch (Exception ex) {
+        logger.warn("Exception during StorageAccount discovery", ex);
+      }
+
+
       });
-    } catch (Exception ex) {
-      logger.warn("Exception during StorageAccount discovery", ex);
-    }
-
   }
 }
