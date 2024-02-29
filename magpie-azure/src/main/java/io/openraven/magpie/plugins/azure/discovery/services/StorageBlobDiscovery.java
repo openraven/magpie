@@ -82,7 +82,8 @@ public class StorageBlobDiscovery implements AzureDiscovery{
               "isBlobPublicAccessAllowed", sa.isBlobPublicAccessAllowed(),
               "isAccessAllowedFromAllNetworks", sa.isAccessAllowedFromAllNetworks(),
               "isHttpsTrafficOnly", sa.isHttpsTrafficOnly(),
-              "isSharedKeyAccessAllowed", sa.isSharedKeyAccessAllowed()
+//              "isSharedKeyAccessAllowed", sa.isSharedKeyAccessAllowed(),
+              "isHnsEnabled", sa.isHnsEnabled()
             ));
           emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
       } catch (Exception ex) {
