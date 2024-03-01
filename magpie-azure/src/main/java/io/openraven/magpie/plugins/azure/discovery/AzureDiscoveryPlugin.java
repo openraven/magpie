@@ -43,6 +43,7 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
     .enable(SerializationFeature.INDENT_OUTPUT)
+    .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
     .findAndRegisterModules();
 
   private static final List<AzureDiscovery> DISCOVERY_LIST = List.of(
