@@ -15,6 +15,7 @@
  */
 package io.openraven.magpie.plugins.azure.discovery.services;
 
+import com.azure.core.management.exception.ManagementException;
 import com.azure.core.management.implementation.serializer.AzureJacksonAdapter;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class StorageDiscovery implements AzureDiscovery{
@@ -142,7 +144,7 @@ public class StorageDiscovery implements AzureDiscovery{
         AzureUtils.update(data.supplementaryConfiguration, Map.of("accountStatuses", accountStatuses));
 
         final var keyMap =  new HashMap<String, String>();
-        sa.getKeys().forEach(k -> keyMap.put(k.keyName(), k.value()));
+        wrappedCall(() -> sa.getKeys().forEach(k -> keyMap.put(k.keyName(), k.value())));
         AzureUtils.update(data.supplementaryConfiguration, Map.of("keys", keyMap));
 
         final var props = AzureUtils.reflectProperties(sa.id(), sa, STORAGE_ACCOUNT_REFLECTION_INTERESTS, STORAGE_ACCOUNT_REFLECTION_NON_INTERESTS, logger, mapper);
@@ -156,5 +158,26 @@ public class StorageDiscovery implements AzureDiscovery{
     });
 
     return resourceGroupToAccountNameTuples;
+  }
+
+  public <T> T wrappedCall(Supplier<T> fetch) {
+    try {
+      return fetch.get();
+    } catch(ManagementException managementException) {
+      if ("AuthorizationFailed".equals(managementException.getValue().getCode())){
+        return null;
+      }
+      throw new RuntimeException(managementException);
+    }
+  }
+  public void wrappedCall(Runnable runnable) {
+    try {
+      runnable.run();
+    } catch(ManagementException managementException) {
+      if ("AuthorizationFailed".equals(managementException.getValue().getCode())){
+        return;
+      }
+      throw new RuntimeException(managementException);
+    }
   }
 }
