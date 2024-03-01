@@ -53,7 +53,7 @@ public class MagpieAzureResource {
     this.resourceName = builder.resourceName;
     this.resourceId = builder.resourceId;
     this.resourceType = builder.resourceType;
-    this.region = builder.awsRegion;
+    this.region = builder.region;
     this.subscriptionId = builder.subscriptionId;
     this.createdIso = builder.createdIso;
     this.updatedIso = builder.updatedIso;
@@ -77,7 +77,7 @@ public class MagpieAzureResource {
     data.put("resourceName", resourceName);
     data.put("resourceId", resourceId);
     data.put("resourceType", resourceType);
-    data.put("awsRegion", region);
+    data.put("region", region);
     data.put("subscriptionId", subscriptionId);
     data.put("createdIso", createdIso == null ? null : createdIso.toString());
     data.put("updatedIso", updatedIso == null ? null : updatedIso.toString());
@@ -220,7 +220,7 @@ public class MagpieAzureResource {
     private String resourceName;
     private String resourceId;
     private String resourceType;
-    private String awsRegion;
+    private String region;
 
     private String subscriptionId;
 
@@ -264,7 +264,7 @@ public class MagpieAzureResource {
     }
 
     public MagpieAzureResourceBuilder withRegion(String region) {
-      this.awsRegion = region;
+      this.region = region;
       return this;
     }
 
