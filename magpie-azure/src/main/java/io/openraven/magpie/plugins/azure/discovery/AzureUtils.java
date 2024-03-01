@@ -17,13 +17,21 @@
 package io.openraven.magpie.plugins.azure.discovery;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class AzureUtils {
 
@@ -31,6 +39,38 @@ public class AzureUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureUtils.class);
 
+
+  public static Map<String, Object> reflectProperties(String id, Object target, Set<Pattern> interests, Set<Pattern> nonInterests, Logger logger, ObjectMapper mapper) {
+    try {
+      final var map = new HashMap<String, Object>();
+
+      for (Method method : Arrays.stream(target.getClass().getDeclaredMethods())
+        .filter(m -> m.getParameterCount() == 0)            // Nothing that requires parameters
+        .filter(m -> !m.getName().endsWith("Async"))        // Nothing that's async
+        .filter(m -> Modifier.isPublic(m.getModifiers()))   // Public methods only
+        .filter(m -> interests.stream().anyMatch(p -> p.matcher(m.getName()).matches()))    // Only methods of interest
+        .filter(m -> nonInterests.stream().noneMatch(p ->p.matcher(m.getName()).matches())) // Not on the deny list
+        .collect(Collectors.toList())) {
+        try {
+          method.setAccessible(true);
+          final var res = method.invoke(target);
+          if (res instanceof String || res instanceof Boolean || res instanceof Number) {
+            map.put(method.getName(), res);
+          } else {
+            map.put(method.getName(), mapper.valueToTree(res));
+          }
+        } catch (Exception ex) {
+          logger.info("Couldn't add method {}", method.getName(), ex);
+        }
+      }
+
+
+      return map;
+    } catch (Exception ex) {
+      logger.info("Couldn't reflect properties on {}", id, ex);
+      return Map.of();
+    }
+  }
 
   @SuppressWarnings("rawtypes")
   public static JsonNode update(@Nullable JsonNode payload, Map<String, Object> mappedResponsesToAdd) {
