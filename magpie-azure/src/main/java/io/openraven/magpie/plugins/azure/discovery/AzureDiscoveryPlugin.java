@@ -28,7 +28,7 @@ import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.OriginPlugin;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.azure.discovery.services.AzureDiscovery;
-import io.openraven.magpie.plugins.azure.discovery.services.StorageBlobDiscovery;
+import io.openraven.magpie.plugins.azure.discovery.services.StorageDiscovery;
 import io.openraven.magpie.plugins.azure.discovery.services.SubscriptionDiscovery;
 import org.slf4j.Logger;
 
@@ -46,7 +46,7 @@ public class AzureDiscoveryPlugin implements OriginPlugin<AzureDiscoveryConfig> 
     .findAndRegisterModules();
 
   private static final List<AzureDiscovery> DISCOVERY_LIST = List.of(
-    new StorageBlobDiscovery(),
+    new StorageDiscovery(),
     new SubscriptionDiscovery()
   );
 

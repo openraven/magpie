@@ -15,6 +15,7 @@
  */
 package io.openraven.magpie.plugins.azure.discovery.services;
 
+import com.azure.core.management.implementation.serializer.AzureJacksonAdapter;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.Subscription;
@@ -24,16 +25,18 @@ import io.openraven.magpie.api.MagpieAzureResource;
 import io.openraven.magpie.api.Session;
 import io.openraven.magpie.plugins.azure.discovery.AzureUtils;
 import io.openraven.magpie.plugins.azure.discovery.VersionedMagpieEnvelopeProvider;
+import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class StorageBlobDiscovery implements AzureDiscovery{
+public class StorageDiscovery implements AzureDiscovery{
 
   private static final String SERVICE = "storage";
 
@@ -50,6 +53,15 @@ public class StorageBlobDiscovery implements AzureDiscovery{
     Pattern.compile("listPrivateLinkResources")
   );
 
+  private static final Set<Pattern> SBC_REFLECTION_INTERESTS = Set.of(
+    Pattern.compile("^is.+"),
+    Pattern.compile("^list.+"),
+    Pattern.compile("^has.+"),
+    Pattern.compile("^lease.+")
+  );
+
+  private static final Set<Pattern> SBC_REFLECTION_NON_INTERESTS = Set.of();
+
   @Override
   public String service() {
     return SERVICE;
@@ -59,11 +71,53 @@ public class StorageBlobDiscovery implements AzureDiscovery{
   public void discover(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
     logger.info("Discovering storage");
 
-    discoverStorageAccounts(mapper, session, emitter, logger, subscriptionID, azrm, profile);
-
+    final var triples = discoverStorageAccounts(mapper, session, emitter, logger, subscriptionID, azrm, profile);
+    discoverStorageContainers(mapper, session, emitter, logger, subscriptionID, azrm, profile, triples);
   }
 
-  private void discoverStorageAccounts(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
+  private void discoverStorageContainers(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile, List<Triple<String, String, String>> triples) {
+
+    final var resourceType = fullService() + ":storageBlobContainer";
+    final Subscription currentSubscription = azrm.getCurrentSubscription();
+
+    triples.forEach(singleTuple ->
+    {
+      azrm.storageBlobContainers().list(singleTuple.getLeft(), singleTuple.getMiddle()).forEach(sbc ->
+      {
+        final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sbc.id())
+//          .withRegion()
+          .withResourceType(resourceType)
+//          .withCreatedIso(sbc.time)
+          .withResourceName(sbc.name())
+//          .withTags(mapper.valueToTree(sbc.ta))
+          .withUpdatedIso(Instant.now())
+          .withsubscriptionId(subscriptionID)
+          .withConfiguration(mapper.valueToTree(sbc))
+//          .withConfiguration(mapper.valueToTree(sbc.))
+          .withContainingEntity(currentSubscription.displayName())
+          .withContainingEntityId(currentSubscription.subscriptionId())
+          .build();
+
+          final var props = AzureUtils.reflectProperties(sbc.id(), sbc, SBC_REFLECTION_INTERESTS, SBC_REFLECTION_NON_INTERESTS, logger, mapper);
+          AzureUtils.update(data.supplementaryConfiguration, Map.of("properties", props));
+
+          AzureUtils.update(data.supplementaryConfiguration, Map.of("location", Map.of(
+            "resourceGroupName", singleTuple.getLeft(),
+            "storageAccountName", singleTuple.getMiddle(),
+            "storageAccountEndpoint", singleTuple.getRight()
+          )));
+
+          emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
+      });
+    });
+  }
+
+  private List<Triple<String, String, String>> discoverStorageAccounts(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
+
+
+    AzureJacksonAdapter adapter = new AzureJacksonAdapter();
+
+    final List<Triple<String, String, String>> resourceGroupToAccountNameTuples = new ArrayList<>();
 
     azrm.storageAccounts().list().forEach(sa -> {
       try {
@@ -94,9 +148,13 @@ public class StorageBlobDiscovery implements AzureDiscovery{
         final var props = AzureUtils.reflectProperties(sa.id(), sa, STORAGE_ACCOUNT_REFLECTION_INTERESTS, STORAGE_ACCOUNT_REFLECTION_NON_INTERESTS, logger, mapper);
         AzureUtils.update(data.supplementaryConfiguration, Map.of("properties", props));
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(resourceType), data.toJsonNode()));
+
+        resourceGroupToAccountNameTuples.add(Triple.of(sa.resourceGroupName(), sa.name(), sa.endPoints().primary().blob()));
       } catch (Exception ex) {
         logger.warn("Exception during StorageAccount discovery", ex);
       }
     });
+
+    return resourceGroupToAccountNameTuples;
   }
 }

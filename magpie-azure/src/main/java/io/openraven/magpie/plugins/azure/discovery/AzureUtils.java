@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 
 public class AzureUtils {
 
-  private static final JsonNode NULL_NODE = AzureDiscoveryPlugin.MAPPER.nullNode();
+  public static final JsonNode NULL_NODE = AzureDiscoveryPlugin.MAPPER.nullNode();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureUtils.class);
 
