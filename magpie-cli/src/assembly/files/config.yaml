@@ -55,7 +55,9 @@ plugins:
     enabled: false
     config:
       services:
-        - storage
+#        - storage
+#        - sql
+#        - subscriptions
   magpie.json:
     enabled: true
     config:

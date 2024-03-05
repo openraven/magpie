@@ -87,15 +87,11 @@ public class StorageDiscovery implements AzureDiscovery{
       azrm.storageBlobContainers().list(singleTuple.getLeft(), singleTuple.getMiddle()).forEach(sbc ->
       {
         final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sbc.id())
-//          .withRegion()
           .withResourceType(resourceType)
-//          .withCreatedIso(sbc.time)
           .withResourceName(sbc.name())
-//          .withTags(mapper.valueToTree(sbc.ta))
           .withUpdatedIso(Instant.now())
           .withsubscriptionId(subscriptionID)
           .withConfiguration(mapper.valueToTree(sbc))
-//          .withConfiguration(mapper.valueToTree(sbc.))
           .withContainingEntity(currentSubscription.displayName())
           .withContainingEntityId(currentSubscription.subscriptionId())
           .build();
@@ -115,9 +111,6 @@ public class StorageDiscovery implements AzureDiscovery{
   }
 
   private List<Triple<String, String, String>> discoverStorageAccounts(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
-
-
-    AzureJacksonAdapter adapter = new AzureJacksonAdapter();
 
     final List<Triple<String, String, String>> resourceGroupToAccountNameTuples = new ArrayList<>();
 
