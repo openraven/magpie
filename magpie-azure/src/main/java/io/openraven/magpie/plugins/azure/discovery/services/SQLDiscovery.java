@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.azure.sql.SQLDatabase;
+import io.openraven.magpie.data.azure.sql.SQLServer;
 import io.openraven.magpie.plugins.azure.discovery.AzureUtils;
 import io.openraven.magpie.plugins.azure.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
@@ -66,7 +68,8 @@ public class SQLDiscovery implements AzureDiscovery {
 
   private void discoverServers(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, Subscription subscription, AzureResourceManager azrm, AzureProfile profile) {
 
-    final var resourceType = fullService() + ":server";
+    final var resourceType = SQLServer.RESOURCE_TYPE;
+
     azrm.sqlServers().list().forEach(sql -> {
       try {
         final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sql.id())
@@ -93,7 +96,9 @@ public class SQLDiscovery implements AzureDiscovery {
   }
 
   private void discoverDatabases(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, Subscription subscription, AzureResourceManager azrm, SqlServer server) {
-    final var resourceType = fullService() + ":database";
+
+    final var resourceType = SQLDatabase.RESOURCE_TYPE;
+
     server.databases().list().forEach(db -> {
       try {
         final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, db.id())

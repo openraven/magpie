@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.azure.storage.StorageAccount;
+import io.openraven.magpie.data.azure.storage.StorageBlobContainer;
 import io.openraven.magpie.plugins.azure.discovery.AzureUtils;
 import io.openraven.magpie.plugins.azure.discovery.VersionedMagpieEnvelopeProvider;
 import org.apache.commons.lang3.tuple.Triple;
@@ -79,7 +81,8 @@ public class StorageDiscovery implements AzureDiscovery{
 
   private void discoverStorageContainers(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile, List<Triple<String, String, String>> triples) {
 
-    final var resourceType = fullService() + ":storageBlobContainer";
+    final var resourceType = StorageBlobContainer.RESOURCE_TYPE;
+
     final Subscription currentSubscription = azrm.getCurrentSubscription();
 
     triples.forEach(singleTuple ->
@@ -116,7 +119,9 @@ public class StorageDiscovery implements AzureDiscovery{
 
     azrm.storageAccounts().list().forEach(sa -> {
       try {
-        final var resourceType = fullService() + ":storageAccount";
+
+        final var resourceType = StorageAccount.RESOURCE_TYPE;
+
         final Subscription currentSubscription = azrm.getCurrentSubscription();
         final var data = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.id())
           .withRegion(sa.regionName())
