@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openraven.magpie.api.Emitter;
 import io.openraven.magpie.api.MagpieAzureResource;
 import io.openraven.magpie.api.Session;
+import io.openraven.magpie.data.azure.subscriptions.Subscription;
 import io.openraven.magpie.plugins.azure.discovery.VersionedMagpieEnvelopeProvider;
 import org.slf4j.Logger;
 
@@ -47,10 +48,12 @@ public class SubscriptionDiscovery implements AzureDiscovery {
 
   private void discoverSubscriptions(ObjectMapper mapper, Session session, Emitter emitter, Logger logger, String subscriptionID, AzureResourceManager azrm, AzureProfile profile) {
 
+    final var resourceType = Subscription.RESOURCE_TYPE;
+
     try {
       azrm.subscriptions().list().forEach(sa -> {
         var maybeTenantInfo = azrm.tenants().list().stream().filter(t -> t.tenantId().equals(azrm.tenantId())).map(Tenant::innerModel).findFirst();
-        final var resourceType = fullService() + ":subscriptions";
+
         final var builder = new MagpieAzureResource.MagpieAzureResourceBuilder(mapper, sa.subscriptionId())
           .withResourceType(resourceType)
           .withResourceName(sa.displayName())

@@ -22,3 +22,4 @@ create table azuresqldatabase () INHERITS (azure);
 create table azuresqlserver () INHERITS (azure);
 create table azurestorageaccount () INHERITS (azure);
 create table azurestorageblobcontainer () INHERITS (azure);
+create table azuresubscription () INHERITS (azure);
