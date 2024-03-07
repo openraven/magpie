@@ -68,14 +68,23 @@ public class AzureResource extends Resource {
   @Column(name = "region", columnDefinition = "TEXT")
   public String region;
 
-  @Column(name = "subscriptionId", columnDefinition = "TEXT")
+  @Column(name = "subscriptionid", columnDefinition = "TEXT")
   public String subscriptionId;
+
+  @Column(name = "containingEntity", columnDefinition = "TEXT")
+  public String containingEntity;
+
+  @Column(name = "containingEntityid", columnDefinition = "TEXT")
+  public String containingEntityId;
 
   @Column(name = "creatediso", columnDefinition = "TIMESTAMPTZ")
   public Instant createdIso;
 
   @Column(name = "updatediso", columnDefinition = "TIMESTAMPTZ")
   public Instant updatedIso;
+
+  @Column(name = "discoverysessionid", columnDefinition = "TEXT")
+  public String discoverySessionId;
 
   @Transient
   public Long maxSizeInBytes;
@@ -212,5 +221,29 @@ public class AzureResource extends Resource {
 
   public void setDiscoveryMeta(JsonNode discoveryMeta) {
     this.discoveryMeta = discoveryMeta;
+  }
+
+  public String getDiscoverySessionId() {
+    return discoverySessionId;
+  }
+
+  public void setDiscoverySessionId(String discoverySessionId) {
+    this.discoverySessionId = discoverySessionId;
+  }
+
+  public String getContainingEntity() {
+    return containingEntity;
+  }
+
+  public void setContainingEntity(String containingEntity) {
+    this.containingEntity = containingEntity;
+  }
+
+  public String getContainingEntityId() {
+    return containingEntityId;
+  }
+
+  public void setContainingEntityId(String containingEntityId) {
+    this.containingEntityId = containingEntityId;
   }
 }
