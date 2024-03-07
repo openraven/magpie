@@ -23,9 +23,9 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
-import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import java.util.Optional;
 import java.util.Properties;
 
 import static io.openraven.magpie.data.utils.EntityTypeResolver.getSubClasses;
@@ -43,7 +43,7 @@ public class PostgresPersistenceProvider {
     settings.put(Environment.PASS, config.getPassword());
     settings.put(Environment.DIALECT, "io.openraven.magpie.plugins.persist.config.PostgreSQL10StringDialect");
     settings.put(Environment.SHOW_SQL, "false");
-    settings.put(Environment.HBM2DDL_AUTO, "validate");
+    settings.put(Environment.HBM2DDL_AUTO, Optional.ofNullable(config.getDdlAuto()).orElse("validate"));
     settings.put(Environment.DEFAULT_SCHEMA, config.getSchema());
 
     Configuration configuration = new Configuration();

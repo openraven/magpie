@@ -25,6 +25,7 @@ public class PersistConfig {
   private String user;
   private String password;
   private boolean migrateDB = true;
+  private String ddlAuto;
 
 
   public String getSchema() {
@@ -67,4 +68,12 @@ public class PersistConfig {
     public void setMigrateDB(boolean migrateDB) {
         this.migrateDB = migrateDB;
     }
+
+  public String getDdlAuto() {
+    return this.ddlAuto;
+  }
+
+  public void setDdlAuto(String ddlAuto) {
+    this.ddlAuto = ddlAuto;
+  }
 }
