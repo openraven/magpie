@@ -16,6 +16,7 @@
     + [AWS](#aws)
       - [Per region discovery](#per-region-discovery)
     + [GCP](#gcp)
+    + [Azure](#azure)
   * [Saving data to PostgreSQL](#saving-data-to-postgresql)
 
 ## What is Magpie?
@@ -307,11 +308,27 @@ Magpie also supports GCP as a core plugin out of the box. Checked boxes are comp
 - [x]  Web Security Scanner
 - [x]  reCAPTCHA Enterprise
 
-##### Authentcation
+##### Authentication
 To use this plugin save .json file with authentication key to file then set environment variable:
 ```
 export GOOGLE_APPLICATION_CREDENTIALS=PATH_TO_CREDENTIALS_JSON_FILE
 ```
+
+#### Azure
+Magpie now contains experimental Azure support. The services supported are limited to:
+
+- [x] SQL Servers
+- [x] SQL Databases
+- [x] Subscriptions
+- [x] Storage Accounts
+- [x] Storage Containers
+
+While PG persistence works for Azure, there are no configuration rules written at this time and there is no estimate on when
+such CSPM rules will exist for Azure.
+
+##### Authentication
+As with AWS and GCP, Magpie utilizes the Azure SDK to find and use credentials on the local system. Utilizing `az login` will
+save credentials so that Magpie can use them.
 
 
 ### Saving data to PostgreSQL

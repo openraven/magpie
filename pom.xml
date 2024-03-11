@@ -5,7 +5,7 @@
   <groupId>io.openraven.magpie</groupId>
   <artifactId>magpie-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.9.3-SNAPSHOT</version>
+  <version>0.10.0-SNAPSHOT</version>
   <name>Open Raven Magpie</name>
   <url>https://github.com/openraven/magpie</url>
   <description>Open Raven's Magpie Project</description>
@@ -22,6 +22,7 @@
     <module>magpie-policy-output-text</module>
     <module>magpie-policy-output-json</module>
     <module>magpie-policy-output-csv</module>
+    <module>magpie-azure</module>
   </modules>
 
   <properties>
