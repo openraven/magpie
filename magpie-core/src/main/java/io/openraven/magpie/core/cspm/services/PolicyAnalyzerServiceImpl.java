@@ -33,6 +33,8 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private AssetsRepo assetsRepo;
 
+  private PersistConfig config;
+
   @Override
   public void init(MagpieConfig config) {
     final var rawPersistConfig = config.getPlugins().get(PersistPlugin.ID);
@@ -42,6 +44,7 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
     try {
       final PersistConfig persistConfig = MAPPER.treeToValue(MAPPER.valueToTree(rawPersistConfig.getConfig()), PersistConfig.class);
+      this.config = persistConfig;
       assetsRepo = new HibernateAssetsRepoImpl(persistConfig);
     } catch (JsonProcessingException e) {
       throw new ConfigException("Cannot instantiate PersistConfig while initializing PolicyAnalyzerService", e);
@@ -81,7 +84,8 @@ public class PolicyAnalyzerServiceImpl implements PolicyAnalyzerService {
 
   private boolean cloudProviderAssetsAvailable(Policy policy) {
     var provider = Strings.isNullOrEmpty(policy.getCloudProvider()) ? "" : policy.getCloudProvider().toLowerCase(Locale.ROOT);
-    List<Map<String, Object>> data = assetsRepo.queryNative("select count(*) from magpie.%provider%".replace("%provider%", provider));
+    var schema = Strings.isNullOrEmpty(config.getSchema()) ? "magpie" : config.getSchema();
+    List<Map<String, Object>> data = assetsRepo.queryNative("select count(*) from %schema%.%provider%".replace("%schema%", schema).replace("%provider%", provider));
     final var count = data.get(0).get("count");
     BigInteger compareTo;
     if(count instanceof BigInteger) {
