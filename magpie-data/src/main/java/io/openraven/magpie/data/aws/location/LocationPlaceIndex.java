@@ -21,9 +21,9 @@ package io.openraven.magpie.data.aws.location;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = LocationPlaceIndex.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = LocationPlaceIndex.TABLE_NAME)
 public class LocationPlaceIndex extends AWSResource {
 
   protected static final String TABLE_NAME = "awslocationplaceindex";

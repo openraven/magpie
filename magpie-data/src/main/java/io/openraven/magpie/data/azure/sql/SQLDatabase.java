@@ -36,9 +36,9 @@ package io.openraven.magpie.data.azure.sql;
 
 import io.openraven.magpie.data.azure.AzureResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = SQLDatabase.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = SQLDatabase.TABLE_NAME)
 public class SQLDatabase extends AzureResource {
 
   protected static final String TABLE_NAME = "azuresqldatabase";

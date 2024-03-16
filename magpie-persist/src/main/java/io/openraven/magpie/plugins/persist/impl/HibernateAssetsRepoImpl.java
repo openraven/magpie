@@ -20,12 +20,12 @@ import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
-import org.hibernate.query.internal.NativeQueryImpl;
+import jakarta.persistence.EntityManager;
+import org.hibernate.query.sql.internal.NativeQueryImpl;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
 import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigInteger;

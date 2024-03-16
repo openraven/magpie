@@ -5,7 +5,7 @@
   <groupId>io.openraven.magpie</groupId>
   <artifactId>magpie-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.10.3-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
   <name>Open Raven Magpie</name>
   <url>https://github.com/openraven/magpie</url>
   <description>Open Raven's Magpie Project</description>
@@ -26,11 +26,11 @@
   </modules>
 
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <jackson.version>2.15.2</jackson.version>
     <testcontainer.version>1.19.0</testcontainer.version>
-    <aws.sdk.version>2.17.243</aws.sdk.version>
+    <aws.sdk.version>2.25.10</aws.sdk.version>
     <sentry.version>6.3.0</sentry.version>
   </properties>
 

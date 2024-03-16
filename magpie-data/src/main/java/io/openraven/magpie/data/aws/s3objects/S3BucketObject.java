@@ -40,9 +40,9 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.util.Map;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = S3BucketObject.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = S3BucketObject.TABLE_NAME)
 public class S3BucketObject extends AWSResource {
 
   protected static final String TABLE_NAME = "awss3bucketobject";

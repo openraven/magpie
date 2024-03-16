@@ -16,17 +16,12 @@
 
 package io.openraven.magpie.plugins.persist.config;
 
-import org.hibernate.dialect.PostgreSQL10Dialect;
-import org.hibernate.type.StringType;
 
-import java.sql.Types;
+import org.hibernate.dialect.PostgreSQLDialect;
 
-public class PostgreSQL10StringDialect extends PostgreSQL10Dialect {
+public class PostgreSQL10StringDialect extends PostgreSQLDialect {
 
   public PostgreSQL10StringDialect() {
     super();
-    this.registerHibernateType(
-      Types.OTHER, StringType.class.getName()
-    );
   }
 }
