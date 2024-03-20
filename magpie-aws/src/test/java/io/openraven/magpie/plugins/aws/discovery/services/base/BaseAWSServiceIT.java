@@ -36,7 +36,7 @@ public abstract class BaseAWSServiceIT {
   private static final int EXPOSED_EDGE_PORT = 4566;
   protected static final String EMPTY_STACK_TEMPLATE_PATH = "/template/empty-stack.yml";
   private static final String STACK_NAME = "integration-stack-" + System.nanoTime();
-  private static final String FULL_IMAGE_NAME = "localstack/localstack:0.13.0";
+  private static final String FULL_IMAGE_NAME = "localstack/localstack:1.4.0";
 
   protected static final Region BASE_REGION = Region.US_WEST_1;
   protected static final String ACCOUNT = "account";

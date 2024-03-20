@@ -159,7 +159,7 @@ public class S3Discovery implements AWSDiscovery {
    * We are unable to query buckets from other regions with the default URI without region enrichment
    */
   private S3Client configureS3Client(MagpieAWSClientCreator clientCreator, Region region) {
-    final var builder = clientCreator.apply(S3Client.builder());
+    final var builder = clientCreator.apply(S3Client.builder().forcePathStyle(true));
 
     // Remap magpie clients to local environment
     String magpieAwsEndpoint = System.getProperty("MAGPIE_AWS_ENDPOINT");
@@ -333,11 +333,18 @@ public class S3Discovery implements AWSDiscovery {
 
   private void discoverMetrics(S3Client client, Bucket resource, MagpieAwsResource data) {
     final String keyname = "MetricsConfiguration";
-    getAwsResponse(
-      () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().bucket(resource.name()).build()).metricsConfiguration(),
-      (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+    final String bucketName = resource.name();
+    var result = client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(bucketName).build());
+    result.metricsConfigurationList().forEach(
+      config -> {
+        getAwsResponse(
+          () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().id(config.id()).bucket(bucketName).build()).metricsConfiguration(),
+          (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
+          (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+        );
+      }
     );
+
 
   }
 

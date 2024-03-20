@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -93,13 +94,17 @@ public class AWSUtils {
     for (Map.Entry<String, Object> responseToAdd : mappedResponsesToAdd.entrySet()) {
       ObjectNode nodeToAdd = AWSDiscoveryPlugin.MAPPER.createObjectNode();
 
-      if (responseToAdd.getValue() instanceof ToCopyableBuilder) {
+      final var value = responseToAdd.getValue();
+      if(value instanceof NullNode) {
+        return payload;
+      }
+      if (value instanceof ToCopyableBuilder) {
         nodeToAdd.set(responseToAdd.getKey(),
-          AWSDiscoveryPlugin.MAPPER.convertValue(((ToCopyableBuilder) responseToAdd.getValue()).toBuilder(),
+          AWSDiscoveryPlugin.MAPPER.convertValue(((ToCopyableBuilder) value).toBuilder(),
             JsonNode.class));
       } else {
         nodeToAdd.set(responseToAdd.getKey(),
-          AWSDiscoveryPlugin.MAPPER.convertValue(responseToAdd.getValue(), JsonNode.class));
+          AWSDiscoveryPlugin.MAPPER.convertValue(value, JsonNode.class));
       }
 
       payload = update(payload, nodeToAdd);
