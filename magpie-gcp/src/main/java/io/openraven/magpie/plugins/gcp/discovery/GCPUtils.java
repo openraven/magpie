@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.appengine.repackaged.com.google.common.base.Pair;
+import com.google.appengine.repackaged.org.joda.time.LocalDate;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
@@ -38,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class GCPUtils {
 
@@ -49,12 +52,34 @@ public class GCPUtils {
       return new JsonPrimitive(duration.toString());
     }
   }
+
+  static class LocalDateTimeSerializer implements JsonSerializer <LocalDateTime> {
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss");
+
+    @Override
+    public JsonElement serialize(LocalDateTime localDateTime, Type srcType, JsonSerializationContext context) {
+      return new JsonPrimitive(formatter.format(localDateTime));
+    }
+  }
+
+  static class OffsetDateTimeSerializer implements JsonSerializer <OffsetDateTime> {
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss");
+
+    @Override
+    public JsonElement serialize(OffsetDateTime offsetDateTime, Type srcType, JsonSerializationContext context) {
+      return new JsonPrimitive(formatter.format(offsetDateTime));
+    }
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(GCPUtils.class);
   private static final ObjectMapper mapper = createObjectMapper();
 
   private static final Gson GSON = new GsonBuilder()
     .setPrettyPrinting()
     .registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>) (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+    .registerTypeAdapter(LocalDateTime.class, (JsonDeserializer<LocalDateTime>) (json, type, context) -> LocalDateTime.parse(json.getAsString()))
+    .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeSerializer())
+    .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeSerializer())
     .registerTypeAdapter(Duration.class, new DurationSerializer())
     .create();
 
