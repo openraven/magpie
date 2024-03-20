@@ -23,12 +23,12 @@ import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.accounts.IamGroup;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
 import io.openraven.magpie.plugins.persist.migration.FlywayMigrationService;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainerProvider;
 
-import javax.persistence.EntityManager;
 import java.util.List;
 
 import static io.openraven.magpie.plugins.persist.TestUtils.getResourceAsString;

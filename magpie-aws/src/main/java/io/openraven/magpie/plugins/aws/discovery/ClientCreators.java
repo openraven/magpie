@@ -8,7 +8,7 @@ import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.net.URI;
 import java.util.UUID;
 

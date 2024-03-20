@@ -38,9 +38,9 @@ import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.redshift.model.Cluster;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = RedshiftCluster.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = RedshiftCluster.TABLE_NAME)
 public class RedshiftCluster extends AWSResource {
 
   protected static final String TABLE_NAME = "awsredshiftcluster";

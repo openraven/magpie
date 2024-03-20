@@ -40,9 +40,9 @@ import software.amazon.awssdk.services.ec2.model.NetworkInterface;
 
 import static java.lang.String.format;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = Ec2NetworkInterface.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = Ec2NetworkInterface.TABLE_NAME)
 public class Ec2NetworkInterface extends AWSResource {
 
   protected static final String TABLE_NAME = "awsec2networkinterface";

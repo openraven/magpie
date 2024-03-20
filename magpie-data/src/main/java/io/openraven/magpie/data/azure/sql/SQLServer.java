@@ -38,9 +38,9 @@ import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import io.openraven.magpie.data.azure.AzureResource;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = SQLServer.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = SQLServer.TABLE_NAME)
 public class SQLServer extends AzureResource {
 
   protected static final String TABLE_NAME = "azuresqlserver";

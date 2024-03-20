@@ -23,13 +23,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.data.utils.JsonConverter;
 
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Column;
-import javax.persistence.Convert;
-import javax.persistence.Id;
-import javax.persistence.MappedSuperclass;
-import javax.persistence.Transient;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Transient;
 import java.time.Instant;
 
 @Access(AccessType.FIELD)

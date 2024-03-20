@@ -21,9 +21,9 @@ package io.openraven.magpie.data.aws.guardduty;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = GuardDutyDetector.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = GuardDutyDetector.TABLE_NAME)
 public class GuardDutyDetector extends AWSResource {
 
   protected static final String TABLE_NAME = "awsguarddutydetector";

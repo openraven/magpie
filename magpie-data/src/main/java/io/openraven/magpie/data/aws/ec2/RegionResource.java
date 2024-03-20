@@ -41,9 +41,9 @@ import software.amazon.awssdk.regions.RegionMetadata;
 
 import static java.lang.String.format;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = RegionResource.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = RegionResource.TABLE_NAME)
 public class RegionResource extends AWSResource {
 
   protected static final String TABLE_NAME = "awsregion";

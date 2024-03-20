@@ -39,9 +39,9 @@ import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.LoadBalancer;
 
 // v2 of ELB AWS SDK supports application and network load balancers
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = ElasticLoadBalancingV2LoadBalancer.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = ElasticLoadBalancingV2LoadBalancer.TABLE_NAME)
 public class ElasticLoadBalancingV2LoadBalancer extends AWSResource {
 
   protected static final String TABLE_NAME = "awselasticloadbalancingv2loadbalancer";

@@ -21,9 +21,9 @@ package io.openraven.magpie.data.aws.accounts;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = IamCredentialsReport.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = IamCredentialsReport.TABLE_NAME)
 public class IamCredentialsReport extends AWSResource {
 
   protected static final String TABLE_NAME = "awsiamcredentialsreport";
