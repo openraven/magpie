@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -112,7 +111,7 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
       "SELECT COUNT(*) FROM " + persistConfig.getSchema() + ".aws WHERE resourcetype = :resourceType":
       "SELECT COUNT(*) FROM "  + persistConfig.getSchema() + ".gcp WHERE resourcetype = :resourceType";
 
-    BigInteger val = (BigInteger)entityManager.createNativeQuery(query)
+    var val = (Number)entityManager.createNativeQuery(query)
       .setParameter("resourceType", resourceType)
       .getResultList()
       .get(0);
