@@ -32,6 +32,8 @@
     <testcontainer.version>1.19.7</testcontainer.version>
     <aws.sdk.version>2.25.13</aws.sdk.version>
     <sentry.version>6.3.0</sentry.version>
+    <maven.source.plugin.version>3.3.0</maven.source.plugin.version>
+    <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
   </properties>
 
   <licenses>
@@ -117,7 +119,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${maven.source.plugin.version}</version>
         <executions>
           <execution>
             <id>attach-sources</id>
