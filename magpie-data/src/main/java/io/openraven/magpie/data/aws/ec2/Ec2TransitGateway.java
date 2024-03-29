@@ -40,9 +40,9 @@ import software.amazon.awssdk.services.ec2.model.TransitGateway;
 
 import static java.lang.String.format;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = Ec2TransitGateway.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = Ec2TransitGateway.TABLE_NAME)
 
 
 public class Ec2TransitGateway extends AWSResource {

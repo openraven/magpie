@@ -36,9 +36,9 @@ package io.openraven.magpie.data.aws.organisation;
 
 import io.openraven.magpie.data.aws.AWSResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = ServiceControlPolicy.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = ServiceControlPolicy.TABLE_NAME)
 public class ServiceControlPolicy extends AWSResource {
 
   protected static final String TABLE_NAME = "awsorganizationscp";

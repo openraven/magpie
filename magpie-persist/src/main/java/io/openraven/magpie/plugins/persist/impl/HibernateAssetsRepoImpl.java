@@ -20,15 +20,14 @@ import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.plugins.persist.AssetsRepo;
 import io.openraven.magpie.plugins.persist.PersistConfig;
 import io.openraven.magpie.plugins.persist.config.PostgresPersistenceProvider;
-import org.hibernate.query.internal.NativeQueryImpl;
+import jakarta.persistence.EntityManager;
+import org.hibernate.query.sql.internal.NativeQueryImpl;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
 import java.io.Closeable;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -112,7 +111,7 @@ public class HibernateAssetsRepoImpl implements AssetsRepo, Closeable {
       "SELECT COUNT(*) FROM " + persistConfig.getSchema() + ".aws WHERE resourcetype = :resourceType":
       "SELECT COUNT(*) FROM "  + persistConfig.getSchema() + ".gcp WHERE resourcetype = :resourceType";
 
-    BigInteger val = (BigInteger)entityManager.createNativeQuery(query)
+    var val = (Number)entityManager.createNativeQuery(query)
       .setParameter("resourceType", resourceType)
       .getResultList()
       .get(0);

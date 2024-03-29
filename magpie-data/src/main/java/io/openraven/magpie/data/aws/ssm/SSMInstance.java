@@ -38,8 +38,8 @@ import io.openraven.magpie.data.aws.AWSResource;
 import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.ssm.model.InstanceInformation;
 
-@javax.persistence.Entity
-@javax.persistence.Table(name = SSMInstance.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = SSMInstance.TABLE_NAME)
 public class SSMInstance extends AWSResource {
 
   protected static final String TABLE_NAME = "awsssminstance";

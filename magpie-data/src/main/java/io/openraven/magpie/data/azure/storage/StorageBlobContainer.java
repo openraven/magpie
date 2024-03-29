@@ -36,9 +36,9 @@ package io.openraven.magpie.data.azure.storage;
 
 import io.openraven.magpie.data.azure.AzureResource;
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = StorageBlobContainer.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = StorageBlobContainer.TABLE_NAME)
 public class StorageBlobContainer extends AzureResource {
 
   protected static final String TABLE_NAME = "azurestorageblobcontainer";

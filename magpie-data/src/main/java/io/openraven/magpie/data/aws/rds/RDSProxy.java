@@ -24,9 +24,9 @@ import io.openraven.magpie.data.aws.shared.PayloadUtils;
 import software.amazon.awssdk.services.rds.model.DBProxy;
 
 
-@javax.persistence.Entity
-@javax.persistence.Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
-@javax.persistence.Table(name = RDSProxy.TABLE_NAME)
+@jakarta.persistence.Entity
+@jakarta.persistence.Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
+@jakarta.persistence.Table(name = RDSProxy.TABLE_NAME)
 public class RDSProxy extends AWSResource {
 
   protected static final String TABLE_NAME = "awsrdsproxy";

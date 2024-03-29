@@ -3,19 +3,19 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.10.3-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>magpie-data</artifactId>
 
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
-    <aws-java-sdk.version>2.17.93</aws-java-sdk.version>
-    <javax.persistence.version>2.2</javax.persistence.version>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
     <findbugs.version>3.0.2</findbugs.version>
     <reflections.version>0.10.2</reflections.version>
+    <jakarta.annotation-api.version>2.1.1</jakarta.annotation-api.version>
   </properties>
 
   <distributionManagement>
@@ -30,7 +30,7 @@
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
-        <version>${aws-java-sdk.version}</version>
+        <version>${aws.sdk.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -46,9 +46,14 @@
     </dependency>
 
     <dependency>
-      <groupId>javax.persistence</groupId>
-      <artifactId>javax.persistence-api</artifactId>
-      <version>${javax.persistence.version}</version>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <version>${jakarta.persistence.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+      <version>${jakarta.annotation-api.version}</version>
     </dependency>
 
     <dependency>
@@ -67,6 +72,12 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
+        <exclusions>
+            <exclusion>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>netty-nio-client</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -217,9 +228,9 @@
       <artifactId>ssm</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-jpamodelgen</artifactId>
-      <version>5.6.5.Final</version>
+      <version>6.4.4.Final</version>
     </dependency>
 
     <!--    TEST    -->

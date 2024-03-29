@@ -35,7 +35,11 @@ import software.aws.mcs.auth.SigV4AuthProvider;
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.format;
 

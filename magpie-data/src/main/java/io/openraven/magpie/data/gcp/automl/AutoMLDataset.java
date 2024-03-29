@@ -21,12 +21,12 @@ package io.openraven.magpie.data.gcp.automl;
 
 import io.openraven.magpie.data.gcp.GCPResource;
 
-import javax.persistence.Entity;
-import javax.persistence.Inheritance;
-import javax.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.Table;
 
 @Entity
-@Inheritance(strategy = javax.persistence.InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = jakarta.persistence.InheritanceType.TABLE_PER_CLASS)
 @Table(name = AutoMLDataset.TABLE_NAME)
 public class AutoMLDataset extends GCPResource {
 
