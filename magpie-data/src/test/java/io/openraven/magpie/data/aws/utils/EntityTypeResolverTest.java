@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.data.aws.accounts.IamGroup;
+import io.openraven.magpie.data.aws.rds.RDSInstance;
 import io.openraven.magpie.data.gcp.container.ContainerAnalysisNote;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,18 @@ import org.junit.jupiter.api.Test;
 class EntityTypeResolverTest {
 
     public static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
+
+
+  @Test
+  void testResourceSerialization() throws JsonProcessingException {
+    RDSInstance rdsInstance = new RDSInstance();
+    String serialisedResource = MAPPER.writeValueAsString(rdsInstance);
+    String expectedJson = """
+    {"resourceType":"AWS::RDS::DBInstance","documentId":null,"arn":null,"resourceName":null,"resourceId":null,"awsRegion":null,"awsAccountId":null,"createdIso":null,"updatedIso":null,"discoverySessionId":null,"maxSizeInBytes":null,"sizeInBytes":null,"configuration":null,"supplementaryConfiguration":null,"tags":null,"discoveryMeta":null}\
+    """;
+    Assertions.assertEquals(expectedJson, serialisedResource);
+  }
+
 
     @Test
     public void testResolveAwsIamGroup() throws JsonProcessingException {

@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DatabindContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.jsontype.impl.TypeIdResolverBase;
+import io.openraven.magpie.data.Resource;
 import io.openraven.magpie.data.exception.MissingEntityTypeException;
 import org.reflections.Reflections;
 
@@ -80,13 +81,16 @@ public class EntityTypeResolver extends TypeIdResolverBase {
     }
 
     @Override
-    public String idFromValue(Object o) {
-        return idFromValueAndType(o, o.getClass());
+    public String idFromValue(Object object) {
+      return idFromValueAndType(object, object.getClass());
     }
 
     @Override
-    public String idFromValueAndType(Object o, Class<?> aClass) {
-        return null;
+    public String idFromValueAndType(Object object, Class<?> aClass) {
+      if (object instanceof Resource) {
+        return ((Resource) object).getResourceType();
+      }
+      return aClass.getName();
     }
 
     @Override

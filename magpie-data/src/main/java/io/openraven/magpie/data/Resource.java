@@ -23,9 +23,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.openraven.magpie.data.utils.EntityTypeResolver;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, include = JsonTypeInfo.As.PROPERTY, property = "resourceType")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "resourceType")
 @JsonTypeIdResolver(EntityTypeResolver.class)
 public class Resource {
+
   public String resourceType;
 
   public String getResourceType() {
