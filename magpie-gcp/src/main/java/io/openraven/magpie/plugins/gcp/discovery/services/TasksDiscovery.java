@@ -95,7 +95,7 @@ public class TasksDiscovery implements GCPDiscovery {
               .withConfiguration(GCPUtils.asJsonNode(element))
               .build();
 
-            discoverTasks(cloudTasksClient, element, data);
+//            discoverTasks(cloudTasksClient, element, data);  // See PROD-10053 (OOM)
 
             emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":queue"), data.toJsonNode()));
           }
