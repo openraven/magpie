@@ -46,7 +46,7 @@ each layer may exist on separate compute instances.
 ```shell
 git clone git@github.com:openraven/magpie.git
 cd magpie
-mvn clean package install -DskipTests && mvn --projects magpie-cli assembly:single -DskipTests
+mvn clean install -DskipTests && mvn --projects magpie-cli assembly:single -DskipTests
 ```
 
 The distribution zip file will be located in `magpie-cli/target/magpie-<version>.zip`
@@ -63,7 +63,7 @@ the `uberjar` profile as such:
 
 ## Running Magpie
 
-*Java 11 is a prerequisite and must be installed to run Magpie.*
+*Java 17 is a prerequisite and must be installed to run Magpie.*
 
 Out of the box Magpie supports AWS for the cloud provider and outputs discovery data to `stdout` in JSON format. The
 AWS plugin utilizes the AWS Java SDK and will search for credentials as described in [Using Credentials](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials.html).

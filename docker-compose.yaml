@@ -1,0 +1,18 @@
+---
+version: "3.8"
+services:
+  magpie:
+    image: magpie:latest
+    entrypoint:
+      - /bin/bash
+      - -c
+      - sleep infinity
+    volumes:
+# PLEASE CHANGE THE PATH TO THE CONFIG FILE
+      - ./magpie-cli/src/assembly/files/config.yaml:/magpie/config.yaml
+  database:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: magpie
+      POSTGRES_USER: magpie
+      POSTGRES_DB: magpie
