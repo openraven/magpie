@@ -3,7 +3,7 @@
   <parent>
     <artifactId>magpie-parent</artifactId>
     <groupId>io.openraven.magpie</groupId>
-    <version>0.11.5-SNAPSHOT</version>
+    <version>0.11.5.jn.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -49,7 +49,7 @@
     <dependency>
       <groupId>io.openraven.magpie</groupId>
       <artifactId>magpie-persist</artifactId>
-      <version>0.11.5-SNAPSHOT</version>
+      <version>0.11.5.jn.1-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
 
