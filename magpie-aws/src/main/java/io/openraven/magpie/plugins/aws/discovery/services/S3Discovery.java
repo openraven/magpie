@@ -143,7 +143,7 @@ public class S3Discovery implements AWSDiscovery {
         discoverVersioning(client, bucket, data);
         discoverLifeCycleConfiguration(client, bucket, data);
         discoverBucketTags(client, bucket, data, mapper);
-        discoverSize(bucket, data, clientCreator);
+        discoverSize(bucket, data, clientCreator, logger);
         discoverCloudWatchMetricsConfig(client, bucket, data, clientCreator, logger, mapper);
 
         emitter.emit(VersionedMagpieEnvelopeProvider.create(session, List.of(fullService() + ":bucket"), data.toJsonNode()));
@@ -225,7 +225,7 @@ public class S3Discovery implements AWSDiscovery {
       logger.debug("Failure on S3 public access discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
     }
 
-    // wrap into a try/catch so that if there isn't an policy status response we catch it, default to false, and continue
+    // wrap into a try/catch so that if there isn't a policy status response we catch it, default to false, and continue
     try {
       GetBucketPolicyStatusResponse bucketPolicyStatus =
         client.getBucketPolicyStatus(GetBucketPolicyStatusRequest.builder()
@@ -334,18 +334,20 @@ public class S3Discovery implements AWSDiscovery {
   private void discoverMetrics(S3Client client, Bucket resource, MagpieAwsResource data) {
     final String keyname = "MetricsConfiguration";
     final String bucketName = resource.name();
-    var result = client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(bucketName).build());
-    result.metricsConfigurationList().forEach(
-      config -> {
-        getAwsResponse(
-          () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().id(config.id()).bucket(bucketName).build()).metricsConfiguration(),
-          (resp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, resp)),
-          (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
-        );
-      }
+    getAwsResponse(
+      () -> client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(bucketName).build()),
+      (resp) ->
+        resp.metricsConfigurationList().forEach(
+          config -> {
+            getAwsResponse(
+              () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().id(config.id()).bucket(bucketName).build()).metricsConfiguration(),
+              (r) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, r)),
+              (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
+            );
+          }
+        ),
+      (noresp) -> AWSUtils.update(data.supplementaryConfiguration, Map.of(keyname, noresp))
     );
-
-
   }
 
   private void discoverNotifications(S3Client client, Bucket resource, MagpieAwsResource data) {
@@ -460,6 +462,12 @@ public class S3Discovery implements AWSDiscovery {
         }
       }
       return requestMetrics;
+    } catch (SdkServiceException ex) {
+      if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
+        throw ex;
+      }
+      logger.info("Failure on available S3 metrics discovery, BucketName: {}, Reason: {}", bucketName, ex.getMessage());
+      return new HashMap<>();
     }
   }
 
@@ -468,48 +476,54 @@ public class S3Discovery implements AWSDiscovery {
     return mapper.valueToTree(requestMetrics);
   }
 
-  private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator) {
+  private void discoverSize(Bucket resource, MagpieAwsResource data, MagpieAWSClientCreator clientCreator, Logger logger) {
+    try {
+      // get the different bucket size metrics available
+      List<String> storageTypeDimensions = AWSUtils.getS3AvailableSizeMetrics(data.awsRegion, data.resourceName, clientCreator);
 
-    // get the different bucket size metrics available
-    List<String> storageTypeDimensions = AWSUtils.getS3AvailableSizeMetrics(data.awsRegion, data.resourceName, clientCreator);
+      List<Map<String, Long>> storageTypeMap = new ArrayList<>();
 
-    List<Map<String, Long>> storageTypeMap = new ArrayList<>();
+      // run through all the available metrics and make cloudwatch calls to get bucket size
+      for (String storageType : storageTypeDimensions) {
+        List<Dimension> dimensions = new ArrayList<>();
+        dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+        dimensions.add(Dimension.builder().name("StorageType").value(storageType).build());
+        Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
+          AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
 
-    // run through all the available metrics and make cloudwatch calls to get bucket size
-    for (String storageType : storageTypeDimensions) {
+        // we are leaving it boxed due to the insertion into the Map below
+        final Long bucketSizeMetric = bucketSizeBytes.getValue0();
+        if (bucketSizeMetric != null) {
+          storageTypeMap.add(Map.of(storageType, bucketSizeMetric));
+        }
+      }
+      data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration, Map.of("storageTypeSizeInBytes", storageTypeMap));
+
       List<Dimension> dimensions = new ArrayList<>();
       dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
-      dimensions.add(Dimension.builder().name("StorageType").value(storageType).build());
+      dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());
       Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
         AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
 
-      // we are leaving it boxed due to the insertion into the Map below
-      final Long bucketSizeMetric = bucketSizeBytes.getValue0();
-      if (bucketSizeMetric != null) {
-        storageTypeMap.add(Map.of(storageType, bucketSizeMetric));
+      List<Dimension> dimensions2 = new ArrayList<>();
+      dimensions2.add(Dimension.builder().name("BucketName").value(resource.name()).build());
+      dimensions2.add(Dimension.builder().name("StorageType").value("AllStorageTypes").build());
+      Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
+        AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2, clientCreator);
+
+      if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
+        AWSUtils.update(data.supplementaryConfiguration,
+          Map.of("size",
+            Map.of("BucketSizeBytes", bucketSizeBytes.getValue0(),
+              "NumberOfObjects", numberOfObjects.getValue0())));
+
+        data.sizeInBytes = bucketSizeBytes.getValue0();
       }
-    }
-    data.supplementaryConfiguration = AWSUtils.update(data.supplementaryConfiguration, Map.of("storageTypeSizeInBytes", storageTypeMap));
-
-    List<Dimension> dimensions = new ArrayList<>();
-    dimensions.add(Dimension.builder().name("BucketName").value(resource.name()).build());
-    dimensions.add(Dimension.builder().name("StorageType").value("StandardStorage").build());
-    Pair<Long, GetMetricStatisticsResponse> bucketSizeBytes =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "BucketSizeBytes", dimensions, clientCreator);
-
-    List<Dimension> dimensions2 = new ArrayList<>();
-    dimensions2.add(Dimension.builder().name("BucketName").value(resource.name()).build());
-    dimensions2.add(Dimension.builder().name("StorageType").value("AllStorageTypes").build());
-    Pair<Long, GetMetricStatisticsResponse> numberOfObjects =
-      AWSUtils.getCloudwatchMetricMaximum(data.awsRegion, "AWS/S3", "NumberOfObjects", dimensions2, clientCreator);
-
-    if (numberOfObjects.getValue0() != null && bucketSizeBytes.getValue0() != null) {
-      AWSUtils.update(data.supplementaryConfiguration,
-        Map.of("size",
-          Map.of("BucketSizeBytes", bucketSizeBytes.getValue0(),
-            "NumberOfObjects", numberOfObjects.getValue0())));
-
-      data.sizeInBytes = bucketSizeBytes.getValue0();
+    } catch (SdkServiceException ex) {
+      if (!(ex.statusCode() == 403 || ex.statusCode() == 404)) {
+        throw ex;
+      }
+      logger.info("Failure on S3 bucket size discovery, BucketName: {}, Reason: {}", resource.name(), ex.getMessage());
     }
   }
 
