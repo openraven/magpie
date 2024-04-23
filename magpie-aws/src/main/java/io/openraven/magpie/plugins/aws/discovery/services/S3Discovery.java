@@ -334,11 +334,10 @@ public class S3Discovery implements AWSDiscovery {
   private void discoverMetrics(S3Client client, Bucket resource, MagpieAwsResource data) {
     final String keyname = "MetricsConfiguration";
     final String bucketName = resource.name();
-    var result = client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(bucketName).build());
     getAwsResponse(
       () -> client.listBucketMetricsConfigurations(ListBucketMetricsConfigurationsRequest.builder().bucket(bucketName).build()),
       (resp) ->
-        result.metricsConfigurationList().forEach(
+        resp.metricsConfigurationList().forEach(
           config -> {
             getAwsResponse(
               () -> client.getBucketMetricsConfiguration(GetBucketMetricsConfigurationRequest.builder().id(config.id()).bucket(bucketName).build()).metricsConfiguration(),
