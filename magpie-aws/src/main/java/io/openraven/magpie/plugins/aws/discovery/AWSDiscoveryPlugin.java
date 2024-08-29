@@ -37,6 +37,7 @@ public class AWSDiscoveryPlugin implements OriginPlugin<AWSDiscoveryConfig> {
   public final static String ID = "magpie.aws.discovery";
   protected static final ObjectMapper MAPPER = new ObjectMapper()
     .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
     .findAndRegisterModules();
 
   private static final List<AWSDiscovery> DISCOVERY_LIST = List.of(
